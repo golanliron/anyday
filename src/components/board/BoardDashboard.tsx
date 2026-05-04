@@ -3277,9 +3277,9 @@ function DataEditPanel({ board, items, apiToken, boardId, pc = "#6C5CE7", ac = "
         const cv = item.column_values.find(v => v.id === colId);
         if (cv) cv.text = value;
       }
-      showToast("Saved!");
+      showToast("נשמר בהצלחה!");
     } catch (e) {
-      showToast(e instanceof Error ? e.message : "Error");
+      showToast(e instanceof Error ? e.message : "שגיאה בשמירה");
     } finally {
       setSaving(false);
       setEditingCell(null);
@@ -3291,10 +3291,10 @@ function DataEditPanel({ board, items, apiToken, boardId, pc = "#6C5CE7", ac = "
     setAddingItem(true);
     try {
       await createItem(boardId, apiToken, newItemName.trim());
-      showToast(`"${newItemName.trim()}" added`);
+      showToast(`"${newItemName.trim()}" נוסף בהצלחה`);
       setNewItemName("");
     } catch (e) {
-      showToast(e instanceof Error ? e.message : "Error");
+      showToast(e instanceof Error ? e.message : "שגיאה");
     } finally {
       setAddingItem(false);
     }
@@ -3304,9 +3304,9 @@ function DataEditPanel({ board, items, apiToken, boardId, pc = "#6C5CE7", ac = "
 
   return (
     <div>
-      <h3 style={{ fontSize: 17, fontWeight: 700, color: "#2D2252", marginBottom: 4 }}>Edit Items</h3>
+      <h3 style={{ fontSize: 17, fontWeight: 700, color: "#2D2252", marginBottom: 4 }}>עריכה ישירה</h3>
       <p style={{ fontSize: 12, color: ac, marginBottom: 14, lineHeight: 1.5 }}>
-        Click any cell to edit. Changes save directly to Monday.
+        לחצו על תא כדי לערוך. השינויים נשמרים ישירות ב-Monday.
       </p>
 
       {toast && (
@@ -3328,7 +3328,7 @@ function DataEditPanel({ board, items, apiToken, boardId, pc = "#6C5CE7", ac = "
           value={newItemName}
           onChange={e => setNewItemName(e.target.value)}
           onKeyDown={e => e.key === "Enter" && handleAddItem()}
-          placeholder="Add new item..."
+          placeholder="הוסיפו פריט חדש..."
           style={{
             flex: 1, background: "#FFF", border: `1px solid ${hexToRgba(pc, 0.15)}`,
             borderRadius: 8, padding: "8px 12px", fontSize: 13, outline: "none",
@@ -3341,14 +3341,14 @@ function DataEditPanel({ board, items, apiToken, boardId, pc = "#6C5CE7", ac = "
           fontSize: 13, fontWeight: 700, cursor: newItemName.trim() ? "pointer" : "not-allowed",
           opacity: newItemName.trim() ? 1 : 0.5, whiteSpace: "nowrap",
         }}>
-          {addingItem ? "..." : "+ Add"}
+          {addingItem ? "..." : "+ הוספה"}
         </button>
       </div>
 
       <input
         value={searchQuery}
         onChange={e => setSearchQuery(e.target.value)}
-        placeholder="Search items..."
+        placeholder="חיפוש פריטים..."
         style={{
           width: "100%", background: "#F9F7FF", border: `1px solid ${hexToRgba(pc, 0.12)}`,
           borderRadius: 8, padding: "8px 12px", fontSize: 13, outline: "none",
@@ -3357,7 +3357,7 @@ function DataEditPanel({ board, items, apiToken, boardId, pc = "#6C5CE7", ac = "
       />
 
       <div style={{ fontSize: 11, color: ac, marginBottom: 8 }}>
-        {filteredItems.length} / {items.length} items
+        {filteredItems.length} / {items.length} פריטים
       </div>
 
       <div style={{ maxHeight: "calc(100vh - 340px)", overflowY: "auto" }}>
@@ -3400,7 +3400,7 @@ function DataEditPanel({ board, items, apiToken, boardId, pc = "#6C5CE7", ac = "
                       <button onClick={() => setEditingCell(null)} style={{
                         background: "none", border: "none", cursor: "pointer",
                         fontSize: 11, color: "#E17055", fontWeight: 600, marginTop: 2,
-                      }}>Cancel</button>
+                      }}>ביטול</button>
                     </div>
                   );
                 }
@@ -3432,7 +3432,7 @@ function DataEditPanel({ board, items, apiToken, boardId, pc = "#6C5CE7", ac = "
                           flex: 1, background: pc, color: "#FFF", border: "none",
                           borderRadius: 6, padding: "4px 8px", fontSize: 11, fontWeight: 700,
                           cursor: saving ? "wait" : "pointer",
-                        }}>{saving ? "..." : "Save"}</button>
+                        }}>{saving ? "..." : "שמור"}</button>
                         <button onClick={() => setEditingCell(null)} style={{
                           background: "none", border: `1px solid ${hexToRgba(pc, 0.15)}`,
                           borderRadius: 6, padding: "4px 8px", fontSize: 11, cursor: "pointer",
@@ -3468,7 +3468,7 @@ function DataEditPanel({ board, items, apiToken, boardId, pc = "#6C5CE7", ac = "
         ))}
         {filteredItems.length > 50 && (
           <div style={{ textAlign: "center", padding: 12, fontSize: 12, color: ac }}>
-            Showing 50 of {filteredItems.length} items. Use search to find more.
+            מציג 50 מתוך {filteredItems.length} פריטים. השתמשו בחיפוש למציאת פריטים נוספים.
           </div>
         )}
       </div>
