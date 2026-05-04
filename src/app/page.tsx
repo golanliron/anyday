@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { Spinner } from "@/components/ui/Spinner";
 import { BoardDashboard } from "@/components/board/BoardDashboard";
-import { loadBoard } from "@/lib/api-client";
+import { loadBoard, listBoards } from "@/lib/api-client";
 import type { MondayBoard, MondayItem } from "@/types";
 
 function IconChat() {
@@ -259,8 +259,70 @@ export default function Home() {
   const [dataSource, setDataSource] = useState<"monday" | "sheets" | "excel">("monday");
   const [sheetsUrl, setSheetsUrl] = useState("");
   const [lang, setLang] = useState<Lang>("he");
+  const [boardsList, setBoardsList] = useState<{ id: string; name: string; items_count: number; description: string }[]>([]);
+  const [loadingBoards, setLoadingBoards] = useState(false);
+  const [tokenConnected, setTokenConnected] = useState(false);
   const t = T[lang];
   const formRef = useRef<HTMLDivElement>(null);
+
+  // Load saved token from localStorage and fetch boards
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("anyday-token");
+      if (saved) {
+        setApiToken(saved);
+        setTokenConnected(true);
+        listBoards(saved).then(boards => setBoardsList(boards)).catch(() => {});
+      }
+    } catch {}
+  }, []);
+
+  async function handleConnectToken() {
+    const token = apiToken.trim();
+    if (!token) return;
+    setLoadingBoards(true);
+    setError(null);
+    try {
+      const boards = await listBoards(token);
+      setBoardsList(boards);
+      setTokenConnected(true);
+      try { localStorage.setItem("anyday-token", token); } catch {}
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Token לא תקין");
+      setTokenConnected(false);
+    } finally {
+      setLoadingBoards(false);
+    }
+  }
+
+  async function handleSelectBoard(id: string) {
+    setBoardId(id);
+    await handleLoadWithId(id);
+  }
+
+  async function handleLoadWithId(id: string) {
+    const token = apiToken.trim();
+    if (!id || !token) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await loadBoard(id, token);
+      setBoard(data.board);
+      setItems(data.items);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleDisconnect() {
+    setTokenConnected(false);
+    setBoardsList([]);
+    setApiToken("");
+    setBoardId("");
+    try { localStorage.removeItem("anyday-token"); } catch {}
+  }
 
   async function handleLoad() {
     const id = boardId.trim();
@@ -773,197 +835,216 @@ export default function Home() {
               ))}
             </div>
 
-            {/* Monday Form */}
+            {/* Monday Form — Smart Board Picker */}
             {dataSource === "monday" && <>
-            {/* API Token */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-              <label style={{ fontWeight: 700, fontSize: 14, color: "#2D2252" }}>
-                {t.form.tokenLabel}
-              </label>
-              <button onClick={() => setShowTokenHelp(!showTokenHelp)} style={{
-                width: 22, height: 22, borderRadius: "50%",
-                background: showTokenHelp ? "#6C5CE7" : "rgba(108,92,231,0.1)",
-                color: showTokenHelp ? "#FFF" : "#6C5CE7",
-                border: "none", fontSize: 12, fontWeight: 800, cursor: "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                transition: "all 0.2s",
-              }}>?</button>
-            </div>
-            {showTokenHelp && (
-              <div style={{
-                background: "linear-gradient(135deg, rgba(108,92,231,0.06), rgba(162,155,254,0.08))",
-                borderRadius: 14, padding: "16px 18px", marginBottom: 14,
-                border: "1px solid rgba(108,92,231,0.12)",
-              }}>
-                <p style={{ fontSize: 13, fontWeight: 700, color: "#2D2252", margin: "0 0 12px" }}>
-                  {t.form.tokenHelp}
-                </p>
-                {t.form.tokenSteps.map((text, idx) => ({ step: String(idx + 1), icon: ["👤", "⚙️", "🔑", "📋"][idx], text })).map((s) => (
-                  <div key={s.step} style={{
-                    display: "flex", alignItems: "center", gap: 10, marginBottom: 8,
-                  }}>
+              {!tokenConnected ? (
+                /* Step 1: Enter token & connect */
+                <>
+                  <div style={{ textAlign: "center", marginBottom: 20 }}>
                     <div style={{
-                      width: 28, height: 28, borderRadius: 8,
-                      background: "#6C5CE7", color: "#FFF",
+                      width: 56, height: 56, borderRadius: 14, margin: "0 auto 12px",
+                      background: "linear-gradient(135deg, #6C5CE7, #A29BFE)",
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 13, fontWeight: 800, flexShrink: 0,
-                    }}>{s.step}</div>
-                    <span style={{ fontSize: 13, color: "#2D2252", lineHeight: 1.5 }}>
-                      <span style={{ marginLeft: 4 }}>{s.icon}</span> {s.text}
-                    </span>
+                      fontSize: 24, color: "#FFF", fontWeight: 800,
+                    }}>M</div>
+                    <h3 style={{ fontSize: 18, fontWeight: 700, color: "#2D2252", marginBottom: 4 }}>
+                      {lang === "he" ? "חברו את Monday.com שלכם" : "Connect your Monday.com"}
+                    </h3>
+                    <p style={{ fontSize: 13, color: "#7C6FD0", lineHeight: 1.6 }}>
+                      {lang === "he" ? "הכניסו את ה-API Token פעם אחת ותראו את כל הבורדים שלכם" : "Enter your API Token once and see all your boards"}
+                    </p>
                   </div>
-                ))}
-                <div style={{
-                  marginTop: 10, background: "rgba(108,92,231,0.08)", borderRadius: 8,
-                  padding: "8px 12px", fontSize: 11, color: "#6C5CE7", fontWeight: 600,
-                  direction: "ltr", textAlign: "left", fontFamily: "monospace",
-                }}>
-                  {t.form.tokenPath}
-                </div>
-              </div>
-            )}
-            {!showTokenHelp && (
-              <p style={{ color: "#A29BFE", fontSize: 12, margin: "0 0 10px", lineHeight: 1.5 }}>
-                {t.form.tokenPath}
-              </p>
-            )}
-            <input
-              type="password"
-              value={apiToken}
-              onChange={(e) => setApiToken(e.target.value)}
-              placeholder="eyJhbGciOi..."
-              style={{
-                width: "100%", background: "#F9F7FF",
-                border: "1.5px solid rgba(108,92,231,0.15)",
-                color: "#2D2252", borderRadius: 12,
-                padding: "13px 16px", fontSize: 14,
-                outline: "none", direction: "ltr",
-                transition: "border-color 0.2s",
-                marginBottom: 20,
-              }}
-              onFocus={e => e.target.style.borderColor = "#6C5CE7"}
-              onBlur={e => e.target.style.borderColor = "rgba(108,92,231,0.15)"}
-            />
 
-            {/* Board ID */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-              <label style={{ fontWeight: 700, fontSize: 14, color: "#2D2252" }}>
-                {t.form.boardLabel}
-              </label>
-              <button onClick={() => setShowBoardHelp(!showBoardHelp)} style={{
-                width: 22, height: 22, borderRadius: "50%",
-                background: showBoardHelp ? "#6C5CE7" : "rgba(108,92,231,0.1)",
-                color: showBoardHelp ? "#FFF" : "#6C5CE7",
-                border: "none", fontSize: 12, fontWeight: 800, cursor: "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                transition: "all 0.2s",
-              }}>?</button>
-            </div>
-            {showBoardHelp && (
-              <div style={{
-                background: "linear-gradient(135deg, rgba(108,92,231,0.06), rgba(162,155,254,0.08))",
-                borderRadius: 14, padding: "16px 18px", marginBottom: 14,
-                border: "1px solid rgba(108,92,231,0.12)",
-              }}>
-                <p style={{ fontSize: 13, fontWeight: 700, color: "#2D2252", margin: "0 0 12px" }}>
-                  {t.form.boardHelp}
-                </p>
-                {t.form.boardSteps.map((text, idx) => ({ step: String(idx + 1), icon: ["📋", "🔗", "🔢"][idx], text })).map((s) => (
-                  <div key={s.step} style={{
-                    display: "flex", alignItems: "center", gap: 10, marginBottom: 8,
-                  }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                    <label style={{ fontWeight: 700, fontSize: 14, color: "#2D2252" }}>
+                      {t.form.tokenLabel}
+                    </label>
+                    <button onClick={() => setShowTokenHelp(!showTokenHelp)} style={{
+                      width: 22, height: 22, borderRadius: "50%",
+                      background: showTokenHelp ? "#6C5CE7" : "rgba(108,92,231,0.1)",
+                      color: showTokenHelp ? "#FFF" : "#6C5CE7",
+                      border: "none", fontSize: 12, fontWeight: 800, cursor: "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      transition: "all 0.2s",
+                    }}>?</button>
+                  </div>
+                  {showTokenHelp && (
                     <div style={{
-                      width: 28, height: 28, borderRadius: 8,
-                      background: "#6C5CE7", color: "#FFF",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 13, fontWeight: 800, flexShrink: 0,
-                    }}>{s.step}</div>
-                    <span style={{ fontSize: 13, color: "#2D2252", lineHeight: 1.5 }}>
-                      <span style={{ marginLeft: 4 }}>{s.icon}</span> {s.text}
-                    </span>
-                  </div>
-                ))}
-                <div style={{
-                  marginTop: 10, background: "#2D2252", borderRadius: 10,
-                  padding: "12px 16px", direction: "ltr", textAlign: "left",
-                  fontFamily: "monospace", fontSize: 13, position: "relative",
-                }}>
-                  <span style={{ color: "rgba(255,255,255,0.5)" }}>monday.com/boards/</span>
-                  <span style={{
-                    color: "#A29BFE", fontWeight: 800,
-                    background: "rgba(108,92,231,0.2)", borderRadius: 4,
-                    padding: "2px 6px",
-                  }}>1234567890</span>
-                  <div style={{
-                    position: "absolute", top: -8, right: 30,
-                    fontSize: 18, lineHeight: 1,
-                  }}>
-                    <span style={{
-                      background: "#6C5CE7", color: "#FFF", borderRadius: 6,
-                      padding: "2px 8px", fontSize: 10, fontWeight: 800,
-                      fontFamily: "'Rubik', sans-serif",
-                    }}>{t.form.boardCopy}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-            {!showBoardHelp && (
-              <p style={{ color: "#A29BFE", fontSize: 12, margin: "0 0 10px", lineHeight: 1.5 }}>
-                {t.form.boardUrlHint}<span style={{ color: "#6C5CE7", fontWeight: 700 }}>1234567890</span>
-              </p>
-            )}
-            <input
-              type="text"
-              inputMode="numeric"
-              value={boardId}
-              onChange={(e) => setBoardId(e.target.value.replace(/\D/g, ""))}
-              onKeyDown={(e) => e.key === "Enter" && !loading && handleLoad()}
-              placeholder="1234567890"
-              style={{
-                width: "100%", background: "#F9F7FF",
-                border: `1.5px solid ${error ? "#E17055" : "rgba(108,92,231,0.15)"}`,
-                color: "#2D2252", borderRadius: 12,
-                padding: "14px 16px", fontSize: 20, fontWeight: 700,
-                outline: "none", direction: "ltr", textAlign: "center",
-                letterSpacing: "3px",
-                transition: "border-color 0.2s",
-              }}
-              onFocus={e => { if (!error) e.target.style.borderColor = "#6C5CE7"; }}
-              onBlur={e => { if (!error) e.target.style.borderColor = "rgba(108,92,231,0.15)"; }}
-            />
+                      background: "linear-gradient(135deg, rgba(108,92,231,0.06), rgba(162,155,254,0.08))",
+                      borderRadius: 14, padding: "16px 18px", marginBottom: 14,
+                      border: "1px solid rgba(108,92,231,0.12)",
+                    }}>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: "#2D2252", margin: "0 0 12px" }}>
+                        {t.form.tokenHelp}
+                      </p>
+                      {t.form.tokenSteps.map((text, idx) => (
+                        <div key={idx} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                          <div style={{
+                            width: 28, height: 28, borderRadius: 8,
+                            background: "#6C5CE7", color: "#FFF",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            fontSize: 13, fontWeight: 800, flexShrink: 0,
+                          }}>{idx + 1}</div>
+                          <span style={{ fontSize: 13, color: "#2D2252", lineHeight: 1.5 }}>{text}</span>
+                        </div>
+                      ))}
+                      <div style={{
+                        marginTop: 10, background: "rgba(108,92,231,0.08)", borderRadius: 8,
+                        padding: "8px 12px", fontSize: 11, color: "#6C5CE7", fontWeight: 600,
+                        direction: "ltr", textAlign: "left", fontFamily: "monospace",
+                      }}>
+                        {t.form.tokenPath}
+                      </div>
+                    </div>
+                  )}
+                  {!showTokenHelp && (
+                    <p style={{ color: "#A29BFE", fontSize: 12, margin: "0 0 10px", lineHeight: 1.5 }}>
+                      {t.form.tokenPath}
+                    </p>
+                  )}
+                  <input
+                    type="password"
+                    value={apiToken}
+                    onChange={(e) => setApiToken(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && !loadingBoards && handleConnectToken()}
+                    placeholder="eyJhbGciOi..."
+                    style={{
+                      width: "100%", background: "#F9F7FF",
+                      border: "1.5px solid rgba(108,92,231,0.15)",
+                      color: "#2D2252", borderRadius: 12,
+                      padding: "13px 16px", fontSize: 14,
+                      outline: "none", direction: "ltr",
+                      transition: "border-color 0.2s",
+                      marginBottom: 16,
+                    }}
+                    onFocus={e => e.target.style.borderColor = "#6C5CE7"}
+                    onBlur={e => e.target.style.borderColor = "rgba(108,92,231,0.15)"}
+                  />
 
-            {error && (
-              <div style={{
-                background: "rgba(225,112,85,0.08)", border: "1px solid rgba(225,112,85,0.2)",
-                borderRadius: 10, padding: "10px 14px", marginTop: 14,
-                color: "#E17055", fontSize: 13, textAlign: "center",
-              }}>
-                {error}
-              </div>
-            )}
+                  {error && (
+                    <div style={{
+                      background: "rgba(225,112,85,0.08)", border: "1px solid rgba(225,112,85,0.2)",
+                      borderRadius: 10, padding: "10px 14px", marginBottom: 14,
+                      color: "#E17055", fontSize: 13, textAlign: "center",
+                    }}>
+                      {error}
+                    </div>
+                  )}
 
-            <button
-              onClick={handleLoad}
-              disabled={!boardId.trim() || !apiToken.trim() || loading}
-              style={{
-                width: "100%", marginTop: 20,
-                background: (!boardId.trim() || !apiToken.trim() || loading)
-                  ? "rgba(108,92,231,0.2)"
-                  : "linear-gradient(135deg, #6C5CE7, #A29BFE)",
-                color: "#FFF", border: "none", borderRadius: 12,
-                padding: "15px", fontSize: 16, fontWeight: 700,
-                cursor: (!boardId.trim() || !apiToken.trim() || loading) ? "not-allowed" : "pointer",
-                transition: "all 0.3s ease",
-                boxShadow: (!boardId.trim() || !apiToken.trim() || loading) ? "none" : "0 6px 20px rgba(108,92,231,0.25)",
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-              }}
-            >
-              {loading ? (
-                <><Spinner size={16} color="#FFF" /> {t.form.loading}</>
+                  <button
+                    onClick={handleConnectToken}
+                    disabled={!apiToken.trim() || loadingBoards}
+                    style={{
+                      width: "100%",
+                      background: (!apiToken.trim() || loadingBoards)
+                        ? "rgba(108,92,231,0.2)"
+                        : "linear-gradient(135deg, #6C5CE7, #A29BFE)",
+                      color: "#FFF", border: "none", borderRadius: 12,
+                      padding: "15px", fontSize: 16, fontWeight: 700,
+                      cursor: (!apiToken.trim() || loadingBoards) ? "not-allowed" : "pointer",
+                      transition: "all 0.3s ease",
+                      boxShadow: (!apiToken.trim() || loadingBoards) ? "none" : "0 6px 20px rgba(108,92,231,0.25)",
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                    }}
+                  >
+                    {loadingBoards ? (
+                      <><Spinner size={16} color="#FFF" /> {lang === "he" ? "מתחבר..." : "Connecting..."}</>
+                    ) : (
+                      <>{lang === "he" ? "התחברות" : "Connect"}</>
+                    )}
+                  </button>
+                </>
               ) : (
-                t.form.loadBtn
+                /* Step 2: Connected — show board list */
+                <>
+                  <div style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    marginBottom: 20, padding: "12px 16px",
+                    background: "rgba(0,210,91,0.06)", borderRadius: 12,
+                    border: "1px solid rgba(0,210,91,0.15)",
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{
+                        width: 10, height: 10, borderRadius: "50%", background: "#00D25B",
+                        boxShadow: "0 0 8px rgba(0,210,91,0.4)",
+                      }} />
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "#2D2252" }}>
+                        {lang === "he" ? "מחובר ל-Monday.com" : "Connected to Monday.com"}
+                      </span>
+                    </div>
+                    <button onClick={handleDisconnect} style={{
+                      background: "none", border: "none", cursor: "pointer",
+                      fontSize: 12, color: "#E17055", fontWeight: 600,
+                    }}>
+                      {lang === "he" ? "התנתק" : "Disconnect"}
+                    </button>
+                  </div>
+
+                  {boardsList.length > 0 ? (
+                    <>
+                      <p style={{ fontSize: 14, fontWeight: 700, color: "#2D2252", marginBottom: 12 }}>
+                        {lang === "he" ? "בחרו בורד:" : "Choose a board:"}
+                      </p>
+                      <div style={{ maxHeight: 360, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+                        {boardsList.map(b => (
+                          <button key={b.id} onClick={() => handleSelectBoard(b.id)} disabled={loading} style={{
+                            width: "100%", textAlign: "right", padding: "14px 16px",
+                            background: loading ? "rgba(108,92,231,0.04)" : "#F9F7FF",
+                            border: "1.5px solid rgba(108,92,231,0.12)",
+                            borderRadius: 12, cursor: loading ? "wait" : "pointer",
+                            transition: "all 0.2s",
+                            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+                          }}
+                          onMouseEnter={e => { if (!loading) { e.currentTarget.style.borderColor = "#6C5CE7"; e.currentTarget.style.background = "rgba(108,92,231,0.06)"; } }}
+                          onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(108,92,231,0.12)"; e.currentTarget.style.background = "#F9F7FF"; }}
+                          >
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 14, fontWeight: 700, color: "#2D2252", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                {b.name}
+                              </div>
+                              {b.description && (
+                                <div style={{ fontSize: 11, color: "#7C6FD0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                  {b.description}
+                                </div>
+                              )}
+                            </div>
+                            <div style={{
+                              background: "rgba(108,92,231,0.08)", borderRadius: 8,
+                              padding: "4px 10px", fontSize: 12, fontWeight: 700, color: "#6C5CE7",
+                              flexShrink: 0,
+                            }}>
+                              {b.items_count} {lang === "he" ? "פריטים" : "items"}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ textAlign: "center", padding: "20px 0", color: "#7C6FD0", fontSize: 14 }}>
+                      {lang === "he" ? "לא נמצאו בורדים" : "No boards found"}
+                    </div>
+                  )}
+
+                  {loading && (
+                    <div style={{
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                      marginTop: 16, color: "#6C5CE7", fontSize: 14, fontWeight: 600,
+                    }}>
+                      <Spinner size={16} color="#6C5CE7" /> {lang === "he" ? "טוען את הבורד..." : "Loading board..."}
+                    </div>
+                  )}
+
+                  {error && (
+                    <div style={{
+                      background: "rgba(225,112,85,0.08)", border: "1px solid rgba(225,112,85,0.2)",
+                      borderRadius: 10, padding: "10px 14px", marginTop: 14,
+                      color: "#E17055", fontSize: 13, textAlign: "center",
+                    }}>
+                      {error}
+                    </div>
+                  )}
+                </>
               )}
-            </button>
             </>}
 
             {/* Google Sheets Form */}

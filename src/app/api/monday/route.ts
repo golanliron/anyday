@@ -141,6 +141,58 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ groups: data.boards?.[0]?.groups || [] });
     }
 
+    // ── List all boards for the user ──
+    if (action === "list_boards") {
+      const data = await mondayQuery(
+        `query { boards(limit:50, order_by:used_at) { id name items_count description } }`,
+        apiToken
+      );
+      return NextResponse.json({ boards: data.boards || [] });
+    }
+
+    // ── Change a single column value (structured JSON) ──
+    if (action === "change_value") {
+      const { itemId, columnId, value } = body;
+      if (!boardId || !itemId || !columnId) {
+        return NextResponse.json({ error: "missing params" }, { status: 400 });
+      }
+      const valueJson = JSON.stringify(value).replace(/"/g, '\\"');
+      const data = await mondayQuery(
+        `mutation { change_column_value(board_id:${boardId}, item_id:${itemId}, column_id:"${columnId}", value:"${valueJson}") { id } }`,
+        apiToken
+      );
+      return NextResponse.json({ success: true, data });
+    }
+
+    // ── Change simple (text) column value ──
+    if (action === "change_simple") {
+      const { itemId, columnId, value } = body;
+      if (!boardId || !itemId || !columnId) {
+        return NextResponse.json({ error: "missing params" }, { status: 400 });
+      }
+      const escaped = String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+      const data = await mondayQuery(
+        `mutation { change_simple_column_value(board_id:${boardId}, item_id:${itemId}, column_id:"${columnId}", value:"${escaped}") { id } }`,
+        apiToken
+      );
+      return NextResponse.json({ success: true, data });
+    }
+
+    // ── Create new item ──
+    if (action === "create_item") {
+      const { itemName, groupId } = body;
+      if (!boardId || !itemName) {
+        return NextResponse.json({ error: "missing params" }, { status: 400 });
+      }
+      const escaped = itemName.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+      const groupClause = groupId ? `, group_id:"${groupId}"` : "";
+      const data = await mondayQuery(
+        `mutation { create_item(board_id:${boardId}, item_name:"${escaped}"${groupClause}) { id name } }`,
+        apiToken
+      );
+      return NextResponse.json({ success: true, item: data.create_item });
+    }
+
     return NextResponse.json({ error: "פעולה לא מוכרת" }, { status: 400 });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "שגיאה לא ידועה";
