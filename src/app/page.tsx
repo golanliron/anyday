@@ -81,17 +81,17 @@ const T = {
       titleBrand: "",
       title3: "",
       sub: "Monday · Google Sheets · Excel · בעברית מלאה",
-      desc: "חברו את מקורות הנתונים שלכם ותתחילו לקבל תשובות, דוחות להנהלה, מתריעה לפני שמאוחר. ואוטומציות - הכל בעברית, הכל אוטומטי.",
-      cta: "הזמינו דמו של 15 דקות",
+      desc: "AnyDay מחבר את הבורדים, הגיליונות והאקסלים שלכם והופך אותם לדוחות מנהלים, תובנות אסטרטגיות והתראות חכמות. בעברית. בלי טכנולוג שיתרגם.",
+      cta: "התחילו בחינם",
     },
     features: {
       title: "יש לכם כבר את כל המידע. עכשיו תקבלו גם את התשובות.",
       sub: "AnyDay לא מחליף את Monday או את ה-Sheets שלכם. הוא יושב מעליהם וגורם להם סוף סוף לדבר.",
       items: [
-        { title: "שואלים בעברית. מקבלים תשובה.", desc: "כמה לקוחות חתמו ברבעון? אילו פרויקטים פיגרו ביעד? תשובה מיידית, עם הנתונים, עם המקור." },
-        { title: "דוח לדירקטוריון בלחיצה.", desc: "PDF מעוצב, עם גרפים נכונים, תובנות אסטרטגיות והלוגו שלכם. מוכן לישיבה. בלי לקרוא לאף אחד." },
-        { title: "התראות חכמות", desc: "לקוחה שלא הגיבה 14 יום. פרויקט שזז שלוש פעמים. AnyDay מזהה ושולח — בלי שתשאלו." },
-        { title: "אוטומציות שמבצעות", desc: "לא מסבירה מה לעשות - עושה. שינוי סטטוס, העברה לקבוצה, ארכיון - ישירות מהצ'אט" },
+        { title: "שואלים בעברית. מקבלים תשובה.", desc: "\"כמה לקוחות חתמו ברבעון?\" \"אילו פרויקטים פיגרו ביעד?\" תשובה מיידית, עם הנתונים, עם המקור." },
+        { title: "דוחות ודשבורד בלחיצה.", desc: "דוח PDF לדירקטוריון, דשבורד אימפקט עם גרפים, סיכום ביצועים — מוכן לישיבה. בלי לקרוא לאף אחד." },
+        { title: "מערכת שמתריעה לפני שמאוחר.", desc: "לקוחה שלא הגיבה 14 יום. פרויקט שזז שלוש פעמים. הכנסה שירדה ב-23%. AnyDay מזהה ושולח — בלי שתשאלו." },
+        { title: "אוטומציות ובניית בורדים.", desc: "\"תעבירי את הסגורים לארכיון\" — בוצע. \"תבני לי בורד ניהול פרויקטים\" — נבנה. שיחה אחת, ביצוע מלא." },
       ],
     },
     steps: {
@@ -100,17 +100,17 @@ const T = {
       items: [
         { title: "חברו את המקור", desc: "Monday, Google Sheets או Excel. OAuth של לחיצה אחת. בלי טכנולוג בארגון." },
         { title: "תנו ל-AnyDay לקרוא", desc: "המערכת מבינה את המבנה, מזהה את העמודות, מחברת בין הבורדים. שתי דקות." },
-        { title: "שאלו. קבלו. תפעלו.", desc: "סיכומים, דוחות, אוטומציות ועריכה — הכל מוכן" },
+        { title: "שאלו. קבלו. תפעלו.", desc: "צ'אט, דשבורד, דוחות, אימפקט, אוטומציות, עריכה ובניית בורדים — הכל מוכן." },
       ],
     },
     pricing: {
       title: "תוכנית לכל שלב בארגון.",
       sub: "חיבור מלא לכל הבורדים והגיליונות, בכל החבילות. ההבדל הוא ביכולות.",
       plans: [
-        { name: "Pro", desc: "כל הבורדים, דוחות, אוטומציות, עריכה", boards: "ללא הגבלה" },
+        { name: "בודקים", desc: "לבדיקת הכלי לפני הטמעה ארגונית", boards: "צ׳אט + 100 שאלות בחודש" },
         { name: "לידרים", desc: "לסמנכ״לית שמובילה תחום", boards: "דוחות + התראות + 500 שאלות" },
-        { name: "דירקטורים", desc: "למנכ״לית שמדווחת לדירקטוריון", boards: "אוטמציות + 2,000 שאלות" },
-        { name: "ארגון", desc: "לארגונים עם 50+ עובדים", boards: "White Label + SSO + API" },
+        { name: "דירקטורים", desc: "למנכ״לית שמדווחת לדירקטוריון", boards: "אוטומציות + אימפקט + 2,000 שאלות" },
+        { name: "ארגון", desc: "לארגונים עם 50+ עובדים או דרישות אבטחה", boards: "White Label + SSO + API + 10,000 שאלות" },
       ],
       popular: "הכי פופולרי",
       month: "₪/חודש",
@@ -149,9 +149,9 @@ const T = {
       ],
     },
     contact: {
-      title: "רוצים מערכת ואוטומציות רק בשבילכם?",
-      sub: "ללא כרטיס אשראי בניסיון. ללא חוזה. ביטול בלחיצה.",
-      cta: "הזמינו דמו של 15 דקות",
+      title: "הישיבה הבאה בעוד שבוע.",
+      sub: "מה תעדיפו — לילה ארוך עם Excel, או דוח שמוכן בעוד דקה?",
+      cta: "התחילו 7 ימים חינם",
     },
     footer: "כל הזכויות שמורות.",
   },
@@ -171,10 +171,10 @@ const T = {
       title: "Your Toolkit",
       sub: "Everything you need to turn Monday into an answer engine",
       items: [
-        { title: "Smart Board Chat", desc: "Ask your Monday any question in plain language and get instant answers with real data" },
-        { title: "Visual Dashboard", desc: "Charts and insights built automatically from your data, ready to send to management" },
-        { title: "Custom Automations", desc: "The system suggests smart automations that save you hours of manual work every week" },
-        { title: "Impact Reports", desc: "Generate professional reports for donors and management directly from data, without writing a word" },
+        { title: "Ask in plain language. Get answers.", desc: "How many clients signed this quarter? Which projects are behind? Instant answers with data and source." },
+        { title: "Reports & Dashboard in one click.", desc: "PDF board report, impact dashboard with charts, performance summary — ready for the meeting." },
+        { title: "Alerts before it's too late.", desc: "Client didn't respond in 14 days. Project moved 3 times. Revenue dropped 23%. AnyDay detects and alerts." },
+        { title: "Automations & Board Builder.", desc: "\"Move closed items to archive\" — done. \"Build me a project board\" — built. One conversation, full execution." },
       ],
     },
     steps: {
@@ -380,7 +380,7 @@ export default function Home() {
   }
 
   function scrollToForm() {
-    formRef.current?.scrollIntoView({ behavior: "smooth" });
+    window.location.href = "mailto:hello@anyday.co.il?subject=הזמנת דמו של 15 דקות";
   }
 
   if (board) {
@@ -449,12 +449,6 @@ export default function Home() {
             </svg>
             {lang === "he" ? "EN" : "עב"}
           </button>
-          <button onClick={scrollToForm} style={{
-            background: "linear-gradient(135deg, #6C5CE7, #A29BFE)",
-            color: "#FFF", border: "none", borderRadius: 10,
-            padding: "9px 22px", fontSize: 14, fontWeight: 700,
-            cursor: "pointer", transition: "all 0.3s ease",
-          }}>{t.nav.cta}</button>
         </div>
         {/* Hamburger */}
         <button className="mobile-burger" onClick={() => setMobileMenu(!mobileMenu)} style={{
@@ -482,11 +476,7 @@ export default function Home() {
             borderRadius: 10, padding: "10px 30px", cursor: "pointer",
             color: "#6C5CE7", fontSize: 16, fontWeight: 700,
           }}>{lang === "he" ? "English" : "עברית"}</button>
-          <button onClick={() => { setMobileMenu(false); scrollToForm(); }} style={{
-            background: "linear-gradient(135deg, #6C5CE7, #A29BFE)",
-            color: "#FFF", border: "none", borderRadius: 12,
-            padding: "12px 40px", fontSize: 16, fontWeight: 700, cursor: "pointer",
-          }}>{t.nav.cta}</button>
+          {/* CTA button removed */}
         </div>
       )}
 
@@ -540,15 +530,7 @@ export default function Home() {
           }}>
             {t.hero.desc}
           </p>
-          <button onClick={scrollToForm} style={{
-            background: "linear-gradient(135deg, #6C5CE7, #A29BFE)",
-            color: "#FFF", border: "none", borderRadius: 14,
-            padding: "16px 40px", fontSize: 17, fontWeight: 700,
-            cursor: "pointer", transition: "all 0.3s ease",
-            boxShadow: "0 8px 30px rgba(108,92,231,0.3)",
-          }}>
-            {t.hero.cta}
-          </button>
+          {/* CTA buttons removed */}
         </div>
       </section>
 
@@ -723,22 +705,14 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Get Started Form ── */}
+      {/* ── Connect Form ── */}
       <section ref={formRef} id="start" style={{
         padding: "80px 24px", background: "#FFFFFF", textAlign: "center",
       }}>
         <div style={{ maxWidth: 480, margin: "0 auto" }}>
-          <h2 style={{ fontSize: 32, fontWeight: 800, marginBottom: 12, color: "#2D2252" }}>
-            {t.form.title}
-          </h2>
-          <p style={{ color: "#7C6FD0", fontSize: 16, marginBottom: 36 }}>
-            {t.form.sub}
-          </p>
-
           <div style={{
             background: "#FFFFFF", borderRadius: 22, padding: "36px 32px",
             border: "1px solid rgba(108,92,231,0.1)",
-            boxShadow: "0 8px 40px rgba(108,92,231,0.08)",
             textAlign: "right",
           }} className="form-card">
             {/* Data Source Tabs */}
@@ -1102,32 +1076,31 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Contact / CTA ── */}
+      {/* ── Final CTA ── */}
       <section style={{
-        padding: "60px 24px", background: "#F9F7FF", textAlign: "center",
+        padding: "60px 24px", background: "#FFFFFF", textAlign: "center",
       }}>
-        <div className="fade-up" style={{ maxWidth: 500, margin: "0 auto" }}>
-          <p style={{ fontSize: 22, fontWeight: 800, color: "#2D2252", marginBottom: 8 }}>
-            {t.contact.title}
+        <div style={{ maxWidth: 560, margin: "0 auto" }}>
+          <h2 style={{ fontSize: 26, fontWeight: 800, color: "#2D2252", marginBottom: 12, lineHeight: 1.4 }}>
+            {lang === "he" ? "הישיבה הבאה בעוד שבוע." : "Your next meeting is in a week."}
+          </h2>
+          <p style={{ fontSize: 16, color: "#7C6FD0", marginBottom: 28, lineHeight: 1.7 }}>
+            {lang === "he" ? "מה תעדיפו — לילה ארוך עם Excel, או דוח שמוכן בעוד דקה?" : "Would you prefer a long night with Excel, or a report ready in a minute?"}
           </p>
-          <p style={{ fontSize: 16, color: "#7C6FD0", marginBottom: 28 }}>
-            {t.contact.sub}
+          <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+            <button onClick={() => formRef.current?.scrollIntoView({ behavior: "smooth" })} style={{
+              background: "linear-gradient(135deg, #6C5CE7, #A29BFE)",
+              color: "#FFF", border: "none", borderRadius: 14,
+              padding: "14px 36px", fontSize: 16, fontWeight: 700,
+              cursor: "pointer", boxShadow: "0 6px 20px rgba(108,92,231,0.25)",
+              transition: "all 0.3s ease",
+            }}>
+              {lang === "he" ? "התחילו 7 ימים חינם" : "Start 7-day free trial"}
+            </button>
+          </div>
+          <p style={{ fontSize: 13, color: "#A29BFE", marginTop: 16 }}>
+            {lang === "he" ? "ללא כרטיס אשראי. ללא חוזה. ביטול בלחיצה." : "No credit card. No contract. Cancel anytime."}
           </p>
-          <a href="mailto:hello@dayday.app" style={{
-            display: "inline-flex", alignItems: "center", gap: 10,
-            background: "linear-gradient(135deg, #6C5CE7, #A29BFE)",
-            color: "#FFF", border: "none", borderRadius: 14,
-            padding: "14px 36px", fontSize: 16, fontWeight: 700,
-            cursor: "pointer", textDecoration: "none",
-            boxShadow: "0 6px 20px rgba(108,92,231,0.25)",
-            transition: "all 0.3s ease",
-          }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-              <polyline points="22,6 12,13 2,6" />
-            </svg>
-            {t.contact.cta}
-          </a>
         </div>
       </section>
 

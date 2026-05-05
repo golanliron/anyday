@@ -58,6 +58,9 @@ export async function POST(req: NextRequest) {
 - **archive**: העבר לארכיון. אין actionConfig
 - **send_email**: שלח מייל. actionConfig: { to, subject, html }
 - **create_item**: צור פריט חדש. actionConfig: { itemName, groupId (optional) }
+- **create_board**: בנה בורד חדש מאפס. לא צריך conditionColumn/conditionValues. actionConfig: { boardName, boardKind (public/private, default: public), columns: [{ title, type }], groups: [{ title }], items: [{ name, group_index, values: { column_index: value } }] }
+  סוגי עמודות אפשריים: status, text, numbers, date, person, email, phone, link, dropdown, checkbox, rating, timeline, color_picker, long_text
+  דוגמה: המשתמש אומר "תבנה לי בורד ניהול פרויקטים" → תבנה בורד עם עמודות רלוונטיות (סטטוס, אחראי, תאריך יעד, עדיפות), קבוצות הגיוניות, ופריטים לדוגמה
 
 ## חשוב:
 - conditionColumn ו-columnId חייבים להיות ID של עמודה מנתוני הבורד (למשל "status" או "status_1")
@@ -92,19 +95,47 @@ export async function POST(req: NextRequest) {
 
     const fullReply = textBlock?.text || "לא הצלחתי לענות";
 
-    // Extract action block if present
-    const actionMatch = fullReply.match(/```dayday-action\s*([\s\S]*?)```/);
+    // Extract action block if present - try multiple formats the AI might use
+    const actionPatterns = [
+      /```dayday-action\s*([\s\S]*?)```/,
+      /```dayday-action\s*\n([\s\S]*?)\n```/,
+      /`{3,}dayday-action\s*([\s\S]*?)`{3,}/,
+      /dayday-action\s*```\s*([\s\S]*?)```/,
+      /```json\s*\n?\s*\{[^}]*"action"\s*:\s*"[^"]*"[\s\S]*?\}\s*```/,
+    ];
     let actionData = null;
     let cleanReply = fullReply;
 
-    if (actionMatch) {
-      try {
-        actionData = JSON.parse(actionMatch[1].trim());
-        cleanReply = fullReply.replace(/```dayday-action[\s\S]*?```/, "").trim();
-      } catch {
-        // JSON parse failed, ignore action
+    for (const pattern of actionPatterns) {
+      const match = fullReply.match(pattern);
+      if (match) {
+        try {
+          // For the last pattern, extract the JSON object from the full match
+          const jsonStr = match[1] ? match[1].trim() : match[0].replace(/```json\s*\n?/, "").replace(/\n?```$/, "").trim();
+          actionData = JSON.parse(jsonStr);
+          cleanReply = fullReply.replace(match[0], "").trim();
+          break;
+        } catch {
+          // Try next pattern
+        }
       }
     }
+
+    // Fallback: try to find any JSON block with "action" key
+    if (!actionData) {
+      const jsonBlockMatch = fullReply.match(/```(?:json)?\s*\n?(\{[\s\S]*?"action"\s*:[\s\S]*?\})\s*\n?```/);
+      if (jsonBlockMatch) {
+        try {
+          actionData = JSON.parse(jsonBlockMatch[1].trim());
+          cleanReply = fullReply.replace(jsonBlockMatch[0], "").trim();
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    // Clean any remaining raw code blocks from the visible reply
+    cleanReply = cleanReply.replace(/```[\s\S]*?```/g, "").trim();
 
     return NextResponse.json({ reply: cleanReply, action: actionData });
   } catch (e: unknown) {

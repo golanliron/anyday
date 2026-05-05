@@ -2,11 +2,29 @@
 
 import { useSession, signOut } from "next-auth/react";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Component, type ReactNode, lazy, Suspense } from "react";
 import { Spinner } from "../ui/Spinner";
 import { changeColumnValue, changeSimpleValue, createItem } from "@/lib/api-client";
 import type { MondayBoard, MondayItem } from "@/types";
-import DataEditPanel from "./DataEditPanel";
+const DataEditPanel = lazy(() => import("./DataEditPanel"));
+
+class PanelErrorBoundary extends Component<{ children: ReactNode; onReset?: () => void }, { error: Error | null }> {
+  state = { error: null as Error | null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: 24, textAlign: "center" }}>
+          <p style={{ fontWeight: 700, color: "#E17055", marginBottom: 8 }}>משהו השתבש בטעינת הפאנל</p>
+          <p style={{ fontSize: 12, color: "#666", marginBottom: 4 }}>{this.state.error.message}</p>
+          <p style={{ fontSize: 10, color: "#999", marginBottom: 16, direction: "ltr", maxHeight: 60, overflow: "auto" }}>{this.state.error.stack?.split("\n").slice(0, 3).join("\n")}</p>
+          <button onClick={() => { this.setState({ error: null }); this.props.onReset?.(); }} style={{ background: "#6C5CE7", color: "#FFF", border: "none", borderRadius: 8, padding: "8px 20px", cursor: "pointer", fontSize: 13 }}>חזרה</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -113,7 +131,14 @@ function renderInline(text: string) {
 }
 
 function FormattedText({ text }: { text: string }) {
-  const lines = text.split("\n");
+  // Strip any leaked action blocks or raw JSON/HTML that shouldn't be visible
+  const cleaned = text
+    .replace(/`{3,}dayday-action[\s\S]*?`{3,}/g, "")
+    .replace(/dayday-action`{3,}[\s\S]*?`{3,}/g, "")
+    .replace(/`{3,}json\s*\n?\s*\{[\s\S]*?"action"\s*:[\s\S]*?\}\s*\n?`{3,}/g, "")
+    .replace(/`{3,}[\s\S]*?`{3,}/g, "")
+    .trim();
+  const lines = cleaned.split("\n");
   const elements: React.ReactNode[] = [];
   let i = 0;
 
@@ -292,59 +317,59 @@ function FormattedText({ text }: { text: string }) {
 
 const MODE_CONFIG: Record<string, { title: string; subtitle: string; suggestions: string[]; placeholder: string; loadingMessages: string[] }> = {
   chat: {
-    title: "מה צריך לקרות היום?",
-    subtitle: "סיכום, עדכון, דוח — במשפט אחד",
-    suggestions: ["תן סיכום מצב + המלצות", "שנה את כל הממתינים לבטיפול", "צור פריט חדש: [שם] בקבוצה [שם]", "שלח לי דוח שבועי במייל", "העבר הושלמו לארכיון", "מי אחראי על הכי הרבה?"],
-    placeholder: "כתבו מה צריך לקרות...",
+    title: "מה תרצו לדעת?",
+    subtitle: "שאלו, קבלו תשובה, הלאה.",
+    suggestions: ["מה המצב בבורד?", "שנה את כל הממתינים לבטיפול", "צור פריט חדש: [שם] בקבוצה [שם]", "שלח דוח שבועי במייל", "העבר הושלמו לארכיון", "מי אחראי על הכי הרבה פריטים?"],
+    placeholder: "שאלו כל שאלה על הבורד...",
     loadingMessages: [
-      "מנתח נתונים...",
-      "סורק את הבורד...",
+      "רגע, קורא את הבורד...",
+      "סורק את הנתונים...",
       "עובד על זה...",
-      "רגע...",
-      "מעבד נתונים...",
-      "מסכם...",
+      "עוד שנייה...",
+      "מעבד...",
+      "כמעט מוכן...",
     ],
   },
   dashboard: {
-    title: "דשבורד מוכן לשליחה",
-    subtitle: "גרפים, מספרים ותובנות — מוכן לפגישה או למייל",
+    title: "דשבורד מוכן בדקה",
+    subtitle: "גרפים, KPIs ותובנות — מוכן להעתקה לפגישה או למייל",
     suggestions: ["צור דשבורד מנהלים", "תן 4 KPIs מרכזיים", "הכן סיכום שבועי לצוות", "סכם הכל בטבלה מסודרת"],
-    placeholder: "איזה דשבורד להכין?",
+    placeholder: "איזה דשבורד צריך?",
     loadingMessages: [
-      "מצייר גרפים...",
-      "הנתונים שלכם הופכים לזהב...",
-      "בונה משהו שההנהלה תאהב...",
-      "עוד שנייה יש לכם דשבורד...",
-      "מסדר את העמודות ביופי...",
-      "וואי איזה בורד משגע...",
+      "בונה דשבורד...",
+      "מסדר את הגרפים...",
+      "עוד שנייה מוכן...",
+      "מחשב מספרים...",
+      "כמעט שם...",
+      "מוכן בעוד רגע...",
     ],
   },
   automations: {
-    title: "אוטומציות שעובדות",
-    subtitle: "שינוי סטטוס, העברה, ארכיון, מייל — תגידו מה לעשות",
-    suggestions: ["שנה סטטוס לכל הפריטים של יוסי", "העבר חדשים לקבוצה ראשונה", "ארכב הושלמו", "שלח מייל סיכום להנהלה", "צור 5 פריטים חדשים", "שלח התראה על תקועים"],
-    placeholder: "מה לאוטמט?",
+    title: "תגידו מה לעשות — ייעשה",
+    subtitle: "שינוי סטטוס, העברה, ארכיון, מייל, יצירת פריטים ובורדים",
+    suggestions: ["שנה סטטוס לכל הפריטים של יוסי", "העבר חדשים לקבוצה ראשונה", "ארכב את כל ההושלמו", "שלח מייל סיכום להנהלה", "צור 5 פריטים חדשים", "תבנה לי בורד ניהול פרויקטים"],
+    placeholder: "מה לעשות על הבורד?",
     loadingMessages: [
-      "בונה אוטומציה...",
-      "מחבר חוטים מאחורי הקלעים...",
-      "עוד רגע זה רץ לבד...",
-      "מייצר קסם אוטומטי...",
-      "שנייה, מלמד את המאנדיי טריקים...",
-      "יאללה, עוד קצת סבלנות...",
+      "מבצע...",
+      "עובד על זה...",
+      "עוד רגע זה רץ...",
+      "שנייה...",
+      "מעדכן את הבורד...",
+      "כמעט סיים...",
     ],
   },
   impact: {
-    title: "דוחות מוכנים",
-    subtitle: "אימפקט, הנהלה, תורמים — בלחיצה",
-    suggestions: ["הכן דוח אימפקט רבעוני", "סכם תוצאות + מגמות", "בנה דוח להנהלה", "הפק דוח לתורמים"],
-    placeholder: "איזה דוח להכין?",
+    title: "דוח מוכן בלחיצה",
+    subtitle: "אימפקט, הנהלה, תורמים, דירקטוריון — מה צריך?",
+    suggestions: ["הכן דוח אימפקט רבעוני", "סכם תוצאות ומגמות", "בנה דוח להנהלה", "הפק דוח לתורמים"],
+    placeholder: "איזה דוח צריך?",
     loadingMessages: [
-      "אוסף נתוני אימפקט...",
-      "מחפש את הסיפור בנתונים...",
-      "בונה דוח שיעשה רושם...",
-      "הנתונים שלכם = השפעה אמיתית...",
-      "עוד שנייה יש לכם דוח מנצח...",
-      "מתרגם מספרים לסיפור...",
+      "אוסף נתונים...",
+      "בונה את הדוח...",
+      "מסכם מספרים...",
+      "עוד שנייה מוכן...",
+      "כמעט שם...",
+      "ממש עוד רגע...",
     ],
   },
 };
@@ -537,28 +562,58 @@ export function BoardDashboard({
 
       // If AI returned an action, execute it automatically
       if (data.action) {
-        setLoadingMsg("מבצע פעולה על הבורד...");
-        try {
-          const actionRes = await fetch("/api/monday", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              action: "automate",
-              boardId,
-              apiToken,
-              conditionColumn: data.action.conditionColumn,
-              conditionValues: data.action.conditionValues,
-              actionType: data.action.action,
-              actionConfig: data.action.actionConfig || {},
-            }),
-          });
-          const actionResult = await actionRes.json();
-          const resultMsg = actionResult.executed > 0
-            ? `**בוצע בהצלחה!** ${actionResult.executed} מתוך ${actionResult.total} פריטים עודכנו.\n\n${actionResult.results?.map((r: string) => `- ${r}`).join("\n") || ""}`
-            : `לא נמצאו פריטים תואמים לביצוע.`;
-          setMessages(prev => [...prev, { role: "assistant", content: resultMsg, timestamp: new Date() }]);
-        } catch {
-          setMessages(prev => [...prev, { role: "assistant", content: "שגיאה בביצוע הפעולה על הבורד", timestamp: new Date() }]);
+        const act = data.action;
+
+        if (act.action === "create_board") {
+          // Board builder — different endpoint
+          setLoadingMsg("בונה בורד חדש...");
+          try {
+            const actionRes = await fetch("/api/monday", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                action: "create_board",
+                apiToken,
+                boardName: act.actionConfig?.boardName || "בורד חדש",
+                boardKind: act.actionConfig?.boardKind || "public",
+                columns: act.actionConfig?.columns || [],
+                groups: act.actionConfig?.groups || [],
+                items: act.actionConfig?.items || [],
+              }),
+            });
+            const actionResult = await actionRes.json();
+            const resultMsg = actionResult.success
+              ? `**הבורד נוצר בהצלחה!** 🎉\n\nID: ${actionResult.boardId}\n\n${actionResult.results?.map((r: string) => `- ${r}`).join("\n") || ""}`
+              : `שגיאה ביצירת הבורד: ${actionResult.error || "unknown"}`;
+            setMessages(prev => [...prev, { role: "assistant", content: resultMsg, timestamp: new Date() }]);
+          } catch {
+            setMessages(prev => [...prev, { role: "assistant", content: "שגיאה ביצירת הבורד", timestamp: new Date() }]);
+          }
+        } else {
+          // Standard automate action (change_status, move_to_group, notify, archive, send_email, create_item)
+          setLoadingMsg("מבצע פעולה על הבורד...");
+          try {
+            const actionRes = await fetch("/api/monday", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                action: "automate",
+                boardId,
+                apiToken,
+                conditionColumn: act.conditionColumn,
+                conditionValues: act.conditionValues,
+                actionType: act.action,
+                actionConfig: act.actionConfig || {},
+              }),
+            });
+            const actionResult = await actionRes.json();
+            const resultMsg = actionResult.executed > 0
+              ? `**בוצע בהצלחה!** ${actionResult.executed} מתוך ${actionResult.total} פריטים עודכנו.\n\n${actionResult.results?.map((r: string) => `- ${r}`).join("\n") || ""}`
+              : `לא נמצאו פריטים תואמים לביצוע.`;
+            setMessages(prev => [...prev, { role: "assistant", content: resultMsg, timestamp: new Date() }]);
+          } catch {
+            setMessages(prev => [...prev, { role: "assistant", content: "שגיאה בביצוע הפעולה על הבורד", timestamp: new Date() }]);
+          }
         }
       }
     } catch {
@@ -759,6 +814,7 @@ export function BoardDashboard({
               }}>
                 סגור פאנל X
               </button>
+              <PanelErrorBoundary onReset={() => setSidePanel(null)}>
               {sidePanel === "dashboard" && <DashboardPanel board={board} items={items} pc={pc} ac={ac} />}
               {sidePanel === "automations" && <AutomationsPanel board={board} items={items} apiToken={apiToken} boardId={boardId} pc={pc} ac={ac} />}
               {sidePanel === "impact" && <>
@@ -769,7 +825,7 @@ export function BoardDashboard({
               </>}
               
               {sidePanel === "alerts" && <AlertsPanel board={board} items={items} pc={pc} ac={ac} onAskAI={(q) => { setSidePanel(null); setMode("chat"); setTimeout(() => sendMessage(q), 100); }} />}
-              {sidePanel === "data" && <DataEditPanel board={board} items={items} apiToken={apiToken} boardId={boardId} pc={pc} ac={ac} />}
+              {sidePanel === "data" && <InlineDataEditPanel board={board} items={items} apiToken={apiToken} boardId={boardId} pc={pc} ac={ac} />}
               {sidePanel === "coming-soon" && (
                 <div>
                   <h3 style={{ fontSize: 17, fontWeight: 700, color: "#2D2252", marginBottom: 4 }}>בקרוב ב-AnyDay</h3>
@@ -794,6 +850,7 @@ export function BoardDashboard({
                   ))}
                 </div>
               )}
+              </PanelErrorBoundary>
             </div>
             {/* Drag handle */}
             <div
@@ -889,10 +946,10 @@ export function BoardDashboard({
                     </div>
                     <div>
                       <div style={{ fontSize: 15, fontWeight: 700, color: "#2D2252", marginBottom: 3 }}>
-                        סיכום מצב הבורד
+                        תן לי סיכום של הבורד
                       </div>
                       <div style={{ fontSize: 12, color: ac, lineHeight: 1.5 }}>
-                        פסקה קצרה וחדה, מוכנה לישיבה, מייל או דיווח
+                        מוכן להעתקה לישיבה או למייל
                       </div>
                     </div>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={ac} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
@@ -2603,4 +2660,134 @@ function AlertsPanel({ board, items, pc = "#6C5CE7", ac = "#A29BFE", onAskAI }: 
   );
 }
 
+function InlineDataEditPanel({ board, items, apiToken, boardId, pc = "#6C5CE7", ac = "#A29BFE" }: {
+  board: MondayBoard; items: MondayItem[]; apiToken: string; boardId: string; pc?: string; ac?: string;
+}) {
+  const [editingCell, setEditingCell] = useState<{ itemId: string; colId: string } | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [savedCells, setSavedCells] = useState<Set<string>>(new Set());
+  const [newItemName, setNewItemName] = useState("");
+  const [addingItem, setAddingItem] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [toast, setToast] = useState<string | null>(null);
 
+  if (!board || !items || !Array.isArray(items)) {
+    return <div style={{ padding: 20, textAlign: "center", color: "#999", fontSize: 13 }}>טוען נתוני בורד...</div>;
+  }
+  if (!board.columns || !Array.isArray(board.columns)) {
+    return <div style={{ padding: 20, textAlign: "center", color: "#999", fontSize: 13 }}>אין עמודות בבורד</div>;
+  }
+
+  const editableCols = board.columns.filter(c =>
+    c.type !== "name" && ["color", "text", "long-text", "numeric", "numbers", "dropdown", "email", "phone", "date", "checkbox"].includes(c.type)
+  );
+
+  const statusCols = board.columns.filter(c => c.type === "color");
+  const statusOptions: Record<string, string[]> = {};
+  statusCols.forEach(col => {
+    const vals = new Set<string>();
+    items.forEach(item => {
+      const cv = (item.column_values || []).find(v => v.id === col.id);
+      if (cv?.text) vals.add(cv.text);
+    });
+    statusOptions[col.id] = [...vals];
+  });
+
+  const filteredItems = searchQuery
+    ? items.filter(it => it.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (it.column_values || []).some(cv => cv.text?.toLowerCase().includes(searchQuery.toLowerCase())))
+    : items;
+
+  function showToast(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  }
+
+  async function handleSave(itemId: string, colId: string, value: string) {
+    setSaving(true);
+    try {
+      const col = board.columns.find(c => c.id === colId);
+      if (col?.type === "color") {
+        await changeColumnValue(boardId, apiToken, itemId, colId, { label: value });
+      } else {
+        await changeSimpleValue(boardId, apiToken, itemId, colId, value);
+      }
+      setSavedCells(prev => new Set(prev).add(itemId + "-" + colId));
+      const item = items.find(it => it.id === itemId);
+      if (item) {
+        const cv = (item.column_values || []).find(v => v.id === colId);
+        if (cv) cv.text = value;
+      }
+      showToast("נשמר!");
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "שגיאה");
+    } finally {
+      setSaving(false);
+      setEditingCell(null);
+    }
+  }
+
+  async function handleAddItem() {
+    if (!newItemName.trim() || addingItem) return;
+    setAddingItem(true);
+    try {
+      await createItem(boardId, apiToken, newItemName.trim());
+      showToast(newItemName.trim() + " נוסף!");
+      setNewItemName("");
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "שגיאה");
+    } finally {
+      setAddingItem(false);
+    }
+  }
+
+  return (
+    <div>
+      <h3 style={{ fontSize: 17, fontWeight: 700, color: "#2D2252", marginBottom: 4 }}>עריכת הבורד</h3>
+      <p style={{ fontSize: 12, color: ac, marginBottom: 14, lineHeight: 1.5 }}>הטבלה המלאה. לחצו על תא לעריכה, פח לארכיון.</p>
+      {toast && (<div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", zIndex: 999, background: "#2D2252", color: "#FFF", padding: "10px 24px", borderRadius: 12, fontSize: 13, fontWeight: 600, boxShadow: "0 8px 30px rgba(0,0,0,0.2)" }}>{toast}</div>)}
+      <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+        <input value={newItemName} onChange={e => setNewItemName(e.target.value)} onKeyDown={e => e.key === "Enter" && handleAddItem()} placeholder="+ פריט חדש..." style={{ flex: 1, background: "#FFF", border: "1.5px solid rgba(108,92,231,0.15)", borderRadius: 8, padding: "7px 12px", fontSize: 13, outline: "none", color: "#2D2252" }} />
+        <button onClick={handleAddItem} disabled={!newItemName.trim() || addingItem} style={{ background: pc, color: "#FFF", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: newItemName.trim() ? "pointer" : "not-allowed", opacity: newItemName.trim() ? 1 : 0.5 }}>{addingItem ? "..." : "הוסף"}</button>
+      </div>
+      <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="חיפוש..." style={{ width: "100%", background: "#F9F7FF", border: "1px solid rgba(108,92,231,0.1)", borderRadius: 8, padding: "7px 12px", fontSize: 12, outline: "none", marginBottom: 8, color: "#2D2252" }} />
+      <div style={{ fontSize: 11, color: ac, marginBottom: 6 }}>{filteredItems.length} / {items.length} פריטים · {editableCols.length} עמודות</div>
+      <div style={{ overflowX: "auto", maxHeight: "calc(100vh - 300px)", overflowY: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 12 }}>
+          <thead><tr>
+            <th style={{ position: "sticky", top: 0, zIndex: 2, background: "rgba(108,92,231,0.06)", padding: "8px 10px", textAlign: "right", fontWeight: 700, color: "#2D2252", fontSize: 11, borderBottom: "2px solid " + pc, whiteSpace: "nowrap", minWidth: 120 }}>שם</th>
+            {editableCols.map(col => (<th key={col.id} style={{ position: "sticky", top: 0, zIndex: 2, background: "rgba(108,92,231,0.06)", padding: "8px 6px", textAlign: "right", fontWeight: 700, color: "#2D2252", fontSize: 11, borderBottom: "2px solid " + pc, whiteSpace: "nowrap", minWidth: 80 }}>{col.title}</th>))}
+          </tr></thead>
+          <tbody>
+            {filteredItems.slice(0, 100).map((item, idx) => (<tr key={item.id} style={{ background: idx % 2 === 0 ? "#FFF" : "rgba(108,92,231,0.02)" }}>
+              <td style={{ padding: "8px 10px", fontWeight: 600, color: "#2D2252", borderBottom: "1px solid rgba(108,92,231,0.06)", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", borderRight: "3px solid " + pc }}>{item.name}</td>
+              {editableCols.map(col => {
+                const cv = (item.column_values || []).find(v => v.id === col.id);
+                const value = cv?.text || "";
+                const isEditing = editingCell?.itemId === item.id && editingCell?.colId === col.id;
+                const wasSaved = savedCells.has(item.id + "-" + col.id);
+                const isStatus = col.type === "color";
+                return (<td key={col.id} style={{ padding: "4px 6px", borderBottom: "1px solid rgba(108,92,231,0.06)", position: "relative" }}>
+                  {isEditing ? (
+                    isStatus ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 2, position: "absolute", top: 0, right: 0, zIndex: 10, background: "#FFF", border: "1.5px solid " + pc, borderRadius: 8, padding: 6, minWidth: 120, boxShadow: "0 4px 16px rgba(0,0,0,0.12)" }}>
+                        {(statusOptions[col.id] || []).map(opt => (<button key={opt} onClick={() => handleSave(item.id, col.id, opt)} disabled={saving} style={{ background: opt === value ? pc : "transparent", color: opt === value ? "#FFF" : "#2D2252", border: "none", borderRadius: 4, padding: "4px 8px", fontSize: 11, fontWeight: 600, cursor: saving ? "wait" : "pointer", textAlign: "right" }}>{opt}</button>))}
+                        <button onClick={() => setEditingCell(null)} style={{ background: "none", border: "none", fontSize: 10, color: "#E17055", cursor: "pointer", fontWeight: 600 }}>ביטול</button>
+                      </div>
+                    ) : (
+                      <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") handleSave(item.id, col.id, editValue); if (e.key === "Escape") setEditingCell(null); }} onBlur={() => { if (editValue !== value) handleSave(item.id, col.id, editValue); else setEditingCell(null); }} style={{ width: "100%", background: "#FFF", border: "1.5px solid " + pc, borderRadius: 4, padding: "4px 6px", fontSize: 12, outline: "none", color: "#2D2252" }} />
+                    )
+                  ) : (
+                    <div onClick={() => { setEditingCell({ itemId: item.id, colId: col.id }); setEditValue(value); }} style={{ cursor: "pointer", padding: "4px 6px", borderRadius: 4, background: isStatus && value ? "rgba(108,92,231,0.08)" : "transparent", border: wasSaved ? "1.5px solid #00B894" : "1.5px solid transparent", color: value ? "#2D2252" : "#CCC", fontWeight: isStatus ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 110, fontSize: 12 }}>{value || "\u2014"}</div>
+                  )}
+                </td>);
+              })}
+            </tr>))}
+          </tbody>
+        </table>
+        {filteredItems.length > 100 && (<div style={{ textAlign: "center", padding: 12, fontSize: 12, color: ac }}>מציג 100 מתוך {filteredItems.length}. חפשו למציאת נוספים.</div>)}
+      </div>
+    </div>
+  );
+}
