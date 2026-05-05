@@ -293,7 +293,7 @@ const MODE_CONFIG: Record<string, { title: string; subtitle: string; suggestions
   chat: {
     title: "מה נשאל את הבורד היום?",
     subtitle: "שירי לי שירים, ספרי לי סיפורים... מהנתונים שלכם",
-    suggestions: ["תן לי סיכום של הבורד", "כמה פריטים בכל סטטוס?", "מה הצוואר בקבוק הכי גדול?", "תן לי סטטיסטיקה מלאה"],
+    suggestions: ["תן לי סיכום של הבורד", "שנה את כל הממתינים לבטיפול", "העבר פריטים שהושלמו לארכיון", "מי אחראי על הכי הרבה פריטים?"],
     placeholder: "שאלו שאלה על הבורד... (אני כבר על זה)",
     loadingMessages: [
       "חופר בנתונים...",
@@ -321,7 +321,7 @@ const MODE_CONFIG: Record<string, { title: string; subtitle: string; suggestions
   automations: {
     title: "אוטומציות שעובדות בשבילכם",
     subtitle: "תגידו מה מעצבן אתכם, ואני אתקן את זה. אוטומטית.",
-    suggestions: ["התראה כשפריט תקוע 7 ימים", "מייל אוטומטי כשסטטוס משתנה", "העבר פריט לקבוצה לפי סטטוס", "דוח שבועי אוטומטי למייל"],
+    suggestions: ["שנה סטטוס לכל הפריטים של יוסי", "העבר את כל החדשים לקבוצה ראשונה", "ארכב את כל מה שהושלם", "שלח התראה על פריטים תקועים"],
     placeholder: "מה לאוטמט? (בלי מתכנת, בלי כאב ראש)",
     loadingMessages: [
       "בונה אוטומציה...",
@@ -598,19 +598,13 @@ export function BoardDashboard({
         <line x1="16" y1="17" x2="8" y2="17" />
         <polyline points="10 9 9 9 8 9" />
       </svg>
-    ), label: "דוחות אימפקט" },
+    ), label: "דוחות" },
     { modeId: "impact" as "chat", panel: "trends" as SidePanel, icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
       </svg>
     ), label: "טרנדים" },
-    { modeId: "report" as "chat", panel: "report" as SidePanel, icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 4h16v16H4z" />
-        <path d="M4 10h16" />
-        <path d="M10 4v16" />
-      </svg>
-    ), label: "דוח הנהלה" },
+
   ];
 
   return (
@@ -865,8 +859,13 @@ export function BoardDashboard({
               </button>
               {sidePanel === "dashboard" && <DashboardPanel board={board} items={items} pc={pc} ac={ac} />}
               {sidePanel === "automations" && <AutomationsPanel board={board} items={items} apiToken={apiToken} boardId={boardId} pc={pc} ac={ac} />}
-              {sidePanel === "impact" && <ImpactPanel board={board} items={items} pc={pc} ac={ac} />}
-              {sidePanel === "report" && <ReportPanel board={board} items={items} pc={pc} ac={ac} orgName={brand.orgName} />}
+              {sidePanel === "impact" && <>
+                <ImpactPanel board={board} items={items} pc={pc} ac={ac} />
+                <div style={{ borderTop: "2px solid rgba(108,92,231,0.1)", margin: "20px 0", paddingTop: 20 }}>
+                  <ReportPanel board={board} items={items} pc={pc} ac={ac} orgName={brand.orgName} />
+                </div>
+              </>}
+              
               {sidePanel === "alerts" && <AlertsPanel board={board} items={items} pc={pc} ac={ac} />}
               {sidePanel === "trends" && <TrendsPanel board={board} items={items} pc={pc} ac={ac} />}
               {sidePanel === "data" && <DataEditPanel board={board} items={items} apiToken={apiToken} boardId={boardId} pc={pc} ac={ac} />}
