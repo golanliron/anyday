@@ -7,203 +7,173 @@ import { BoardDashboard } from "@/components/board/BoardDashboard";
 import { loadBoard, listBoards } from "@/lib/api-client";
 import type { MondayBoard, MondayItem } from "@/types";
 
-function IconChat() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6C5CE7" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-      <path d="M8 10h.01" /><path d="M12 10h.01" /><path d="M16 10h.01" />
-    </svg>
-  );
-}
-
-function IconChart() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6C5CE7" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 20V10" /><path d="M12 20V4" /><path d="M6 20v-6" />
-    </svg>
-  );
-}
-
-function IconBrain() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6C5CE7" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2a4 4 0 0 1 4 4c0 1.1-.9 2-2 2h-4a2 2 0 0 1-2-2 4 4 0 0 1 4-4z" />
-      <path d="M9 8v2a3 3 0 0 0 6 0V8" />
-      <path d="M8 14s-2 1-2 3 2 3 2 3" /><path d="M16 14s2 1 2 3-2 3-2 3" />
-      <path d="M12 18v4" />
-    </svg>
-  );
-}
-
-function IconKey() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6C5CE7" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4" />
-    </svg>
-  );
-}
-
-function IconHash() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6C5CE7" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="4" y1="9" x2="20" y2="9" /><line x1="4" y1="15" x2="20" y2="15" />
-      <line x1="10" y1="3" x2="8" y2="21" /><line x1="16" y1="3" x2="14" y2="21" />
-    </svg>
-  );
-}
-
-function IconZap() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6C5CE7" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-    </svg>
-  );
-}
-
-function IconDoc() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6C5CE7" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-      <polyline points="14 2 14 8 20 8" />
-      <line x1="16" y1="13" x2="8" y2="13" />
-      <line x1="16" y1="17" x2="8" y2="17" />
-    </svg>
-  );
-}
-
 const T = {
   he: {
-    nav: { features: "יתרונות", how: "איך זה עובד", pricing: "מחירים", cta: "הזמינו דמו" },
+    nav: { features: "\u05D9\u05EA\u05E8\u05D5\u05E0\u05D5\u05EA", how: "\u05D0\u05D9\u05DA \u05D6\u05D4 \u05E2\u05D5\u05D1\u05D3", pricing: "\u05DE\u05D7\u05D9\u05E8", cta: "\u05D4\u05EA\u05D7\u05D9\u05DC\u05D5 \u2190" },
     hero: {
-      badge: "AnyDay",
-      title1: "דוח לדירקטוריון? עוד דקה ויש לך אחד.",
-      title2: "",
-      titleBrand: "",
-      title3: "",
-      sub: "Monday · Google Sheets · Excel · בעברית מלאה",
-      desc: "חברו את מקורות הנתונים שלכם ותתחילו לקבל תשובות, דוחות להנהלה, מתריעה לפני שמאוחר. ואוטומציות - הכל בעברית, הכל אוטומטי.",
-      cta: "הזמינו דמו של 15 דקות",
+      badge: "MADE FOR MONDAY \u00B7 BUILT FOR ANY DAY",
+      title1: "\u05D3\u05D5\u05D7 \u05DC\u05D3\u05D9\u05E8\u05E7\u05D8\u05D5\u05E8\u05D9\u05D5\u05DF",
+      titleAccent: "\u05D3\u05E7\u05D4",
+      titleFade: "\u05DC\u05D0 \u05D9\u05D5\u05DE\u05D9\u05D9\u05DD.",
+      sub: "\u05DE\u05D7\u05D1\u05E8\u05D9\u05DD \u05D0\u05EA \u05D4\u05D1\u05D5\u05E8\u05D3\u05D9\u05DD \u05D5\u05D4\u05D2\u05D9\u05DC\u05D9\u05D5\u05E0\u05D5\u05EA \u05E9\u05DC\u05DA \u05D5\u05D4\u05D5\u05E4\u05DB\u05D9\u05DD \u05D0\u05D5\u05EA\u05DD \u05DC\u05D3\u05D5\u05D7\u05D5\u05EA \u05DE\u05E0\u05D4\u05DC\u05D9\u05DD, \u05EA\u05D5\u05D1\u05E0\u05D5\u05EA \u05D0\u05E1\u05D8\u05E8\u05D8\u05D2\u05D9\u05D5\u05EA \u05D5\u05D4\u05EA\u05E8\u05D0\u05D5\u05EA. \u05D1\u05E2\u05D1\u05E8\u05D9\u05EA.",
+      cta1: "\u05D4\u05EA\u05D7\u05D9\u05DC\u05D5 7 \u05D9\u05DE\u05D9\u05DD \u05D7\u05D9\u05E0\u05DD \u2190",
+      cta2: "\u05E6\u05E4\u05D5 \u05D1\u05D3\u05DE\u05D5 \u05E9\u05DC \u05D3\u05E7\u05D4",
+      trust: "// \u05DC\u05DC\u05D0 \u05DB\u05E8\u05D8\u05D9\u05E1 \u05D0\u05E9\u05E8\u05D0\u05D9 \u00B7 \u05D1\u05D9\u05D8\u05D5\u05DC \u05D1\u05DC\u05D7\u05D9\u05E6\u05D4",
+      demoQ: "\u05EA\u05DB\u05D9\u05E0\u05D9 \u05D3\u05D5\u05D7 Q4 \u05DC\u05D5\u05E2\u05D3.",
+      demoA: "PDF \u05E2\u05DD 4 \u05D2\u05E8\u05E4\u05D9\u05DD. \u05DE\u05D5\u05DB\u05DF \u05D1\u05E2\u05D5\u05D3",
+      demoTime: "47 \u05E9\u05E0\u05D9\u05D5\u05EA",
     },
     features: {
-      title: "יש לכם כבר את כל המידע. עכשיו תקבלו גם את התשובות.",
-      sub: "AnyDay לא מחליף את Monday או את ה-Sheets שלכם. הוא יושב מעליהם וגורם להם סוף סוף לדבר.",
+      title: "\u05D0\u05E8\u05D1\u05E2\u05D4 \u05DB\u05DC\u05D9\u05DD. \u05DB\u05DE\u05D5",
+      titleAccent: "\u05D0\u05E0\u05DC\u05D9\u05E1\u05D8\u05D9\u05EA",
+      titleEnd: "\u05D1\u05DE\u05E9\u05E8\u05D4 \u05DE\u05DC\u05D0\u05D4.",
       items: [
-        { title: "שואלים בעברית. מקבלים תשובה.", desc: "כמה לקוחות חתמו ברבעון? אילו פרויקטים פיגרו ביעד? תשובה מיידית, עם הנתונים, עם המקור." },
-        { title: "דוח לדירקטוריון בלחיצה.", desc: "PDF מעוצב, עם גרפים נכונים, תובנות אסטרטגיות והלוגו שלכם. מוכן לישיבה. בלי לקרוא לאף אחד." },
-        { title: "התראות חכמות", desc: "לקוחה שלא הגיבה 14 יום. פרויקט שזז שלוש פעמים. AnyDay מזהה ושולח — בלי שתשאלו." },
-        { title: "אוטומציות שמבצעות", desc: "לא מסבירה מה לעשות - עושה. שינוי סטטוס, העברה לקבוצה, ארכיון - ישירות מהצ'אט" },
+        { title: "\u05E9\u05D5\u05D0\u05DC\u05D9\u05DD \u05D1\u05E2\u05D1\u05E8\u05D9\u05EA. \u05DE\u05E7\u05D1\u05DC\u05D9\u05DD \u05EA\u05E9\u05D5\u05D1\u05D4.", desc: "\u201C\u05DB\u05DE\u05D4 \u05DC\u05E7\u05D5\u05D7\u05D5\u05EA \u05D7\u05EA\u05DE\u05D5 \u05D1\u05E8\u05D1\u05E2\u05D5\u05DF?\u201D \u201C\u05D0\u05D9\u05DC\u05D5 \u05E4\u05E8\u05D5\u05D9\u05E7\u05D8\u05D9\u05DD \u05E4\u05D9\u05D2\u05E8\u05D5?\u201D \u2014 \u05EA\u05E9\u05D5\u05D1\u05D4 \u05DE\u05D9\u05D9\u05D3\u05D9\u05EA, \u05E2\u05DD \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD, \u05E2\u05DD \u05D4\u05DE\u05E7\u05D5\u05E8." },
+        { title: "\u05D3\u05D5\u05D7 \u05DC\u05D3\u05D9\u05E8\u05E7\u05D8\u05D5\u05E8\u05D9\u05D5\u05DF \u05D1\u05DC\u05D7\u05D9\u05E6\u05D4.", desc: "PDF \u05DE\u05E2\u05D5\u05E6\u05D1, \u05D2\u05E8\u05E4\u05D9\u05DD \u05E0\u05DB\u05D5\u05E0\u05D9\u05DD, \u05EA\u05D5\u05D1\u05E0\u05D5\u05EA \u05D0\u05E1\u05D8\u05E8\u05D8\u05D2\u05D9\u05D5\u05EA, \u05D4\u05DC\u05D5\u05D2\u05D5 \u05E9\u05DC\u05DB\u05DD. \u05DE\u05D5\u05DB\u05DF \u05DC\u05D9\u05E9\u05D9\u05D1\u05D4." },
+        { title: "\u05DE\u05EA\u05E8\u05D9\u05E2 \u05DC\u05E4\u05E0\u05D9 \u05E9\u05DE\u05D0\u05D5\u05D7\u05E8.", desc: "\u05DC\u05E7\u05D5\u05D7\u05D4 \u05E9\u05DC\u05D0 \u05D4\u05D2\u05D9\u05D1\u05D4 14 \u05D9\u05D5\u05DD. \u05D4\u05DB\u05E0\u05E1\u05D4 \u05E9\u05D9\u05E8\u05D3\u05D4 \u05D1-23%. AnyDay \u05E9\u05D5\u05DC\u05D7 \u2014 \u05D1\u05DC\u05D9 \u05E9\u05EA\u05E9\u05D0\u05DC\u05D5." },
+        { title: "\u05D0\u05D5\u05D8\u05D5\u05DE\u05E6\u05D9\u05D5\u05EA \u05E9\u05DE\u05D1\u05E6\u05E2\u05D5\u05EA. \u05DC\u05D0 \u05DE\u05E6\u05D9\u05E2\u05D5\u05EA.", desc: "\u201C\u05D4\u05E2\u05D1\u05D9\u05E8\u05D9 \u05D0\u05EA \u05DB\u05DC \u05D4\u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05D4\u05E1\u05D2\u05D5\u05E8\u05D5\u05EA \u05DC\u05D0\u05E8\u05DB\u05D9\u05D5\u05DF\u201D \u2014 \u05D1\u05D5\u05E6\u05E2. \u05E9\u05D9\u05D7\u05D4 \u05D0\u05D7\u05EA. \u05D1\u05D9\u05E6\u05D5\u05E2 \u05DE\u05DC\u05D0." },
       ],
     },
     steps: {
-      title: "שלושה צעדים. שתי דקות. בלי IT.",
-      sub: "",
+      title: "\u05E9\u05DC\u05D5\u05E9\u05D4 \u05E6\u05E2\u05D3\u05D9\u05DD.",
+      titleFade: "\u05E9\u05EA\u05D9 \u05D3\u05E7\u05D5\u05EA.",
       items: [
-        { title: "חברו את המקור", desc: "Monday, Google Sheets או Excel. OAuth של לחיצה אחת. בלי טכנולוג בארגון." },
-        { title: "תנו ל-AnyDay לקרוא", desc: "המערכת מבינה את המבנה, מזהה את העמודות, מחברת בין הבורדים. שתי דקות." },
-        { title: "שאלו. קבלו. תפעלו.", desc: "סיכומים, דוחות, אוטומציות ועריכה — הכל מוכן" },
+        { title: "\u05D7\u05D1\u05E8\u05D5 \u05D0\u05EA \u05D4\u05DE\u05E7\u05D5\u05E8", desc: "Monday \u00B7 Sheets \u00B7 Excel. OAuth \u05E9\u05DC \u05DC\u05D7\u05D9\u05E6\u05D4. \u05D1\u05DC\u05D9 \u05D8\u05D5\u05E7\u05E0\u05D9\u05DD." },
+        { title: "\u05EA\u05E0\u05D5 \u05DC-AnyDay \u05DC\u05E7\u05E8\u05D5\u05D0", desc: "\u05D4\u05DE\u05E2\u05E8\u05DB\u05EA \u05DE\u05D1\u05D9\u05E0\u05D4 \u05D0\u05EA \u05D4\u05DE\u05D1\u05E0\u05D4, \u05DE\u05D6\u05D4\u05D4 \u05E2\u05DE\u05D5\u05D3\u05D5\u05EA, \u05DE\u05D7\u05D1\u05E8\u05EA \u05D1\u05D9\u05DF \u05D1\u05D5\u05E8\u05D3\u05D9\u05DD. \u05E9\u05EA\u05D9 \u05D3\u05E7\u05D5\u05EA." },
+        { title: "\u05E9\u05D0\u05DC\u05D5. \u05E7\u05D1\u05DC\u05D5. \u05EA\u05E4\u05E2\u05DC\u05D5.", desc: "\u05D1\u05E2\u05D1\u05E8\u05D9\u05EA, \u05D1\u05DB\u05EA\u05D1, \u05D1\u05E7\u05D5\u05DC. \u05DB\u05DE\u05D5 \u05D0\u05E0\u05DC\u05D9\u05E1\u05D8\u05D9\u05EA \u2014 \u05DE\u05D4\u05D9\u05E8\u05D4 \u05D9\u05D5\u05EA\u05E8 \u05D5\u05D6\u05DE\u05D9\u05E0\u05D4 24/7." },
       ],
     },
     pricing: {
-      title: "תוכנית לכל שלב בארגון.",
-      sub: "חיבור מלא לכל הבורדים והגיליונות, בכל החבילות. ההבדל הוא ביכולות.",
+      title: "\u05EA\u05D5\u05DB\u05E0\u05D9\u05EA \u05DC\u05DB\u05DC",
+      titleAccent: "\u05E9\u05DC\u05D1",
+      titleEnd: "\u05D1\u05D0\u05E8\u05D2\u05D5\u05DF.",
+      sub: "\u05D7\u05D9\u05D1\u05D5\u05E8 \u05DE\u05DC\u05D0 \u05DC\u05DB\u05DC \u05D4\u05D1\u05D5\u05E8\u05D3\u05D9\u05DD \u05D5\u05D4\u05D2\u05D9\u05DC\u05D9\u05D5\u05E0\u05D5\u05EA, \u05D1\u05DB\u05DC \u05D4\u05D7\u05D1\u05D9\u05DC\u05D5\u05EA. \u05D4\u05D4\u05D1\u05D3\u05DC \u05D4\u05D5\u05D0 \u05D1\u05D9\u05DB\u05D5\u05DC\u05D5\u05EA.",
       plans: [
-        { name: "Pro", desc: "כל הבורדים, דוחות, אוטומציות, עריכה", boards: "ללא הגבלה" },
-        { name: "לידרים", desc: "לסמנכ״לית שמובילה תחום", boards: "דוחות + התראות + 500 שאלות" },
-        { name: "דירקטורים", desc: "למנכ״לית שמדווחת לדירקטוריון", boards: "אוטמציות + 2,000 שאלות" },
-        { name: "ארגון", desc: "לארגונים עם 50+ עובדים", boards: "White Label + SSO + API" },
+        { name: "\u05D1\u05D5\u05D3\u05E7\u05D9\u05DD", price: "250", desc: "\u05D7\u05D9\u05D1\u05D5\u05E8 \u05DE\u05DC\u05D0 \u05DC-Monday/Sheets\n\u05E6\u05F3\u05D0\u05D8 \u05D1\u05E2\u05D1\u05E8\u05D9\u05EA\n100 \u05E9\u05D0\u05DC\u05D5\u05EA \u05D1\u05D7\u05D5\u05D3\u05E9", cta: "7 \u05D9\u05DE\u05D9\u05DD \u05D7\u05D9\u05E0\u05DD \u2190", popular: false },
+        { name: "\u05DC\u05D9\u05D3\u05E8\u05D9\u05DD", price: "450", desc: "\u05D4\u05DB\u05DC \u05DE\u201C\u05D1\u05D5\u05D3\u05E7\u05D9\u05DD\u201D\n\u05D3\u05D5\u05D7\u05D5\u05EA PDF \u05DE\u05E2\u05D5\u05E6\u05D1\u05D9\u05DD\n\u05D4\u05EA\u05E8\u05D0\u05D5\u05EA \u05D7\u05DB\u05DE\u05D5\u05EA\n500 \u05E9\u05D0\u05DC\u05D5\u05EA \u05D1\u05D7\u05D5\u05D3\u05E9", cta: "\u05D4\u05EA\u05D7\u05D9\u05DC\u05D5 \u2190", popular: false },
+        { name: "\u05D3\u05D9\u05E8\u05E7\u05D8\u05D5\u05E8\u05D9\u05DD", price: "750", desc: "\u05D4\u05DB\u05DC \u05DE\u201C\u05DC\u05D9\u05D3\u05E8\u05D9\u05DD\u201D\n\u05D0\u05D5\u05D8\u05D5\u05DE\u05E6\u05D9\u05D5\u05EA \u05DE\u05DC\u05D0\u05D5\u05EA\n\u05D3\u05D5\u05D7\u05D5\u05EA \u05DE\u05D5\u05EA\u05D0\u05DE\u05D9\u05DD \u05DC\u05D5\u05E2\u05D3\n2,000 \u05E9\u05D0\u05DC\u05D5\u05EA \u05D1\u05D7\u05D5\u05D3\u05E9", cta: "\u05D4\u05EA\u05D7\u05D9\u05DC\u05D5 \u2190", popular: true },
+        { name: "\u05D0\u05E8\u05D2\u05D5\u05DF", price: "1,200", desc: "\u05D4\u05DB\u05DC \u05DE\u201C\u05D3\u05D9\u05E8\u05E7\u05D8\u05D5\u05E8\u05D9\u05DD\u201D\nWhite Label \u00B7 SSO \u00B7 API\n\u05DE\u05E0\u05D4\u05DC \u05DC\u05E7\u05D5\u05D7 \u05D0\u05D9\u05E9\u05D9\n10,000 \u05E9\u05D0\u05DC\u05D5\u05EA \u05D1\u05D7\u05D5\u05D3\u05E9", cta: "\u05D3\u05D1\u05E8\u05D5 \u05D0\u05D9\u05EA\u05E0\u05D5 \u2190", popular: false },
       ],
-      popular: "הכי פופולרי",
-      month: "₪/חודש",
-      boardLabel: (b: string) => b === "ללא הגבלה" ? "כל הבורדים" : b,
-      cta: "התחילו עכשיו",
-      addon: { badge: "PREMIUM ADD-ON", title: "המערכת שלכם. המותג שלכם.", desc: "לוגו, צבעים, עיצוב מלא. הלקוחות שלכם יחשבו שבניתם את זה לבד. מערכת AI ממותגת שנראית מיליון דולר.", cta: "הוסיפו מיתוג" },
+      popularBadge: "\u2605 \u05D4\u05DB\u05D9 \u05E4\u05D5\u05E4\u05D5\u05DC\u05E8\u05D9",
     },
-    form: {
-      title: "התחילו 7 ימים חינם",
-      sub: "חברו את המקורות שלכם ותתחילו לקבל תשובות",
-      tokenLabel: "API Token",
-      tokenHelp: "איך מוצאים את ה-API Token?",
-      tokenSteps: [
-        "לחצו על התמונה שלכם בפינה השמאלית התחתונה במאנדיי",
-        "בחרו \"Developers\" מהתפריט",
-        "לחצו על \"My Access Tokens\" בצד שמאל",
-        "לחצו \"Copy\" והדביקו כאן",
-      ],
-      tokenPath: "Monday → Profile → Developers → My Access Tokens",
-      boardLabel: "מספר בורד",
-      boardHelp: "איך מוצאים את מספר הבורד?",
-      boardSteps: [
-        "פתחו את הבורד שלכם במאנדיי",
-        "הסתכלו על ה-URL בשורת הכתובת של הדפדפן",
-        "המספר שמופיע אחרי /boards/ הוא מספר הבורד",
-      ],
-      boardUrlHint: "נמצא ב-URL: monday.com/boards/",
-      boardCopy: "העתיקו את המספר הזה",
-      loadBtn: "התחילו — הצגת דשבורד",
-      loading: "טוען את הבורד...",
-    },
-    comingSoon: {
-      title: "בקרוב",
+    faq: {
+      title: "\u05E9\u05D0\u05DC\u05D5\u05EA \u05E9\u05DB\u05DC \u05DE\u05E0\u05D4\u05DC\u05EA \u05E9\u05D5\u05D0\u05DC\u05EA",
       items: [
-        "תרגום דוחות לאנגלית",
+        { q: "\u05DC\u05DE\u05D4 \u05DC\u05D0 \u05E4\u05E9\u05D5\u05D8 Monday AI \u05D0\u05D5 ChatGPT?", a: "Monday AI \u05DE\u05D5\u05D2\u05D1\u05DC \u05DC\u05D1\u05D5\u05E8\u05D3 \u05D0\u05D7\u05D3 \u05D5\u05DC\u05D0 \u05DE\u05D1\u05D9\u05DF \u05E2\u05D1\u05E8\u05D9\u05EA \u05E2\u05E1\u05E7\u05D9\u05EA. ChatGPT \u05DC\u05D0 \u05DE\u05D7\u05D5\u05D1\u05E8 \u05DC\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD. AnyDay \u05DE\u05D7\u05D1\u05E8 \u05D0\u05EA \u05DB\u05DC \u05D4\u05DE\u05E7\u05D5\u05E8\u05D5\u05EA \u05D5\u05DE\u05D1\u05E6\u05E2 \u05E4\u05E2\u05D5\u05DC\u05D5\u05EA \u05D0\u05DE\u05D9\u05EA\u05D9\u05D5\u05EA." },
+        { q: "\u05D4\u05D0\u05DD \u05D6\u05D4 \u05DE\u05D7\u05DC\u05D9\u05E3 \u05D0\u05EA \u05D4\u05E6\u05D5\u05D5\u05EA \u05E9\u05DC\u05D9?", a: "\u05DC\u05D0. \u05D6\u05D4 \u05DE\u05D7\u05DC\u05D9\u05E3 \u05D0\u05EA \u05D4\u05D6\u05DE\u05DF \u05E9\u05D4\u05E6\u05D5\u05D5\u05EA \u05DE\u05D1\u05D6\u05D1\u05D6 \u05E2\u05DC \u05D0\u05D9\u05E1\u05D5\u05E3 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05D5\u05D4\u05DB\u05E0\u05EA \u05D3\u05D5\u05D7\u05D5\u05EA." },
+        { q: "\u05DE\u05D4 \u05D0\u05DD \u05D0\u05E0\u05D9 \u05DC\u05D0 \u05DE\u05E8\u05D5\u05E6\u05D4?", a: "7 \u05D9\u05DE\u05D9 \u05E0\u05D9\u05E1\u05D9\u05D5\u05DF \u05D7\u05D9\u05E0\u05DD, \u05DC\u05DC\u05D0 \u05DB\u05E8\u05D8\u05D9\u05E1. \u05D1\u05D9\u05D8\u05D5\u05DC \u05D1\u05DC\u05D7\u05D9\u05E6\u05D4, \u05DC\u05DC\u05D0 \u05E7\u05E0\u05E1\u05D5\u05EA." },
+        { q: "\u05D4\u05D0\u05DD \u05D6\u05D4 \u05D1\u05D0\u05DE\u05EA \u05E2\u05D5\u05D1\u05D3 \u05D1\u05E2\u05D1\u05E8\u05D9\u05EA?", a: "\u05DB\u05DF. AnyDay \u05E0\u05D1\u05E0\u05D4 \u05D1\u05E2\u05D1\u05E8\u05D9\u05EA \u05DE\u05D4\u05D9\u05D5\u05DD \u05D4\u05E8\u05D0\u05E9\u05D5\u05DF. \u05DE\u05D1\u05D9\u05DF \u05E1\u05DC\u05E0\u05D2, \u05E8\u05D0\u05E9\u05D9 \u05EA\u05D9\u05D1\u05D5\u05EA, \u05D5\u05D0\u05EA \u05D4\u05D4\u05D1\u05D3\u05DC \u05D1\u05D9\u05DF \u05E1\u05D2\u05D5\u05E8 \u05DC\u05D1\u05D5\u05E6\u05E2." },
+        { q: "\u05DB\u05DE\u05D4 \u05D6\u05DE\u05DF \u05DC\u05D5\u05E7\u05D7\u05EA \u05D4\u05D4\u05D8\u05DE\u05E2\u05D4?", a: "\u05E9\u05EA\u05D9 \u05D3\u05E7\u05D5\u05EA \u05DC\u05D7\u05D9\u05D1\u05D5\u05E8. \u05E9\u05E2\u05D4 \u05DC\u05E8\u05D0\u05D9\u05D9\u05EA \u05E2\u05E8\u05DA \u05E8\u05D0\u05E9\u05D5\u05DF. \u05E9\u05D1\u05D5\u05E2 \u05DC\u05E9\u05D9\u05E0\u05D5\u05D9 \u05E9\u05D9\u05D2\u05E8\u05D4." },
       ],
     },
-    contact: {
-      title: "רוצים מערכת ואוטומציות רק בשבילכם?",
-      sub: "ללא כרטיס אשראי בניסיון. ללא חוזה. ביטול בלחיצה.",
-      cta: "הזמינו דמו של 15 דקות",
+    cta: {
+      label: "// \u05D4\u05E6\u05E2\u05D3 \u05D4\u05D1\u05D0",
+      title1: "\u05D4\u05D9\u05E9\u05D9\u05D1\u05D4 \u05D4\u05D1\u05D0\u05D4",
+      titleFade: "\u05D1\u05E2\u05D5\u05D3 \u05E9\u05D1\u05D5\u05E2.",
+      titleAccent: "\u05D0\u05D9\u05DA",
+      titleEnd: "\u05EA\u05E2\u05D3\u05D9\u05E4\u05D5 \u05DC\u05D1\u05DC\u05D5\u05EA \u05D0\u05D5\u05EA\u05D5?",
+      cta1: "\u05D4\u05EA\u05D7\u05D9\u05DC\u05D5 7 \u05D9\u05DE\u05D9\u05DD \u05D7\u05D9\u05E0\u05DD \u2190",
+      cta2: "\u05D3\u05D1\u05E8\u05D5 \u05D0\u05D9\u05EA\u05E0\u05D5 \u05E2\u05DC \u05D4\u05D8\u05DE\u05E2\u05D4",
+      trust: "// \u05DC\u05DC\u05D0 \u05DB\u05E8\u05D8\u05D9\u05E1 \u05D0\u05E9\u05E8\u05D0\u05D9 \u00B7 \u05D1\u05D9\u05D8\u05D5\u05DC \u05D1\u05DC\u05D7\u05D9\u05E6\u05D4",
     },
-    footer: "כל הזכויות שמורות.",
+    footer: "\u00A9 2026 ANYDAY \u00B7 MADE IN ISRAEL",
+    form: {
+      title: "\u05D4\u05EA\u05D7\u05D9\u05DC\u05D5 7 \u05D9\u05DE\u05D9\u05DD \u05D7\u05D9\u05E0\u05DD",
+      sub: "\u05D7\u05D1\u05E8\u05D5 \u05D0\u05EA \u05D4\u05DE\u05E7\u05D5\u05E8\u05D5\u05EA \u05E9\u05DC\u05DB\u05DD \u05D5\u05EA\u05EA\u05D7\u05D9\u05DC\u05D5 \u05DC\u05E7\u05D1\u05DC \u05EA\u05E9\u05D5\u05D1\u05D5\u05EA",
+      tokenLabel: "API Token",
+      tokenHelp: "\u05D0\u05D9\u05DA \u05DE\u05D5\u05E6\u05D0\u05D9\u05DD \u05D0\u05EA \u05D4-API Token?",
+      tokenSteps: [
+        "\u05DC\u05D7\u05E6\u05D5 \u05E2\u05DC \u05D4\u05EA\u05DE\u05D5\u05E0\u05D4 \u05E9\u05DC\u05DB\u05DD \u05D1\u05E4\u05D9\u05E0\u05D4 \u05D4\u05E9\u05DE\u05D0\u05DC\u05D9\u05EA \u05D4\u05EA\u05D7\u05EA\u05D5\u05E0\u05D4 \u05D1\u05DE\u05D0\u05E0\u05D3\u05D9\u05D9",
+        "\u05D1\u05D7\u05E8\u05D5 \"Developers\" \u05DE\u05D4\u05EA\u05E4\u05E8\u05D9\u05D8",
+        "\u05DC\u05D7\u05E6\u05D5 \u05E2\u05DC \"My Access Tokens\" \u05D1\u05E6\u05D3 \u05E9\u05DE\u05D0\u05DC",
+        "\u05DC\u05D7\u05E6\u05D5 \"Copy\" \u05D5\u05D4\u05D3\u05D1\u05D9\u05E7\u05D5 \u05DB\u05D0\u05DF",
+      ],
+      tokenPath: "Monday \u2192 Profile \u2192 Developers \u2192 My Access Tokens",
+      boardLabel: "\u05DE\u05E1\u05E4\u05E8 \u05D1\u05D5\u05E8\u05D3",
+      boardHelp: "\u05D0\u05D9\u05DA \u05DE\u05D5\u05E6\u05D0\u05D9\u05DD \u05D0\u05EA \u05DE\u05E1\u05E4\u05E8 \u05D4\u05D1\u05D5\u05E8\u05D3?",
+      boardSteps: [
+        "\u05E4\u05EA\u05D7\u05D5 \u05D0\u05EA \u05D4\u05D1\u05D5\u05E8\u05D3 \u05E9\u05DC\u05DB\u05DD \u05D1\u05DE\u05D0\u05E0\u05D3\u05D9\u05D9",
+        "\u05D4\u05E1\u05EA\u05DB\u05DC\u05D5 \u05E2\u05DC \u05D4-URL \u05D1\u05E9\u05D5\u05E8\u05EA \u05D4\u05DB\u05EA\u05D5\u05D1\u05EA \u05E9\u05DC \u05D4\u05D3\u05E4\u05D3\u05E4\u05DF",
+        "\u05D4\u05DE\u05E1\u05E4\u05E8 \u05E9\u05DE\u05D5\u05E4\u05D9\u05E2 \u05D0\u05D7\u05E8\u05D9 /boards/ \u05D4\u05D5\u05D0 \u05DE\u05E1\u05E4\u05E8 \u05D4\u05D1\u05D5\u05E8\u05D3",
+      ],
+      boardUrlHint: "\u05E0\u05DE\u05E6\u05D0 \u05D1-URL: monday.com/boards/",
+      boardCopy: "\u05D4\u05E2\u05EA\u05D9\u05E7\u05D5 \u05D0\u05EA \u05D4\u05DE\u05E1\u05E4\u05E8 \u05D4\u05D6\u05D4",
+      loadBtn: "\u05D4\u05EA\u05D7\u05D9\u05DC\u05D5 \u2014 \u05D4\u05E6\u05D2\u05EA \u05D3\u05E9\u05D1\u05D5\u05E8\u05D3",
+      loading: "\u05D8\u05D5\u05E2\u05DF \u05D0\u05EA \u05D4\u05D1\u05D5\u05E8\u05D3...",
+    },
   },
   en: {
-    nav: { features: "Features", how: "How it works", pricing: "Pricing", cta: "Get Started" },
+    nav: { features: "Features", how: "How it works", pricing: "Pricing", cta: "Get Started \u2190" },
     hero: {
-      badge: "AnyDay",
-      title1: "AI that gets answers",
-      title2: "from your ",
-      titleBrand: "Monday",
-      title3: ".",
-      sub: "Not reports. Answers.",
-      desc: "Start working smarter with your Monday.com. Stunning reports, clear data, patterns you never saw. Sharp, precise, knows what you need from day one.",
-      cta: "Get Started",
+      badge: "MADE FOR MONDAY \u00B7 BUILT FOR ANY DAY",
+      title1: "Board report in a",
+      titleAccent: "minute",
+      titleFade: "Not two days.",
+      sub: "Connect your boards and sheets and turn them into executive reports, strategic insights and alerts. In Hebrew.",
+      cta1: "Start 7 days free \u2190",
+      cta2: "Watch 1-min demo",
+      trust: "// No credit card \u00B7 Cancel anytime",
+      demoQ: "Prepare Q4 report for the board.",
+      demoA: "PDF with 4 charts. Ready in",
+      demoTime: "47 seconds",
     },
     features: {
-      title: "Your Toolkit",
-      sub: "Everything you need to turn Monday into an answer engine",
+      title: "Four tools. Like an",
+      titleAccent: "analyst",
+      titleEnd: "on payroll.",
       items: [
-        { title: "Smart Board Chat", desc: "Ask your Monday any question in plain language and get instant answers with real data" },
-        { title: "Visual Dashboard", desc: "Charts and insights built automatically from your data, ready to send to management" },
-        { title: "Custom Automations", desc: "The system suggests smart automations that save you hours of manual work every week" },
-        { title: "Impact Reports", desc: "Generate professional reports for donors and management directly from data, without writing a word" },
+        { title: "Ask in plain language. Get answers.", desc: "\"How many clients signed this quarter?\" \"Which projects are behind?\" \u2014 instant answer, with data and source." },
+        { title: "Board report in one click.", desc: "Designed PDF with charts, strategic insights, your logo. Ready for the meeting." },
+        { title: "Alerts before it's too late.", desc: "Client unresponsive 14 days. Revenue dropped 23%. AnyDay alerts \u2014 without asking." },
+        { title: "Automations that execute.", desc: "\"Archive all closed tasks\" \u2014 done. One conversation. Full execution." },
       ],
     },
     steps: {
-      title: "How it works?",
-      sub: "Three steps and you're in",
+      title: "Three steps.",
+      titleFade: "Two minutes.",
       items: [
-        { title: "Click Connect", desc: "One-click Monday.com login" },
-        { title: "Pick a Board", desc: "All your boards appear automatically" },
-        { title: "Start Working", desc: "Reports, automations, editing — all ready" },
+        { title: "Connect the source", desc: "Monday \u00B7 Sheets \u00B7 Excel. One-click OAuth. No tokens." },
+        { title: "Let AnyDay read", desc: "The system reads structure, identifies columns, connects boards. Two minutes." },
+        { title: "Ask. Get. Act.", desc: "In text or voice. Like an analyst \u2014 faster and available 24/7." },
       ],
     },
     pricing: {
-      title: "Plans & Pricing",
-      sub: "Choose the plan that fits you",
+      title: "A plan for every",
+      titleAccent: "stage",
+      titleEnd: ".",
+      sub: "Full connection to all boards and sheets, in all plans. The difference is in capabilities.",
       plans: [
-        { name: "Starter", desc: "Start with one board, see what it can do", boards: "1" },
-        { name: "Duo", desc: "Two boards, what could go wrong", boards: "2" },
-        { name: "Pro", desc: "Three boards, now we're serious", boards: "3" },
-        { name: "Unlimited", desc: "All your boards, no limits", boards: "Unlimited" },
+        { name: "Explore", price: "250", desc: "Full Monday/Sheets connection\nHebrew chat\n100 queries/month", cta: "7 days free \u2190", popular: false },
+        { name: "Leaders", price: "450", desc: "Everything in Explore\nPDF reports\nSmart alerts\n500 queries/month", cta: "Start \u2190", popular: false },
+        { name: "Directors", price: "750", desc: "Everything in Leaders\nFull automations\nBoard-ready reports\n2,000 queries/month", cta: "Start \u2190", popular: true },
+        { name: "Enterprise", price: "1,200", desc: "Everything in Directors\nWhite Label \u00B7 SSO \u00B7 API\nDedicated manager\n10,000 queries/month", cta: "Talk to us \u2190", popular: false },
       ],
-      popular: "Most Popular",
-      month: "$/mo",
-      boardLabel: (b: string) => b === "Unlimited" ? "Unlimited boards" : `${b} board${Number(b) === 1 ? "" : "s"}`,
-      cta: "Get Started",
-      addon: { badge: "PREMIUM ADD-ON", title: "Your system. Your brand.", desc: "Logo, colors, full design. Your clients will think you built it yourself. A branded AI system that looks like a million dollars.", cta: "Add Branding" },
+      popularBadge: "\u2605 Most Popular",
     },
+    faq: {
+      title: "Questions every manager asks",
+      items: [
+        { q: "Why not just Monday AI or ChatGPT?", a: "Monday AI is limited to one board. ChatGPT isn't connected to your data. AnyDay connects all sources and executes real actions." },
+        { q: "Does it replace my team?", a: "No. It replaces the time your team wastes on data collection and report preparation." },
+        { q: "What if I'm not satisfied?", a: "7-day free trial, no credit card. Cancel anytime, no penalties." },
+        { q: "Does it really work in Hebrew?", a: "Yes. Built in Hebrew from day one. Understands slang, abbreviations, and context." },
+        { q: "How long does setup take?", a: "Two minutes to connect. One hour to see value. One week to change workflow." },
+      ],
+    },
+    cta: {
+      label: "// Next step",
+      title1: "Next meeting",
+      titleFade: "in a week.",
+      titleAccent: "How",
+      titleEnd: "will you spend it?",
+      cta1: "Start 7 days free \u2190",
+      cta2: "Talk to us about setup",
+      trust: "// No credit card \u00B7 Cancel anytime",
+    },
+    footer: "\u00A9 2026 ANYDAY \u00B7 MADE IN ISRAEL",
     form: {
-      title: "Get Started Now",
-      sub: "Enter your details and your dashboard is ready in seconds",
+      title: "Start 7 days free",
+      sub: "Connect your sources and start getting answers",
       tokenLabel: "API Token",
       tokenHelp: "How to find your API Token?",
       tokenSteps: [
@@ -212,7 +182,7 @@ const T = {
         "Click \"My Access Tokens\" on the left",
         "Click \"Copy\" and paste here",
       ],
-      tokenPath: "Monday → Profile → Developers → My Access Tokens",
+      tokenPath: "Monday \u2192 Profile \u2192 Developers \u2192 My Access Tokens",
       boardLabel: "Board ID",
       boardHelp: "How to find your Board ID?",
       boardSteps: [
@@ -222,29 +192,31 @@ const T = {
       ],
       boardUrlHint: "Found in URL: monday.com/boards/",
       boardCopy: "Copy this number",
-      loadBtn: "Get Started — Show Dashboard",
+      loadBtn: "Get Started \u2014 Show Dashboard",
       loading: "Loading board...",
     },
-    comingSoon: {
-      title: "Coming Soon",
-      items: [
-        "Report translation to English",
-      ],
-    },
-    contact: {
-      title: "Want more from your AnyDay?",
-      sub: "Complaints, compliments, suggestions?",
-      cta: "Contact Us",
-    },
-    footer: "All rights reserved.",
   },
 };
 
 type Lang = "he" | "en";
 
-const ICONS = [IconChat, IconChart, IconBrain, IconDoc];
-const STEP_ICONS = [IconKey, IconHash, IconZap];
-const STEP_EMOJIS = [["👤", "⚙️", "🔑", "📋"], ["📋", "🔗", "🔢"]];
+/* ─── Color tokens ─── */
+const C = {
+  bg: "#0A0A0A",
+  accent: "#C5FF00",
+  white: "#FFFFFF",
+  white55: "rgba(255,255,255,0.55)",
+  white35: "rgba(255,255,255,0.35)",
+  white12: "rgba(255,255,255,0.12)",
+  white08: "rgba(255,255,255,0.08)",
+  white65: "rgba(255,255,255,0.65)",
+  white75: "rgba(255,255,255,0.75)",
+  fadedWhite: "rgba(255,255,255,0.28)",
+  accentFade: "rgba(197,255,0,0.4)",
+};
+
+const serif = "'Frank Ruhl Libre', 'David', 'Times New Roman', serif";
+const mono = "'Courier New', monospace";
 
 export default function Home() {
   const [apiToken, setApiToken] = useState("");
@@ -262,10 +234,10 @@ export default function Home() {
   const [boardsList, setBoardsList] = useState<{ id: string; name: string; items_count: number; description: string }[]>([]);
   const [loadingBoards, setLoadingBoards] = useState(false);
   const [tokenConnected, setTokenConnected] = useState(false);
+  const [faqOpen, setFaqOpen] = useState<number | null>(null);
   const t = T[lang];
   const formRef = useRef<HTMLDivElement>(null);
 
-  // Load saved token from localStorage OR from OAuth redirect
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search);
@@ -298,7 +270,7 @@ export default function Home() {
       setTokenConnected(true);
       try { localStorage.setItem("anyday-token", token); } catch {}
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Token לא תקין");
+      setError(e instanceof Error ? e.message : "Token invalid");
       setTokenConnected(false);
     } finally {
       setLoadingBoards(false);
@@ -345,7 +317,7 @@ export default function Home() {
       setBoard(data.board);
       setItems(data.items);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "שגיאה בטעינת הבורד");
+      setError(e instanceof Error ? e.message : "error");
     } finally {
       setLoading(false);
     }
@@ -367,7 +339,7 @@ export default function Home() {
       setBoard(data.board);
       setItems(data.items);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "שגיאה בטעינת הגיליון");
+      setError(e instanceof Error ? e.message : "error");
     } finally {
       setLoading(false);
     }
@@ -387,759 +359,446 @@ export default function Home() {
     return <BoardDashboard board={board} items={items} onBack={handleBack} apiToken={apiToken} boardId={boardId} />;
   }
 
+  const dir = lang === "he" ? "rtl" : "ltr";
+
   return (
-    <div dir={lang === "he" ? "rtl" : "ltr"} style={{ fontFamily: "'Rubik', sans-serif", color: "#2D2252" }}>
+    <div dir={dir} style={{ fontFamily: "'Inter', 'Heebo', sans-serif", background: C.bg, color: C.white, minHeight: "100vh" }}>
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;500;700&family=Inter:wght@400;500;600&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: ${C.bg}; }
         @media (max-width: 768px) {
           .desktop-nav { display: none !important; }
           .mobile-burger { display: flex !important; }
-          .features-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
-          .hero-title { font-size: 28px !important; }
-          .hero-sub { font-size: 15px !important; }
-          .section-pad { padding: 40px 16px !important; }
-          section { padding-left: 16px !important; padding-right: 16px !important; }
-          section h2 { font-size: 24px !important; }
-          .pricing-grid { grid-template-columns: 1fr 1fr !important; }
-          .brand-addon { flex-direction: column !important; text-align: center !important; padding: 24px 16px !important; }
-          .brand-addon > div { text-align: center !important; min-width: unset !important; }
-          .form-tabs { flex-direction: column !important; }
-          .form-tabs button { font-size: 14px !important; }
-          .form-card { padding: 24px 16px !important; }
-        }
-        @media (max-width: 480px) {
-          .features-grid { grid-template-columns: 1fr !important; }
-          .pricing-grid { grid-template-columns: 1fr !important; }
-          section { padding-top: 40px !important; padding-bottom: 40px !important; }
+          .grid-2 { grid-template-columns: 1fr !important; }
+          .grid-3 { grid-template-columns: 1fr !important; }
+          .hero-title { font-size: 36px !important; }
+          .section-title { font-size: 28px !important; }
+          .step-num { font-size: 40px !important; }
+          .demo-card { display: none !important; }
         }
       `}</style>
+
       {/* ── Navbar ── */}
       <nav style={{
         position: "fixed", top: 0, right: 0, left: 0, zIndex: 50,
-        background: "rgba(255,255,255,0.92)", backdropFilter: "blur(12px)",
-        borderBottom: "1px solid rgba(108,92,231,0.1)",
-        padding: "0 24px", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between",
+        background: "rgba(10,10,10,0.92)", backdropFilter: "blur(12px)",
+        borderBottom: `0.5px solid ${C.white08}`,
+        padding: "0 28px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: 10,
-            background: "linear-gradient(135deg, #6C5CE7, #A29BFE)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 18, color: "#FFF", fontWeight: 800,
-          }}>A</div>
-          <span style={{
-            fontSize: 20, fontWeight: 800,
-            background: "linear-gradient(90deg, #6C5CE7, #A29BFE)",
-            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-          }}>AnyDay</span>
+        <div style={{ fontFamily: serif, fontSize: 21, fontWeight: 500, letterSpacing: "-0.02em", color: C.white }}>
+          any<span style={{ color: C.accent }}>.</span>day
         </div>
-        <div className="desktop-nav" style={{ display: "flex", gap: 28, alignItems: "center" }}>
-          <a href="#features" style={{ color: "#6C5CE7", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>{t.nav.features}</a>
-          <a href="#how" style={{ color: "#6C5CE7", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>{t.nav.how}</a>
-          <a href="#pricing" style={{ color: "#6C5CE7", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>{t.nav.pricing}</a>
-          {/* Language toggle */}
+        <div className="desktop-nav" style={{ display: "flex", alignItems: "center", gap: 24 }}>
+          <a href="#features" style={{ fontSize: 11, color: C.white55, fontFamily: mono, letterSpacing: "0.12em", textDecoration: "none" }}>{t.nav.features}</a>
+          <a href="#how" style={{ fontSize: 11, color: C.white55, fontFamily: mono, letterSpacing: "0.12em", textDecoration: "none" }}>{t.nav.how}</a>
+          <a href="#pricing" style={{ fontSize: 11, color: C.white55, fontFamily: mono, letterSpacing: "0.12em", textDecoration: "none" }}>{t.nav.pricing}</a>
           <button onClick={() => setLang(lang === "he" ? "en" : "he")} style={{
-            background: "rgba(108,92,231,0.06)", border: "1.5px solid rgba(108,92,231,0.15)",
-            borderRadius: 8, padding: "6px 12px", cursor: "pointer",
-            color: "#6C5CE7", fontSize: 13, fontWeight: 700,
-            display: "flex", alignItems: "center", gap: 5, transition: "all 0.2s",
-          }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" />
-              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-            </svg>
-            {lang === "he" ? "EN" : "עב"}
-          </button>
+            background: "none", border: `0.5px solid ${C.white12}`, borderRadius: 100,
+            padding: "5px 12px", cursor: "pointer", color: C.white55, fontFamily: mono, fontSize: 10, letterSpacing: "0.1em",
+          }}>{lang === "he" ? "EN" : "\u05E2\u05D1"}</button>
           <button onClick={scrollToForm} style={{
-            background: "linear-gradient(135deg, #6C5CE7, #A29BFE)",
-            color: "#FFF", border: "none", borderRadius: 10,
-            padding: "9px 22px", fontSize: 14, fontWeight: 700,
-            cursor: "pointer", transition: "all 0.3s ease",
+            background: C.accent, color: C.bg, padding: "7px 16px", borderRadius: 100,
+            fontSize: 12, fontWeight: 500, border: "none", cursor: "pointer",
           }}>{t.nav.cta}</button>
         </div>
-        {/* Hamburger */}
         <button className="mobile-burger" onClick={() => setMobileMenu(!mobileMenu)} style={{
           display: "none", background: "none", border: "none", cursor: "pointer",
           flexDirection: "column", gap: 5, padding: 4,
         }}>
-          <div style={{ width: 24, height: 2.5, borderRadius: 2, background: "#6C5CE7", transition: "all 0.3s", transform: mobileMenu ? "rotate(45deg) translate(5px, 5px)" : "none" }} />
-          <div style={{ width: 24, height: 2.5, borderRadius: 2, background: "#6C5CE7", transition: "all 0.3s", opacity: mobileMenu ? 0 : 1 }} />
-          <div style={{ width: 24, height: 2.5, borderRadius: 2, background: "#6C5CE7", transition: "all 0.3s", transform: mobileMenu ? "rotate(-45deg) translate(5px, -5px)" : "none" }} />
+          <div style={{ width: 22, height: 2, borderRadius: 1, background: C.white, transition: "all 0.3s", transform: mobileMenu ? "rotate(45deg) translate(5px, 5px)" : "none" }} />
+          <div style={{ width: 22, height: 2, borderRadius: 1, background: C.white, transition: "all 0.3s", opacity: mobileMenu ? 0 : 1 }} />
+          <div style={{ width: 22, height: 2, borderRadius: 1, background: C.white, transition: "all 0.3s", transform: mobileMenu ? "rotate(-45deg) translate(5px, -5px)" : "none" }} />
         </button>
       </nav>
-      {/* Mobile menu overlay */}
+
       {mobileMenu && (
         <div style={{
-          position: "fixed", top: 64, right: 0, left: 0, bottom: 0, zIndex: 49,
-          background: "rgba(255,255,255,0.97)", backdropFilter: "blur(12px)",
-          display: "flex", flexDirection: "column", alignItems: "center",
-          paddingTop: 40, gap: 24,
+          position: "fixed", top: 60, right: 0, left: 0, bottom: 0, zIndex: 49,
+          background: "rgba(10,10,10,0.97)", backdropFilter: "blur(12px)",
+          display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 50, gap: 28,
         }}>
-          <a href="#features" onClick={() => setMobileMenu(false)} style={{ color: "#6C5CE7", fontSize: 18, fontWeight: 600, textDecoration: "none" }}>{t.nav.features}</a>
-          <a href="#how" onClick={() => setMobileMenu(false)} style={{ color: "#6C5CE7", fontSize: 18, fontWeight: 600, textDecoration: "none" }}>{t.nav.how}</a>
-          <a href="#pricing" onClick={() => setMobileMenu(false)} style={{ color: "#6C5CE7", fontSize: 18, fontWeight: 600, textDecoration: "none" }}>{t.nav.pricing}</a>
+          <a href="#features" onClick={() => setMobileMenu(false)} style={{ color: C.white55, fontSize: 16, fontFamily: mono, textDecoration: "none" }}>{t.nav.features}</a>
+          <a href="#how" onClick={() => setMobileMenu(false)} style={{ color: C.white55, fontSize: 16, fontFamily: mono, textDecoration: "none" }}>{t.nav.how}</a>
+          <a href="#pricing" onClick={() => setMobileMenu(false)} style={{ color: C.white55, fontSize: 16, fontFamily: mono, textDecoration: "none" }}>{t.nav.pricing}</a>
           <button onClick={() => { setLang(lang === "he" ? "en" : "he"); setMobileMenu(false); }} style={{
-            background: "rgba(108,92,231,0.06)", border: "1.5px solid rgba(108,92,231,0.15)",
-            borderRadius: 10, padding: "10px 30px", cursor: "pointer",
-            color: "#6C5CE7", fontSize: 16, fontWeight: 700,
-          }}>{lang === "he" ? "English" : "עברית"}</button>
+            background: "none", border: `0.5px solid ${C.white12}`, borderRadius: 100,
+            padding: "8px 24px", cursor: "pointer", color: C.white55, fontFamily: mono, fontSize: 13,
+          }}>{lang === "he" ? "English" : "\u05E2\u05D1\u05E8\u05D9\u05EA"}</button>
           <button onClick={() => { setMobileMenu(false); scrollToForm(); }} style={{
-            background: "linear-gradient(135deg, #6C5CE7, #A29BFE)",
-            color: "#FFF", border: "none", borderRadius: 12,
-            padding: "12px 40px", fontSize: 16, fontWeight: 700, cursor: "pointer",
+            background: C.accent, color: C.bg, border: "none", borderRadius: 100,
+            padding: "12px 36px", fontSize: 14, fontWeight: 500, cursor: "pointer",
           }}>{t.nav.cta}</button>
         </div>
       )}
 
       {/* ── Hero ── */}
-      <section style={{
-        minHeight: "100vh", display: "flex", flexDirection: "column",
-        alignItems: "center", justifyContent: "center", textAlign: "center",
-        padding: "120px 24px 80px",
-        background: "#FFFFFF",
-        position: "relative", overflow: "hidden",
-      }}>
+      <section style={{ padding: "8rem 2rem 3rem", position: "relative" }}>
         <div style={{
-          position: "absolute", width: 600, height: 600, borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(108,92,231,0.06) 0%, transparent 70%)",
-          top: -150, left: -150,
-        }} />
-        <div style={{
-          position: "absolute", width: 500, height: 500, borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(162,155,254,0.08) 0%, transparent 70%)",
-          bottom: -100, right: -120,
-        }} />
-
-        <div className="fade-up" style={{ position: "relative", zIndex: 1, maxWidth: 700 }}>
-          <div style={{
-            display: "inline-block", background: "rgba(108,92,231,0.08)",
-            borderRadius: 30, padding: "6px 20px", marginBottom: 24,
-            fontSize: 13, fontWeight: 700, color: "#6C5CE7",
-          }}>
-            {t.hero.badge}
-          </div>
-          <h1 style={{
-            fontSize: "clamp(36px, 5vw, 56px)", fontWeight: 900, lineHeight: 1.2,
-            marginBottom: 24, color: "#2D2252",
-          }}>
-            {t.hero.title1}
-            <br />
-            {t.hero.title2}<span style={{
-              background: "linear-gradient(135deg, #6C5CE7, #A29BFE)",
-              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-            }}>{t.hero.titleBrand}</span>{t.hero.title3}
-          </h1>
-          <p style={{
-            fontSize: 22, color: "#6C5CE7", lineHeight: 1.6,
-            maxWidth: 520, margin: "0 auto 12px", fontWeight: 700,
-          }}>
-            {t.hero.sub}
-          </p>
-          <p style={{
-            fontSize: 16, color: "#7C6FD0", lineHeight: 1.8,
-            maxWidth: 480, margin: "0 auto 36px",
-          }}>
-            {t.hero.desc}
-          </p>
+          display: "inline-flex", alignItems: "center", gap: 8, fontFamily: mono,
+          fontSize: 10, color: C.accent, letterSpacing: "0.18em", marginBottom: "1.5rem",
+          border: `0.5px solid ${C.accentFade}`, padding: "6px 14px", borderRadius: 100,
+        }}>
+          <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: C.accent }} />
+          {t.hero.badge}
+        </div>
+        <h1 className="hero-title" style={{
+          fontFamily: serif, fontSize: 56, lineHeight: 0.92, fontWeight: 500,
+          color: C.white, margin: "0 0 1.25rem", letterSpacing: "-0.035em",
+        }}>
+          {t.hero.title1}<br />
+          {lang === "he" ? "\u05D1\u05E2\u05D5\u05D3 " : ""}
+          <span style={{ color: C.accent, fontStyle: "italic" }}>{t.hero.titleAccent}</span>
+          .<br />
+          <span style={{ color: C.fadedWhite }}>{t.hero.titleFade}</span>
+        </h1>
+        <p style={{ fontSize: 14, lineHeight: 1.65, color: C.white55, margin: "0 0 1.75rem", maxWidth: 420 }}>
+          {t.hero.sub}
+        </p>
+        <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
           <button onClick={scrollToForm} style={{
-            background: "linear-gradient(135deg, #6C5CE7, #A29BFE)",
-            color: "#FFF", border: "none", borderRadius: 14,
-            padding: "16px 40px", fontSize: 17, fontWeight: 700,
-            cursor: "pointer", transition: "all 0.3s ease",
-            boxShadow: "0 8px 30px rgba(108,92,231,0.3)",
-          }}>
-            {t.hero.cta}
-          </button>
+            background: C.accent, color: C.bg, padding: "14px 26px", borderRadius: 100,
+            fontSize: 13, fontWeight: 500, border: "none", cursor: "pointer",
+          }}>{t.hero.cta1}</button>
+          <span style={{ color: C.white, padding: "14px 6px", fontSize: 13, borderBottom: `0.5px solid rgba(255,255,255,0.5)`, cursor: "pointer" }}>
+            {t.hero.cta2}
+          </span>
+        </div>
+        <div style={{ fontFamily: mono, fontSize: 10, color: C.white35, letterSpacing: "0.08em", marginTop: "0.9rem" }}>
+          {t.hero.trust}
+        </div>
+        {/* Demo card */}
+        <div className="demo-card" style={{
+          marginTop: "2rem", transform: "rotate(-1.5deg)", background: C.white,
+          padding: "14px 16px", borderRadius: 10, maxWidth: 340, display: "inline-block",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, paddingBottom: 9, borderBottom: `0.5px solid rgba(0,0,0,0.08)` }}>
+            <div style={{ fontFamily: mono, fontSize: 9, color: "#888", letterSpacing: "0.1em" }}>14:23</div>
+            <div style={{ display: "inline-block", width: 5, height: 5, borderRadius: "50%", background: C.accent }} />
+            <div style={{ fontFamily: mono, fontSize: 9, color: "#555", letterSpacing: "0.1em" }}>LIVE</div>
+          </div>
+          <div style={{ fontSize: 13, color: C.bg, lineHeight: 1.5, marginBottom: 8, fontWeight: 500 }}>{t.hero.demoQ}</div>
+          <div style={{ fontSize: 13, color: "#555", lineHeight: 1.5 }}>
+            {t.hero.demoA} <span style={{ color: C.bg, fontWeight: 500, background: C.accent, padding: "1px 6px", borderRadius: 3 }}>{t.hero.demoTime}</span>.
+          </div>
         </div>
       </section>
+
+      <div style={{ borderTop: `0.5px solid ${C.white08}` }} />
 
       {/* ── Features ── */}
-      <section id="features" style={{
-        padding: "80px 24px", background: "#F9F7FF", textAlign: "center",
-      }}>
-        <div className="fade-up" style={{ maxWidth: 900, margin: "0 auto" }}>
-          <h2 style={{ fontSize: 32, fontWeight: 800, marginBottom: 12, color: "#2D2252" }}>
-            {t.features.title}
-          </h2>
-          <p style={{ color: "#7C6FD0", fontSize: 16, marginBottom: 50, lineHeight: 1.7 }}>
-            {t.features.sub}
-          </p>
-          <div className="features-grid" style={{
-            display: "grid", gridTemplateColumns: "repeat(4, 1fr)",
-            gap: 16,
-          }}>
-            {t.features.items.map((f, i) => {
-              const Icon = ICONS[i];
-              return (
-              <div key={i} className={`fade-up-${i + 2}`} style={{
-                background: "#FFFFFF", borderRadius: 18, padding: "28px 20px",
-                border: "1px solid rgba(108,92,231,0.1)",
-                transition: "all 0.3s ease",
-                cursor: "default",
-              }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLDivElement).style.transform = "translateY(-6px)";
-                (e.currentTarget as HTMLDivElement).style.boxShadow = "0 16px 40px rgba(108,92,231,0.12)";
-                (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(108,92,231,0.25)";
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLDivElement).style.transform = "translateY(0)";
-                (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
-                (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(108,92,231,0.1)";
-              }}
-              >
-                <div style={{
-                  width: 48, height: 48, borderRadius: 14,
-                  background: "linear-gradient(135deg, rgba(108,92,231,0.08), rgba(162,155,254,0.12))",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  margin: "0 auto 16px",
-                }}><Icon /></div>
-                <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8, color: "#2D2252" }}>{f.title}</h3>
-                <p style={{ fontSize: 13, color: "#7C6FD0", lineHeight: 1.6, margin: 0 }}>{f.desc}</p>
+      <section id="features" style={{ padding: "3rem 2rem" }}>
+        <div style={{ fontFamily: mono, fontSize: 10, color: C.accent, letterSpacing: "0.18em", marginBottom: "1rem" }}>// {t.nav.features}</div>
+        <h2 className="section-title" style={{
+          fontFamily: serif, fontSize: 36, lineHeight: 1, fontWeight: 500,
+          color: C.white, margin: "0 0 2.5rem", letterSpacing: "-0.025em", maxWidth: 500,
+        }}>
+          {t.features.title} <span style={{ fontStyle: "italic", color: C.accent }}>{t.features.titleAccent}</span> {t.features.titleEnd}
+        </h2>
+        <div className="grid-2" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
+          {t.features.items.map((f, i) => (
+            <div key={i} style={{ border: `0.5px solid ${C.white12}`, borderRadius: 10, padding: 22 }}>
+              <div style={{ fontFamily: mono, fontSize: 11, color: C.accent, letterSpacing: "0.15em", marginBottom: 14 }}>
+                {String(i + 1).padStart(2, "0")}
               </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* ── How it works ── */}
-      <section id="how" style={{
-        padding: "80px 24px",
-        background: "#FFFFFF",
-        textAlign: "center",
-      }}>
-        <div style={{ maxWidth: 800, margin: "0 auto" }}>
-          <h2 style={{ fontSize: 32, fontWeight: 800, marginBottom: 12, color: "#2D2252" }}>
-            {t.steps.title}
-          </h2>
-          <p style={{ color: "#7C6FD0", fontSize: 16, marginBottom: 50 }}>
-            {t.steps.sub}
-          </p>
-          <div style={{
-            display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: 28,
-          }}>
-            {t.steps.items.map((s, i) => {
-              const Icon = STEP_ICONS[i];
-              return (
-              <div key={i} style={{
-                background: "#F9F7FF", borderRadius: 20, padding: "36px 24px",
-                border: "1px solid rgba(108,92,231,0.1)",
-                position: "relative",
-              }}>
-                <div style={{
-                  width: 52, height: 52, borderRadius: 16,
-                  background: "linear-gradient(135deg, rgba(108,92,231,0.1), rgba(162,155,254,0.15))",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  margin: "0 auto 18px",
-                }}><Icon /></div>
-                <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, color: "#2D2252" }}>{s.title}</h3>
-                <p style={{ fontSize: 14, color: "#7C6FD0", margin: 0 }}>{s.desc}</p>
-              </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Pricing ── */}
-      <section id="pricing" style={{
-        padding: "80px 24px", background: "#F9F7FF", textAlign: "center",
-      }}>
-        <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-          <h2 style={{ fontSize: 32, fontWeight: 800, marginBottom: 12, color: "#2D2252" }}>
-            {t.pricing.title}
-          </h2>
-          <p style={{ color: "#7C6FD0", fontSize: 16, marginBottom: 50 }}>
-            {t.pricing.sub}
-          </p>
-          <div style={{
-            display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
-            gap: 20, alignItems: "stretch",
-          }} className="pricing-grid">
-            {t.pricing.plans.map((plan, idx) => ({ ...plan, price: ["250", "450", "750", "1,200"][idx], popular: idx === 2 })).map((plan, i) => (
-              <div key={i} style={{
-                background: plan.popular ? "linear-gradient(135deg, #6C5CE7, #A29BFE)" : "#FFFFFF",
-                borderRadius: 22, padding: plan.popular ? "4px" : "0",
-                position: "relative",
-              }}>
-                {plan.popular && (
-                  <div style={{
-                    position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)",
-                    background: "#FDCB6E", color: "#2D2252", fontSize: 11, fontWeight: 800,
-                    padding: "4px 14px", borderRadius: 20,
-                  }}>
-                    {t.pricing.popular}
-                  </div>
-                )}
-                {idx === 0 && (
-                  <div style={{
-                    position: "absolute", top: -12, right: 16,
-                    background: "#00B894", color: "#FFF", fontSize: 10, fontWeight: 800,
-                    padding: "3px 10px", borderRadius: 20,
-                  }}>
-                    7 ימים חינם
-                  </div>
-                )}
-                <div style={{
-                  background: "#FFFFFF", borderRadius: plan.popular ? 19 : 22,
-                  padding: "32px 24px", height: "100%",
-                  border: plan.popular ? "none" : "1px solid rgba(108,92,231,0.1)",
-                  display: "flex", flexDirection: "column", alignItems: "center",
-                }}>
-                  <h3 style={{ fontSize: 20, fontWeight: 800, color: "#2D2252", marginBottom: 8 }}>{plan.name}</h3>
-                  <p style={{ fontSize: 13, color: "#7C6FD0", marginBottom: 20, lineHeight: 1.6, minHeight: 40 }}>{plan.desc}</p>
-                  <div style={{ marginBottom: 8 }}>
-                    <span style={{
-                      fontSize: 40, fontWeight: 900,
-                      background: "linear-gradient(135deg, #6C5CE7, #A29BFE)",
-                      WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-                    }}>{plan.price || "צרו קשר"}</span>
-                    {plan.price && <span style={{ fontSize: 16, color: "#7C6FD0", fontWeight: 600 }}> {t.pricing.month}</span>}
-                  </div>
-                  <div style={{
-                    background: "rgba(108,92,231,0.06)", borderRadius: 10, padding: "8px 16px",
-                    fontSize: 13, color: "#6C5CE7", fontWeight: 600, marginBottom: 20,
-                  }}>
-                    {t.pricing.boardLabel(plan.boards)}
-                  </div>
-                  <button onClick={scrollToForm} style={{
-                    width: "100%",
-                    background: plan.popular
-                      ? "linear-gradient(135deg, #6C5CE7, #A29BFE)"
-                      : "rgba(108,92,231,0.08)",
-                    color: plan.popular ? "#FFF" : "#6C5CE7",
-                    border: "none", borderRadius: 12,
-                    padding: "12px", fontSize: 14, fontWeight: 700, cursor: "pointer",
-                    transition: "all 0.3s",
-                    boxShadow: plan.popular ? "0 6px 20px rgba(108,92,231,0.25)" : "none",
-                  }}>
-                    {t.pricing.cta}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-      {/* ── Get Started Form ── */}
-      <section ref={formRef} id="start" style={{
-        padding: "80px 24px", background: "#FFFFFF", textAlign: "center",
-      }}>
-        <div style={{ maxWidth: 480, margin: "0 auto" }}>
-          <h2 style={{ fontSize: 32, fontWeight: 800, marginBottom: 12, color: "#2D2252" }}>
-            {t.form.title}
-          </h2>
-          <p style={{ color: "#7C6FD0", fontSize: 16, marginBottom: 36 }}>
-            {t.form.sub}
-          </p>
-
-          <div style={{
-            background: "#FFFFFF", borderRadius: 22, padding: "36px 32px",
-            border: "1px solid rgba(108,92,231,0.1)",
-            boxShadow: "0 8px 40px rgba(108,92,231,0.08)",
-            textAlign: "right",
-          }} className="form-card">
-            {/* Data Source Tabs */}
-            <div className="form-tabs" style={{ display: "flex", gap: 6, marginBottom: 24, background: "rgba(108,92,231,0.04)", borderRadius: 14, padding: 4 }}>
-              {([
-                { id: "monday" as const, label: "Monday.com", icon: "M" },
-                { id: "sheets" as const, label: "Google Sheets", icon: "S" },
-                { id: "excel" as const, label: "Excel", icon: "X" },
-              ]).map(src => (
-                <button key={src.id} onClick={() => setDataSource(src.id)} style={{
-                  flex: 1, padding: "10px 8px", borderRadius: 10, border: "none", cursor: "pointer",
-                  background: dataSource === src.id ? "#6C5CE7" : "transparent",
-                  color: dataSource === src.id ? "#FFF" : "#7C6FD0",
-                  fontSize: 13, fontWeight: 700, transition: "all 0.2s",
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                }}>
-                  <span style={{
-                    width: 22, height: 22, borderRadius: 6,
-                    background: dataSource === src.id ? "rgba(255,255,255,0.2)" : "rgba(108,92,231,0.08)",
-                    display: "inline-flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 11, fontWeight: 800,
-                  }}>{src.icon}</span>
-                  {src.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Monday Form — Smart Board Picker */}
-            {dataSource === "monday" && <>
-              {!tokenConnected ? (
-                /* Step 1: Connect via OAuth */
-                <>
-                  <div style={{ textAlign: "center", marginBottom: 20 }}>
-                    <div style={{
-                      width: 56, height: 56, borderRadius: 14, margin: "0 auto 12px",
-                      background: "linear-gradient(135deg, #6C5CE7, #A29BFE)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 24, color: "#FFF", fontWeight: 800,
-                    }}>M</div>
-                    <h3 style={{ fontSize: 18, fontWeight: 700, color: "#2D2252", marginBottom: 4 }}>
-                      {lang === "he" ? "חברו את Monday.com שלכם" : "Connect your Monday.com"}
-                    </h3>
-                    <p style={{ fontSize: 13, color: "#7C6FD0", lineHeight: 1.6 }}>
-                      {lang === "he" ? "לחצו על הכפתור והרשו גישה - בלי להעתיק טוקנים" : "Click the button and authorize - no tokens to copy"}
-                    </p>
-                  </div>
-
-                  {error && (
-                    <div style={{
-                      background: "rgba(225,112,85,0.08)", border: "1px solid rgba(225,112,85,0.2)",
-                      borderRadius: 10, padding: "10px 14px", marginBottom: 14,
-                      color: "#E17055", fontSize: 13, textAlign: "center",
-                    }}>
-                      {error}
-                    </div>
-                  )}
-
-                  <a
-                    href="/api/monday-oauth/authorize"
-                    style={{
-                      display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                      width: "100%",
-                      background: "linear-gradient(135deg, #6C5CE7, #A29BFE)",
-                      color: "#FFF", border: "none", borderRadius: 12,
-                      padding: "15px", fontSize: 16, fontWeight: 700,
-                      cursor: "pointer", textDecoration: "none",
-                      boxShadow: "0 6px 20px rgba(108,92,231,0.25)",
-                    }}
-                  >
-                    {lang === "he" ? "התחברות ל-Monday.com" : "Connect to Monday.com"}
-                  </a>
-                </>
-              ) : (
-                /* Step 2: Connected — show board list */
-                <>
-                  <div style={{
-                    display: "flex", alignItems: "center", justifyContent: "space-between",
-                    marginBottom: 20, padding: "12px 16px",
-                    background: "rgba(0,210,91,0.06)", borderRadius: 12,
-                    border: "1px solid rgba(0,210,91,0.15)",
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{
-                        width: 10, height: 10, borderRadius: "50%", background: "#00D25B",
-                        boxShadow: "0 0 8px rgba(0,210,91,0.4)",
-                      }} />
-                      <span style={{ fontSize: 13, fontWeight: 700, color: "#2D2252" }}>
-                        {lang === "he" ? "מחובר ל-Monday.com" : "Connected to Monday.com"}
-                      </span>
-                    </div>
-                    <button onClick={handleDisconnect} style={{
-                      background: "none", border: "none", cursor: "pointer",
-                      fontSize: 12, color: "#E17055", fontWeight: 600,
-                    }}>
-                      {lang === "he" ? "התנתק" : "Disconnect"}
-                    </button>
-                  </div>
-
-                  {boardsList.length > 0 ? (
-                    <>
-                      <p style={{ fontSize: 14, fontWeight: 700, color: "#2D2252", marginBottom: 12 }}>
-                        {lang === "he" ? "בחרו בורד:" : "Choose a board:"}
-                      </p>
-                      <div style={{ maxHeight: 360, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
-                        {boardsList.map(b => (
-                          <button key={b.id} onClick={() => handleSelectBoard(b.id)} disabled={loading} style={{
-                            width: "100%", textAlign: "right", padding: "14px 16px",
-                            background: loading ? "rgba(108,92,231,0.04)" : "#F9F7FF",
-                            border: "1.5px solid rgba(108,92,231,0.12)",
-                            borderRadius: 12, cursor: loading ? "wait" : "pointer",
-                            transition: "all 0.2s",
-                            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
-                          }}
-                          onMouseEnter={e => { if (!loading) { e.currentTarget.style.borderColor = "#6C5CE7"; e.currentTarget.style.background = "rgba(108,92,231,0.06)"; } }}
-                          onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(108,92,231,0.12)"; e.currentTarget.style.background = "#F9F7FF"; }}
-                          >
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: 14, fontWeight: 700, color: "#2D2252", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                {b.name}
-                              </div>
-                              {b.description && (
-                                <div style={{ fontSize: 11, color: "#7C6FD0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                  {b.description}
-                                </div>
-                              )}
-                            </div>
-                            <div style={{
-                              background: "rgba(108,92,231,0.08)", borderRadius: 8,
-                              padding: "4px 10px", fontSize: 12, fontWeight: 700, color: "#6C5CE7",
-                              flexShrink: 0,
-                            }}>
-                              {b.items_count} {lang === "he" ? "פריטים" : "items"}
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  ) : (
-                    <div style={{ textAlign: "center", padding: "20px 0", color: "#7C6FD0", fontSize: 14 }}>
-                      {lang === "he" ? "לא נמצאו בורדים" : "No boards found"}
-                    </div>
-                  )}
-
-                  {loading && (
-                    <div style={{
-                      display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                      marginTop: 16, color: "#6C5CE7", fontSize: 14, fontWeight: 600,
-                    }}>
-                      <Spinner size={16} color="#6C5CE7" /> {lang === "he" ? "טוען את הבורד..." : "Loading board..."}
-                    </div>
-                  )}
-
-                  {error && (
-                    <div style={{
-                      background: "rgba(225,112,85,0.08)", border: "1px solid rgba(225,112,85,0.2)",
-                      borderRadius: 10, padding: "10px 14px", marginTop: 14,
-                      color: "#E17055", fontSize: 13, textAlign: "center",
-                    }}>
-                      {error}
-                    </div>
-                  )}
-                </>
-              )}
-            </>}
-
-            {/* Google Sheets Form */}
-            {dataSource === "sheets" && <>
-              <div style={{ textAlign: "center", padding: "20px 0" }}>
-                <div style={{
-                  width: 64, height: 64, borderRadius: 16, margin: "0 auto 16px",
-                  background: "linear-gradient(135deg, #34A853, #0F9D58)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 28, color: "#FFF", fontWeight: 800,
-                }}>S</div>
-                <h3 style={{ fontSize: 18, fontWeight: 700, color: "#2D2252", marginBottom: 8 }}>
-                  {lang === "he" ? "חברו את Google Sheets שלכם" : "Connect your Google Sheets"}
-                </h3>
-                <p style={{ fontSize: 13, color: "#7C6FD0", marginBottom: 20, lineHeight: 1.6 }}>
-                  {lang === "he" ? "הדביקו את הלינק של הגיליון שלכם ו-AnyDay ינתח אותו" : "Paste your sheet link and AnyDay will analyze it"}
-                </p>
-              </div>
-
-              <label style={{ fontWeight: 700, fontSize: 14, color: "#2D2252", marginBottom: 6, display: "block" }}>
-                {lang === "he" ? "לינק לגיליון" : "Sheet URL"}
-              </label>
-              <p style={{ color: "#A29BFE", fontSize: 12, margin: "0 0 10px" }}>
-                {lang === "he" ? "docs.google.com/spreadsheets/d/..." : "docs.google.com/spreadsheets/d/..."}
-              </p>
-              <input
-                type="url"
-                value={sheetsUrl}
-                onChange={(e) => setSheetsUrl(e.target.value)}
-                placeholder="https://docs.google.com/spreadsheets/d/..."
-                style={{
-                  width: "100%", background: "#F9F7FF",
-                  border: "1.5px solid rgba(108,92,231,0.15)",
-                  color: "#2D2252", borderRadius: 12,
-                  padding: "13px 16px", fontSize: 14,
-                  outline: "none", direction: "ltr",
-                  transition: "border-color 0.2s",
-                  marginBottom: 12,
-                }}
-                onFocus={e => e.target.style.borderColor = "#34A853"}
-                onBlur={e => e.target.style.borderColor = "rgba(108,92,231,0.15)"}
-              />
-
-              <div style={{
-                background: "rgba(52,168,83,0.06)", borderRadius: 12, padding: "14px 16px",
-                border: "1px solid rgba(52,168,83,0.15)", marginBottom: 16,
-              }}>
-                <p style={{ fontSize: 12, fontWeight: 700, color: "#2D2252", margin: "0 0 8px" }}>
-                  {lang === "he" ? "איך זה עובד?" : "How it works?"}
-                </p>
-                {(lang === "he" ? [
-                  "פתחו את הגיליון ב-Google Sheets",
-                  "לחצו Share ותוודאו שזה \"Anyone with link can view\"",
-                  "העתיקו את הלינק והדביקו כאן",
-                ] : [
-                  "Open your spreadsheet in Google Sheets",
-                  "Click Share and set to \"Anyone with link can view\"",
-                  "Copy the link and paste here",
-                ]).map((step, i) => (
-                  <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 4, fontSize: 12, color: "#2D2252" }}>
-                    <div style={{
-                      width: 20, height: 20, borderRadius: 6, background: "#34A853",
-                      color: "#FFF", fontSize: 11, fontWeight: 800,
-                      display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                    }}>{i + 1}</div>
-                    <span>{step}</span>
-                  </div>
-                ))}
-              </div>
-
-              <button
-                onClick={handleLoadSheets}
-                disabled={!sheetsUrl.trim() || loading}
-                style={{
-                  width: "100%", marginTop: 8,
-                  background: (!sheetsUrl.trim() || loading)
-                    ? "rgba(52,168,83,0.3)"
-                    : "linear-gradient(135deg, #34A853, #0F9D58)",
-                  color: "#FFF", border: "none", borderRadius: 12,
-                  padding: "15px", fontSize: 16, fontWeight: 700,
-                  cursor: (!sheetsUrl.trim() || loading) ? "not-allowed" : "pointer",
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                  boxShadow: (!sheetsUrl.trim() || loading) ? "none" : "0 6px 20px rgba(52,168,83,0.25)",
-                  transition: "all 0.3s",
-                }}
-              >
-                {loading ? (
-                  <><Spinner size={16} color="#FFF" /> {lang === "he" ? "טוען גיליון..." : "Loading sheet..."}</>
-                ) : (
-                  lang === "he" ? "התחילו - ניתוח הגיליון" : "Start - Analyze Sheet"
-                )}
-              </button>
-            </>}
-
-            {/* Excel Form */}
-            {dataSource === "excel" && <>
-              <div style={{ textAlign: "center", padding: "20px 0" }}>
-                <div style={{
-                  width: 64, height: 64, borderRadius: 16, margin: "0 auto 16px",
-                  background: "linear-gradient(135deg, #217346, #185C37)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 28, color: "#FFF", fontWeight: 800,
-                }}>X</div>
-                <h3 style={{ fontSize: 18, fontWeight: 700, color: "#2D2252", marginBottom: 8 }}>
-                  {lang === "he" ? "העלו קובץ Excel" : "Upload Excel File"}
-                </h3>
-                <p style={{ fontSize: 13, color: "#7C6FD0", marginBottom: 20, lineHeight: 1.6 }}>
-                  {lang === "he" ? "גררו קובץ .xlsx או .csv ו-AnyDay ינתח אותו" : "Drag an .xlsx or .csv file and AnyDay will analyze it"}
-                </p>
-              </div>
-
-              <div style={{
-                border: "2px dashed rgba(33,115,70,0.3)",
-                borderRadius: 16, padding: "40px 20px",
-                textAlign: "center", marginBottom: 16,
-                background: "rgba(33,115,70,0.03)",
-              }}>
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#217346" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 12 }}>
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="17 8 12 3 7 8" />
-                  <line x1="12" y1="3" x2="12" y2="15" />
-                </svg>
-                <p style={{ fontSize: 14, fontWeight: 600, color: "#217346", marginBottom: 4 }}>
-                  {lang === "he" ? "גררו קובץ לכאן" : "Drag file here"}
-                </p>
-                <p style={{ fontSize: 12, color: "#7C6FD0" }}>
-                  .xlsx, .xls, .csv
-                </p>
-              </div>
-
-              <button
-                disabled={true}
-                style={{
-                  width: "100%",
-                  background: "linear-gradient(135deg, #217346, #185C37)",
-                  color: "#FFF", border: "none", borderRadius: 12,
-                  padding: "15px", fontSize: 16, fontWeight: 700,
-                  cursor: "not-allowed", opacity: 0.5,
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                }}
-              >
-                {lang === "he" ? "בקרוב - ניתוח Excel" : "Coming Soon - Excel Analysis"}
-              </button>
-            </>}
-          </div>
-        </div>
-      </section>
-
-      {/* Security */}
-      <section style={{
-        padding: "60px 24px", background: "#FFFFFF", textAlign: "center",
-      }}>
-        <div style={{ maxWidth: 900, margin: "0 auto" }}>
-          <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 40, color: "#2D2252" }}>
-            {lang === "he" ? "הנתונים שלכם נשארים שלכם." : "Your data stays yours."}
-          </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 20 }}>
-            {[
-              { icon: String.fromCodePoint(0x1F510), title: lang === "he" ? "הצפנה מקצה לקצה" : "End-to-end encryption", desc: "AES-256" },
-              { icon: String.fromCodePoint(0x1F1EE, 0x1F1F1), title: lang === "he" ? "שרתים בארץ" : "Local servers", desc: lang === "he" ? "לא יוצא מישראל" : "Never leaves Israel" },
-              { icon: String.fromCodePoint(0x1F6AB), title: lang === "he" ? "בלי אימון מודלים" : "No model training", desc: lang === "he" ? "הנתונים לא מאמנים אף מודל" : "Never trains any model" },
-              { icon: String.fromCodePoint(0x1F5D1), title: lang === "he" ? "מחיקה בלחיצה" : "Delete anytime", desc: lang === "he" ? "בכל רגע, ללא שאלות" : "No questions asked" },
-            ].map((item, i) => (
-              <div key={i} style={{ background: "#F9F7FF", borderRadius: 16, padding: "24px 16px", border: "1px solid rgba(108,92,231,0.1)" }}>
-                <div style={{ fontSize: 32, marginBottom: 12 }}>{item.icon}</div>
-                <h4 style={{ fontSize: 14, fontWeight: 700, color: "#2D2252", marginBottom: 6 }}>{item.title}</h4>
-                <p style={{ fontSize: 12, color: "#7C6FD0", margin: 0, lineHeight: 1.5 }}>{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ */}
-      <section style={{ padding: "60px 24px", background: "#F9F7FF", textAlign: "right" }}>
-        <div style={{ maxWidth: 700, margin: "0 auto" }}>
-          <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 32, color: "#2D2252", textAlign: "center" }}>
-            {lang === "he" ? "שאלות שכל מנהלת שואלת" : "Frequently Asked Questions"}
-          </h2>
-          {(lang === "he" ? [
-            { q: "למה לא פשוט Monday AI או ChatGPT?", a: "Monday AI מוגבל לבורד אחד ולא מבין עברית עסקית. ChatGPT לא מחובר לנתונים. AnyDay מחבר את כל המקורות ומבצע פעולות אמיתיות." },
-            { q: "האם זה מחליף את הצוות שלי?", a: "לא. זה מחליף את הזמן שהצוות מבזבז על איסוף נתונים והכנת דוחות." },
-            { q: "מה אם אני לא מרוצה?", a: "7 ימי ניסיון חינם, ללא כרטיס. ביטול בלחיצה, ללא קנסות." },
-            { q: "האם זה באמת עובד בעברית?", a: "כן. AnyDay נבנה בעברית מהיום הראשון. מבין סלנג, ראשי תיבות, ואת ההבדל בין סגור לבוצע." },
-            { q: "כמה זמן לוקחת ההטמעה?", a: "שתי דקות לחיבור. שעה לערך ראשון. שבוע לשינוי שיגרה." },
-          ] : [
-            { q: "Why not just use Monday AI or ChatGPT?", a: "Monday AI is limited to one board. ChatGPT is not connected. AnyDay connects all sources and executes real actions." },
-            { q: "Does it replace my team?", a: "No. It frees your team from data collection and report preparation." },
-            { q: "What if I am not satisfied?", a: "7-day free trial, no credit card. Cancel anytime." },
-            { q: "Does it really work in Hebrew?", a: "Yes. Built in Hebrew from day one." },
-            { q: "How long does setup take?", a: "Two minutes to connect. One hour to see first value." },
-          ]).map((faq, i) => (
-            <div key={i} style={{ background: "#FFFFFF", borderRadius: 14, padding: "20px 24px", marginBottom: 12, border: "1px solid rgba(108,92,231,0.1)" }}>
-              <h4 style={{ fontSize: 15, fontWeight: 700, color: "#2D2252", marginBottom: 8 }}>{faq.q}</h4>
-              <p style={{ fontSize: 13, color: "#7C6FD0", margin: 0, lineHeight: 1.7 }}>{faq.a}</p>
+              <div style={{ fontFamily: serif, fontSize: 19, color: C.white, lineHeight: 1.2, marginBottom: 8, fontWeight: 500 }}>{f.title}</div>
+              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", lineHeight: 1.55 }}>{f.desc}</div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* ── Contact / CTA ── */}
-      <section style={{
-        padding: "60px 24px", background: "#F9F7FF", textAlign: "center",
-      }}>
-        <div className="fade-up" style={{ maxWidth: 500, margin: "0 auto" }}>
-          <p style={{ fontSize: 22, fontWeight: 800, color: "#2D2252", marginBottom: 8 }}>
-            {t.contact.title}
-          </p>
-          <p style={{ fontSize: 16, color: "#7C6FD0", marginBottom: 28 }}>
-            {t.contact.sub}
-          </p>
-          <a href="mailto:hello@dayday.app" style={{
-            display: "inline-flex", alignItems: "center", gap: 10,
-            background: "linear-gradient(135deg, #6C5CE7, #A29BFE)",
-            color: "#FFF", border: "none", borderRadius: 14,
-            padding: "14px 36px", fontSize: 16, fontWeight: 700,
-            cursor: "pointer", textDecoration: "none",
-            boxShadow: "0 6px 20px rgba(108,92,231,0.25)",
-            transition: "all 0.3s ease",
-          }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-              <polyline points="22,6 12,13 2,6" />
-            </svg>
-            {t.contact.cta}
-          </a>
+      <div style={{ borderTop: `0.5px solid ${C.white08}` }} />
+
+      {/* ── Steps ── */}
+      <section id="how" style={{ padding: "3rem 2rem" }}>
+        <div style={{ fontFamily: mono, fontSize: 10, color: C.accent, letterSpacing: "0.18em", marginBottom: "1rem" }}>// {t.nav.how}</div>
+        <h2 className="section-title" style={{
+          fontFamily: serif, fontSize: 36, lineHeight: 1, fontWeight: 500,
+          color: C.white, margin: "0 0 2.5rem", letterSpacing: "-0.025em",
+        }}>
+          {t.steps.title} <span style={{ color: C.fadedWhite }}>{t.steps.titleFade}</span>
+        </h2>
+        <div className="grid-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+          {t.steps.items.map((s, i) => (
+            <div key={i} style={{ padding: "4px 0" }}>
+              <div className="step-num" style={{ fontFamily: serif, fontSize: 60, color: C.accent, lineHeight: 1, marginBottom: 14, fontWeight: 500 }}>
+                {String(i + 1).padStart(2, "0")}
+              </div>
+              <div style={{ fontFamily: serif, fontSize: 17, color: C.white, marginBottom: 6, fontWeight: 500 }}>{s.title}</div>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", lineHeight: 1.55 }}>{s.desc}</div>
+            </div>
+          ))}
         </div>
       </section>
 
+      <div style={{ borderTop: `0.5px solid ${C.white08}` }} />
+
+      {/* ── Pricing ── */}
+      <section id="pricing" style={{ padding: "3rem 2rem" }}>
+        <div style={{ fontFamily: mono, fontSize: 10, color: C.accent, letterSpacing: "0.18em", marginBottom: "1rem" }}>// {t.nav.pricing}</div>
+        <h2 className="section-title" style={{
+          fontFamily: serif, fontSize: 36, lineHeight: 1, fontWeight: 500,
+          color: C.white, margin: "0 0 0.75rem", letterSpacing: "-0.025em",
+        }}>
+          {t.pricing.title} <span style={{ fontStyle: "italic", color: C.accent }}>{t.pricing.titleAccent}</span> {t.pricing.titleEnd}
+        </h2>
+        <p style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", margin: "0 0 2.25rem" }}>{t.pricing.sub}</p>
+        <div className="grid-2" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14 }}>
+          {t.pricing.plans.map((plan, i) => (
+            <div key={i} style={{
+              border: plan.popular ? `2px solid ${C.accent}` : `0.5px solid ${C.white12}`,
+              borderRadius: 10, padding: 22, position: "relative",
+            }}>
+              {plan.popular && (
+                <div style={{
+                  position: "absolute", top: -10, [dir === "rtl" ? "right" : "left"]: 22,
+                  background: C.accent, color: C.bg, fontFamily: mono, fontSize: 9,
+                  letterSpacing: "0.15em", padding: "4px 10px", borderRadius: 100, fontWeight: 500,
+                }}>{t.pricing.popularBadge}</div>
+              )}
+              <div style={{ fontFamily: mono, fontSize: 10, color: plan.popular ? C.accent : C.white55, letterSpacing: "0.18em", marginBottom: 14 }}>{plan.name}</div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 14 }}>
+                <span style={{ fontFamily: serif, fontSize: 38, color: C.white, fontWeight: 500, lineHeight: 1 }}>
+                  {lang === "he" ? "\u20AA" : "$"}{plan.price}
+                </span>
+                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>/{lang === "he" ? "\u05D7\u05D5\u05D3\u05E9" : "mo"}</span>
+              </div>
+              <div style={{ fontSize: 12, color: plan.popular ? C.white75 : C.white65, lineHeight: 1.7, marginBottom: 16, whiteSpace: "pre-line" }}>
+                {plan.desc.split("\n").map((line, j) => <span key={j}>{"\u2022 " + line}<br /></span>)}
+              </div>
+              {plan.popular ? (
+                <button onClick={scrollToForm} style={{
+                  display: "inline-block", background: C.accent, color: C.bg, fontSize: 12,
+                  fontWeight: 500, padding: "8px 16px", borderRadius: 100, border: "none", cursor: "pointer",
+                }}>{plan.cta}</button>
+              ) : (
+                <button onClick={scrollToForm} style={{
+                  display: "inline-block", color: C.white, fontSize: 12, background: "none",
+                  border: "none", borderBottom: `0.5px solid rgba(255,255,255,0.4)`, paddingBottom: 1, cursor: "pointer",
+                }}>{plan.cta}</button>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <div style={{ borderTop: `0.5px solid ${C.white08}` }} />
+
+      {/* ── FAQ ── */}
+      <section style={{ padding: "3rem 2rem" }}>
+        <div style={{ fontFamily: mono, fontSize: 10, color: C.accent, letterSpacing: "0.18em", marginBottom: "1rem" }}>// FAQ</div>
+        <h2 className="section-title" style={{
+          fontFamily: serif, fontSize: 30, lineHeight: 1.1, fontWeight: 500,
+          color: C.white, margin: "0 0 2rem", letterSpacing: "-0.02em",
+        }}>{t.faq.title}</h2>
+        <div style={{ maxWidth: 600 }}>
+          {t.faq.items.map((faq, i) => (
+            <div key={i} style={{
+              borderBottom: `0.5px solid ${C.white08}`, padding: "16px 0", cursor: "pointer",
+            }} onClick={() => setFaqOpen(faqOpen === i ? null : i)}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontFamily: serif, fontSize: 15, color: C.white, fontWeight: 500 }}>{faq.q}</span>
+                <span style={{ color: C.accent, fontSize: 18, fontFamily: mono, flexShrink: 0, marginInlineStart: 12 }}>
+                  {faqOpen === i ? "\u2212" : "+"}
+                </span>
+              </div>
+              {faqOpen === i && (
+                <p style={{ fontSize: 13, color: C.white55, lineHeight: 1.7, marginTop: 10 }}>{faq.a}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <div style={{ borderTop: `0.5px solid ${C.white08}` }} />
+
+      {/* ── Get Started Form ── */}
+      <section ref={formRef} id="start" style={{ padding: "3rem 2rem" }}>
+        <div style={{ fontFamily: mono, fontSize: 10, color: C.accent, letterSpacing: "0.18em", marginBottom: "1rem" }}>// {lang === "he" ? "\u05D4\u05EA\u05D7\u05D1\u05E8\u05D5" : "Connect"}</div>
+        <h2 className="section-title" style={{
+          fontFamily: serif, fontSize: 30, fontWeight: 500, color: C.white,
+          margin: "0 0 0.5rem", letterSpacing: "-0.02em",
+        }}>{t.form.title}</h2>
+        <p style={{ fontSize: 13, color: C.white55, marginBottom: "1.5rem" }}>{t.form.sub}</p>
+
+        <div style={{
+          maxWidth: 440, border: `0.5px solid ${C.white12}`, borderRadius: 10,
+          padding: 24, textAlign: dir === "rtl" ? "right" : "left",
+        }}>
+          {/* Data Source Tabs */}
+          <div style={{ display: "flex", gap: 6, marginBottom: 20 }}>
+            {([
+              { id: "monday" as const, label: "Monday.com" },
+              { id: "sheets" as const, label: "Sheets" },
+              { id: "excel" as const, label: "Excel" },
+            ]).map(src => (
+              <button key={src.id} onClick={() => setDataSource(src.id)} style={{
+                padding: "6px 14px", borderRadius: 100, fontSize: 11, fontFamily: mono,
+                letterSpacing: "0.08em", cursor: "pointer", border: "none",
+                background: dataSource === src.id ? C.accent : "transparent",
+                color: dataSource === src.id ? C.bg : C.white55,
+              }}>{src.label}</button>
+            ))}
+          </div>
+
+          {dataSource === "monday" ? (
+            <>
+              {/* Token input */}
+              <label style={{ fontFamily: mono, fontSize: 10, color: C.white55, letterSpacing: "0.1em", display: "block", marginBottom: 6 }}>
+                {t.form.tokenLabel}
+              </label>
+              <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                <input
+                  type="password"
+                  value={apiToken}
+                  onChange={e => setApiToken(e.target.value)}
+                  placeholder="eyJhbG..."
+                  style={{
+                    flex: 1, background: "rgba(255,255,255,0.05)", border: `0.5px solid ${C.white12}`,
+                    borderRadius: 8, padding: "10px 12px", color: C.white, fontSize: 13, outline: "none",
+                    fontFamily: mono,
+                  }}
+                />
+                <button onClick={handleConnectToken} disabled={loadingBoards} style={{
+                  background: C.accent, color: C.bg, border: "none", borderRadius: 8,
+                  padding: "10px 16px", fontSize: 11, fontWeight: 500, cursor: "pointer",
+                  fontFamily: mono, opacity: loadingBoards ? 0.5 : 1,
+                }}>{loadingBoards ? "..." : "\u2192"}</button>
+              </div>
+              <button onClick={() => setShowTokenHelp(!showTokenHelp)} style={{
+                background: "none", border: "none", color: C.accent, fontSize: 11,
+                fontFamily: mono, cursor: "pointer", marginBottom: showTokenHelp ? 8 : 16,
+              }}>{t.form.tokenHelp}</button>
+              {showTokenHelp && (
+                <div style={{ background: "rgba(197,255,0,0.05)", border: `0.5px solid ${C.accentFade}`, borderRadius: 8, padding: 12, marginBottom: 16 }}>
+                  <div style={{ fontFamily: mono, fontSize: 10, color: C.white55, lineHeight: 1.8 }}>
+                    {t.form.tokenSteps.map((step, i) => <div key={i}>{i + 1}. {step}</div>)}
+                  </div>
+                  <div style={{ fontFamily: mono, fontSize: 10, color: C.accent, marginTop: 8 }}>{t.form.tokenPath}</div>
+                </div>
+              )}
+
+              {tokenConnected && boardsList.length > 0 && (
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ fontFamily: mono, fontSize: 10, color: C.white55, letterSpacing: "0.1em", display: "block", marginBottom: 6 }}>
+                    {lang === "he" ? "\u05D1\u05D7\u05E8\u05D5 \u05D1\u05D5\u05E8\u05D3" : "Select board"}
+                  </label>
+                  <div style={{ maxHeight: 200, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
+                    {boardsList.map(b => (
+                      <button key={b.id} onClick={() => handleSelectBoard(b.id)} style={{
+                        background: boardId === b.id ? "rgba(197,255,0,0.1)" : "rgba(255,255,255,0.03)",
+                        border: `0.5px solid ${boardId === b.id ? C.accentFade : C.white08}`,
+                        borderRadius: 8, padding: "10px 12px", cursor: "pointer",
+                        textAlign: dir === "rtl" ? "right" : "left", color: C.white, fontSize: 13,
+                      }}>
+                        <span style={{ fontWeight: 500 }}>{b.name}</span>
+                        <span style={{ fontFamily: mono, fontSize: 10, color: C.white35, marginInlineStart: 8 }}>({b.items_count})</span>
+                      </button>
+                    ))}
+                  </div>
+                  <button onClick={handleDisconnect} style={{
+                    background: "none", border: "none", color: "rgba(255,100,100,0.6)",
+                    fontFamily: mono, fontSize: 10, cursor: "pointer", marginTop: 8,
+                  }}>{lang === "he" ? "\u05E0\u05EA\u05E7 \u05D8\u05D5\u05E7\u05DF" : "Disconnect"}</button>
+                </div>
+              )}
+
+              {!tokenConnected && (
+                <div>
+                  <label style={{ fontFamily: mono, fontSize: 10, color: C.white55, letterSpacing: "0.1em", display: "block", marginBottom: 6 }}>
+                    {t.form.boardLabel}
+                  </label>
+                  <input
+                    value={boardId}
+                    onChange={e => setBoardId(e.target.value)}
+                    placeholder="1234567890"
+                    style={{
+                      width: "100%", background: "rgba(255,255,255,0.05)", border: `0.5px solid ${C.white12}`,
+                      borderRadius: 8, padding: "10px 12px", color: C.white, fontSize: 13, outline: "none",
+                      fontFamily: mono, marginBottom: 16,
+                    }}
+                  />
+                </div>
+              )}
+            </>
+          ) : dataSource === "sheets" ? (
+            <div>
+              <label style={{ fontFamily: mono, fontSize: 10, color: C.white55, letterSpacing: "0.1em", display: "block", marginBottom: 6 }}>
+                Google Sheets URL
+              </label>
+              <input
+                value={sheetsUrl}
+                onChange={e => setSheetsUrl(e.target.value)}
+                placeholder="https://docs.google.com/spreadsheets/d/..."
+                style={{
+                  width: "100%", background: "rgba(255,255,255,0.05)", border: `0.5px solid ${C.white12}`,
+                  borderRadius: 8, padding: "10px 12px", color: C.white, fontSize: 13, outline: "none",
+                  fontFamily: mono, marginBottom: 16,
+                }}
+              />
+            </div>
+          ) : (
+            <div style={{ fontSize: 13, color: C.white55, marginBottom: 16 }}>
+              {lang === "he" ? "Excel \u05D1\u05E7\u05E8\u05D5\u05D1" : "Excel coming soon"}
+            </div>
+          )}
+
+          {error && <div style={{ color: "#FF6B6B", fontSize: 12, fontFamily: mono, marginBottom: 12 }}>{error}</div>}
+
+          <button
+            onClick={dataSource === "sheets" ? handleLoadSheets : handleLoad}
+            disabled={loading}
+            style={{
+              width: "100%", background: C.accent, color: C.bg, border: "none",
+              borderRadius: 100, padding: "12px", fontSize: 13, fontWeight: 500,
+              cursor: loading ? "wait" : "pointer", opacity: loading ? 0.6 : 1,
+            }}
+          >
+            {loading ? (
+              <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                <Spinner /> {t.form.loading}
+              </span>
+            ) : t.form.loadBtn}
+          </button>
+        </div>
+      </section>
+
+      <div style={{ borderTop: `0.5px solid ${C.white08}` }} />
+
+      {/* ── CTA ── */}
+      <section style={{ padding: "3.5rem 2rem 3rem" }}>
+        <div style={{ fontFamily: mono, fontSize: 10, color: C.accent, letterSpacing: "0.18em", marginBottom: "1.25rem" }}>{t.cta.label}</div>
+        <h2 className="section-title" style={{
+          fontFamily: serif, fontSize: 44, lineHeight: 1, fontWeight: 500,
+          color: C.white, margin: "0 0 1.5rem", letterSpacing: "-0.025em",
+        }}>
+          {t.cta.title1} <span style={{ color: C.fadedWhite }}>{t.cta.titleFade}</span><br />
+          <span style={{ fontStyle: "italic", color: C.accent }}>{t.cta.titleAccent}</span> {t.cta.titleEnd}
+        </h2>
+        <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap", marginTop: "2rem" }}>
+          <button onClick={scrollToForm} style={{
+            background: C.accent, color: C.bg, padding: "14px 26px", borderRadius: 100,
+            fontSize: 13, fontWeight: 500, border: "none", cursor: "pointer",
+          }}>{t.cta.cta1}</button>
+          <span style={{ color: C.white, padding: "14px 6px", fontSize: 13, borderBottom: `0.5px solid rgba(255,255,255,0.5)`, cursor: "pointer" }}>
+            {t.cta.cta2}
+          </span>
+        </div>
+        <div style={{ fontFamily: mono, fontSize: 10, color: C.white35, letterSpacing: "0.08em", marginTop: "0.9rem" }}>
+          {t.cta.trust}
+        </div>
+      </section>
+
+      {/* ── Footer ── */}
       <footer style={{
-        background: "#2D2252", padding: "32px 24px", textAlign: "center",
+        padding: "22px 28px", borderTop: `0.5px solid ${C.white08}`,
+        display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12,
       }}>
-        <span style={{
-          fontSize: 16, fontWeight: 800,
-          background: "linear-gradient(90deg, #A29BFE, #FFFFFF)",
-          WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-        }}>AnyDay</span>
-        <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, marginTop: 10 }}>
-          &copy; {new Date().getFullYear()} AnyDay. {t.footer}
-        </p>
+        <div style={{ fontFamily: serif, fontSize: 16, color: "rgba(255,255,255,0.7)", fontWeight: 500 }}>
+          any<span style={{ color: C.accent }}>.</span>day
+        </div>
+        <div style={{ fontFamily: mono, fontSize: 10, color: C.white35, letterSpacing: "0.1em" }}>{t.footer}</div>
       </footer>
     </div>
   );
