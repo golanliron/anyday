@@ -6,6 +6,7 @@ import { useState, useRef, useEffect } from "react";
 import { Spinner } from "../ui/Spinner";
 import { changeColumnValue, changeSimpleValue, createItem } from "@/lib/api-client";
 import type { MondayBoard, MondayItem } from "@/types";
+import DataEditPanel from "./DataEditPanel";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -21,7 +22,7 @@ interface ChatSession {
   mode: string;
 }
 
-type SidePanel = "dashboard" | "automations" | "impact" | "branding" | "report" | "alerts" | "trends" | "data" | "coming-soon" | null;
+type SidePanel = "dashboard" | "automations" | "impact" | "report" | "alerts" | "data" | "coming-soon" | null;
 
 interface BrandConfig {
   orgName: string;
@@ -568,29 +569,29 @@ export function BoardDashboard({
     }
   }
 
-  const NAV_ITEMS: { modeId: "chat" | "dashboard" | "automations" | "impact"; panel: SidePanel; icon: React.ReactNode; label: string }[] = [
+  const NAV_ITEMS: { modeId: "chat" | "dashboard" | "data" | "automations" | "impact"; panel: SidePanel; icon: React.ReactNode; label: string }[] = [
     { modeId: "chat", panel: null, icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         <path d="M8 10h.01" /><path d="M12 10h.01" /><path d="M16 10h.01" />
       </svg>
-    ), label: "DayDay" },
+    ), label: "AnyDay" },
     { modeId: "dashboard", panel: "dashboard", icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M18 20V10" /><path d="M12 20V4" /><path d="M6 20v-6" />
       </svg>
     ), label: "דשבורד" },
-    { modeId: "dashboard" as "chat", panel: "data" as SidePanel, icon: (
+    { modeId: "data", panel: "data", icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
       </svg>
     ), label: "עריכה" },
-    { modeId: "automations", panel: "automations" as SidePanel, icon: (
+    { modeId: "automations", panel: "automations", icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
       </svg>
     ), label: "אוטומציות" },
-    { modeId: "impact", panel: "impact" as SidePanel, icon: (
+    { modeId: "impact", panel: "impact", icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
         <polyline points="14 2 14 8 20 8" />
@@ -677,20 +678,6 @@ export function BoardDashboard({
           </svg>
           התראות
         </button>
-        {/* Branding button */}
-        <button onClick={() => {
-          if (sidePanel === "branding") { setSidePanel(null); } else { setSidePanel("branding"); }
-        }} style={{
-          background: sidePanel === "branding" ? hexToRgba(pc, 0.1) : "none",
-          border: `1px solid ${hexToRgba(pc, 0.15)}`, borderRadius: 8,
-          padding: "6px 10px", cursor: "pointer", color: pc, fontSize: 12, fontWeight: 600,
-          display: "flex", alignItems: "center", gap: 4,
-        }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-          </svg>
-          מיתוג
-        </button>
         {/* User profile */}
         {session?.user && (
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginRight: 8, borderRight: "1px solid rgba(108,92,231,0.1)", paddingRight: 12 }}>
@@ -721,9 +708,9 @@ export function BoardDashboard({
               inputRef.current?.focus();
             }} style={{
               width: 44, height: 44, borderRadius: 12, border: "none", cursor: "pointer",
-              background: mode === n.modeId ? hexToRgba(pc, 0.15) : "transparent",
-              color: mode === n.modeId ? pc : "#999",
-              borderRight: mode === n.modeId ? `3px solid ${pc}` : "3px solid transparent",
+              background: (n.panel ? sidePanel === n.panel : mode === "chat" && !sidePanel) ? hexToRgba(pc, 0.15) : "transparent",
+              color: (n.panel ? sidePanel === n.panel : mode === "chat" && !sidePanel) ? pc : "#999",
+              borderRight: (n.panel ? sidePanel === n.panel : mode === "chat" && !sidePanel) ? `3px solid ${pc}` : "3px solid transparent",
               display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
               gap: 2, transition: "all 0.2s",
             }}
@@ -782,9 +769,7 @@ export function BoardDashboard({
               </>}
               
               {sidePanel === "alerts" && <AlertsPanel board={board} items={items} pc={pc} ac={ac} onAskAI={(q) => { setSidePanel(null); setMode("chat"); setTimeout(() => sendMessage(q), 100); }} />}
-              {sidePanel === "trends" && <TrendsPanel board={board} items={items} pc={pc} ac={ac} />}
               {sidePanel === "data" && <DataEditPanel board={board} items={items} apiToken={apiToken} boardId={boardId} pc={pc} ac={ac} />}
-              {sidePanel === "branding" && <BrandingPanel brand={brand} setBrand={setBrand} />}
               {sidePanel === "coming-soon" && (
                 <div>
                   <h3 style={{ fontSize: 17, fontWeight: 700, color: "#2D2252", marginBottom: 4 }}>בקרוב ב-AnyDay</h3>
@@ -1088,7 +1073,7 @@ export function BoardDashboard({
           }} style={{
             background: mode === n.modeId ? "rgba(108,92,231,0.12)" : "transparent",
             border: "none", borderRadius: 10, padding: "6px 10px", cursor: "pointer",
-            color: mode === n.modeId ? pc : "#999",
+            color: (n.panel ? sidePanel === n.panel : mode === "chat" && !sidePanel) ? pc : "#999",
             display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
             fontSize: 9, fontWeight: 600, transition: "all 0.2s",
           }}>
@@ -1861,350 +1846,6 @@ function AutomationsPanel({ board, items, apiToken, boardId, pc = "#6C5CE7", ac 
   );
 }
 
-function BrandingPanel({ brand, setBrand }: { brand: BrandConfig; setBrand: (b: BrandConfig) => void }) {
-  const [dragIdx, setDragIdx] = useState<number | null>(null);
-  const [extracting, setExtracting] = useState(false);
-
-  const inputStyle: React.CSSProperties = {
-    width: "100%", padding: "10px 12px", borderRadius: 10, fontSize: 13,
-    border: "1.5px solid rgba(108,92,231,0.15)", background: "#FFF",
-    color: "#2D2252", outline: "none",
-  };
-  const labelStyle: React.CSSProperties = {
-    fontSize: 12, fontWeight: 600, color: "#2D2252", marginBottom: 6, display: "block",
-  };
-
-  const COLOR_ROLES = [
-    { name: "ראשי", desc: "כפתורים, כותרות, סרגל עליון, אייקונים" },
-    { name: "משני", desc: "רקעים, הודעות, הדגשות, גרדיאנטים" },
-    { name: "שלישי", desc: "גרפים, תרשימים, נתונים" },
-    { name: "רביעי", desc: "רקע משני, גרפים נוספים" },
-  ] as const;
-
-  function updateColor(idx: number, val: string) {
-    const next = [...brand.colors] as [string, string, string, string];
-    next[idx] = val;
-    setBrand({ ...brand, colors: next });
-  }
-
-  function swapColors(from: number, to: number) {
-    if (from === to) return;
-    const next = [...brand.colors] as [string, string, string, string];
-    [next[from], next[to]] = [next[to], next[from]];
-    setBrand({ ...brand, colors: next });
-  }
-
-  return (
-    <div>
-      {/* Premium header */}
-      <div style={{
-        background: `linear-gradient(135deg, ${brand.colors[0]}12, ${brand.colors[1]}18)`,
-        borderRadius: 16, padding: "20px 18px", marginBottom: 20,
-        border: `1px solid ${brand.colors[0]}20`,
-        position: "relative", overflow: "hidden",
-      }}>
-        <div style={{
-          position: "absolute", width: 120, height: 120, borderRadius: "50%",
-          background: `${brand.colors[0]}08`, top: -40, left: -30,
-        }} />
-        <div style={{
-          position: "absolute", width: 80, height: 80, borderRadius: "50%",
-          background: `${brand.colors[1]}08`, bottom: -20, right: -10,
-        }} />
-        <div style={{ position: "relative" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={brand.colors[0]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" />
-            </svg>
-            <h3 style={{ fontSize: 17, fontWeight: 800, color: "#2D2252", margin: 0 }}>
-              White Label
-            </h3>
-          </div>
-          <p style={{ fontSize: 12, color: "#7C6FD0", margin: 0, lineHeight: 1.5 }}>
-            המערכת שלכם. המותג שלכם. הלקוחות יחשבו שבניתם את זה.
-          </p>
-        </div>
-      </div>
-
-      {/* Live Preview - looks like a real mini app */}
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: "#A29BFE", marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>תצוגה מקדימה חיה</div>
-        <div style={{
-          borderRadius: 16, overflow: "hidden",
-          border: "1px solid rgba(108,92,231,0.12)",
-          boxShadow: "0 8px 32px rgba(108,92,231,0.08)",
-        }}>
-          {/* Mini header */}
-          <div style={{
-            background: "#FFF", padding: "10px 14px",
-            borderBottom: "1px solid rgba(108,92,231,0.08)",
-            display: "flex", alignItems: "center", gap: 8,
-          }}>
-            {brand.logoUrl ? (
-              <img src={brand.logoUrl} alt="logo" style={{ width: 28, height: 28, borderRadius: 6, objectFit: "contain" }} />
-            ) : (
-              <div style={{
-                width: 28, height: 28, borderRadius: 6,
-                background: `linear-gradient(135deg, ${brand.colors[0]}, ${brand.colors[1]})`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                color: "#FFF", fontSize: 12, fontWeight: 800,
-              }}>{brand.orgName ? brand.orgName.charAt(0) : "D"}</div>
-            )}
-            <span style={{
-              fontSize: 14, fontWeight: 800,
-              background: `linear-gradient(90deg, ${brand.colors[0]}, ${brand.colors[1]})`,
-              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-            }}>{brand.orgName || "AnyDay"}</span>
-            <div style={{ flex: 1 }} />
-            <div style={{ display: "flex", gap: 4 }}>
-              {brand.colors.map((c, i) => (
-                <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: c }} />
-              ))}
-            </div>
-          </div>
-          {/* Mini dashboard */}
-          <div style={{ background: "#F9F7FF", padding: 14 }}>
-            <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-              <div style={{
-                flex: 1, background: "#FFF", borderRadius: 10, padding: "10px 12px",
-                borderRight: `3px solid ${brand.colors[0]}`,
-              }}>
-                <div style={{ fontSize: 18, fontWeight: 800, color: brand.colors[0] }}>97</div>
-                <div style={{ fontSize: 9, color: "#7C6FD0" }}>פריטים</div>
-              </div>
-              <div style={{
-                flex: 1, background: "#FFF", borderRadius: 10, padding: "10px 12px",
-                borderRight: `3px solid ${brand.colors[1]}`,
-              }}>
-                <div style={{ fontSize: 18, fontWeight: 800, color: brand.colors[1] }}>85%</div>
-                <div style={{ fontSize: 9, color: "#7C6FD0" }}>הושלמו</div>
-              </div>
-            </div>
-            {/* Mini chart bars */}
-            <div style={{ background: "#FFF", borderRadius: 10, padding: "10px 12px" }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: "#2D2252", marginBottom: 8 }}>סטטוס</div>
-              {[65, 45, 30, 15].map((w, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                  <div style={{ height: 6, borderRadius: 3, background: `${brand.colors[i]}25`, flex: 1 }}>
-                    <div style={{ height: "100%", borderRadius: 3, background: brand.colors[i], width: `${w}%`, transition: "all 0.5s" }} />
-                  </div>
-                  <span style={{ fontSize: 8, color: "#7C6FD0", minWidth: 20 }}>{w}%</span>
-                </div>
-              ))}
-            </div>
-            {/* Mini chat bubble */}
-            <div style={{ marginTop: 8, display: "flex", justifyContent: "flex-end" }}>
-              <div style={{
-                background: `linear-gradient(135deg, ${brand.colors[0]}, ${brand.colors[1]})`,
-                color: "#FFF", borderRadius: "12px 12px 4px 12px",
-                padding: "6px 12px", fontSize: 9, maxWidth: "70%",
-              }}>
-                סיכום: 97 פריטים, 85% הושלמו
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Section: Identity */}
-      <div style={{ fontSize: 11, fontWeight: 700, color: "#A29BFE", marginBottom: 10, textTransform: "uppercase", letterSpacing: 1 }}>זהות מותגית</div>
-
-      {/* Org Name */}
-      <div style={{ marginBottom: 16 }}>
-        <label style={labelStyle}>שם הארגון</label>
-        <input
-          value={brand.orgName}
-          onChange={e => setBrand({ ...brand, orgName: e.target.value })}
-          placeholder="למשל: עמותת אור"
-          style={inputStyle}
-        />
-      </div>
-
-      {/* Logo */}
-      <div style={{ marginBottom: 16 }}>
-        <label style={labelStyle}>לוגו</label>
-        <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-          <input
-            value={brand.logoUrl}
-            onChange={e => setBrand({ ...brand, logoUrl: e.target.value })}
-            placeholder="קישור לתמונה (URL)"
-            dir="ltr"
-            style={{ ...inputStyle, flex: 1 }}
-          />
-          <label style={{
-            padding: "8px 12px", borderRadius: 8,
-            border: "1.5px solid rgba(108,92,231,0.2)",
-            background: "#F9F7FF", cursor: "pointer",
-            color: "#6C5CE7", fontSize: 12, fontWeight: 600,
-            display: "flex", alignItems: "center", gap: 4,
-            flexShrink: 0, transition: "all 0.15s",
-          }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
-            </svg>
-            העלאה
-            <input
-              type="file"
-              accept="image/*,.pdf,.svg"
-              style={{ display: "none" }}
-              onChange={e => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = () => {
-                  if (typeof reader.result === "string") {
-                    setBrand({ ...brand, logoUrl: reader.result });
-                  }
-                };
-                reader.readAsDataURL(file);
-                e.target.value = "";
-              }}
-            />
-          </label>
-        </div>
-        {brand.logoUrl && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <img src={brand.logoUrl} alt="preview" style={{ width: 32, height: 32, borderRadius: 6, objectFit: "contain", background: "#F9F7FF" }} />
-            <span style={{ fontSize: 11, color: "#7C6FD0" }}>
-              {brand.logoUrl.startsWith("data:") ? "קובץ מקומי" : "קישור חיצוני"}
-            </span>
-            <button onClick={() => setBrand({ ...brand, logoUrl: "" })} style={{
-              background: "none", border: "none", cursor: "pointer", color: "#A29BFE", fontSize: 11, padding: 0,
-            }}>הסר</button>
-            <button
-              onClick={async () => {
-                setExtracting(true);
-                try {
-                  const colors = await extractColorsFromImage(brand.logoUrl);
-                  setBrand({ ...brand, colors });
-                } finally {
-                  setExtracting(false);
-                }
-              }}
-              style={{
-                background: `linear-gradient(135deg, ${brand.colors[0]}, ${brand.colors[1]})`,
-                border: "none", borderRadius: 6, cursor: "pointer",
-                color: "#FFF", fontSize: 11, fontWeight: 600,
-                padding: "4px 10px", marginRight: 8,
-                opacity: extracting ? 0.6 : 1,
-              }}
-            >
-              {extracting ? "מחלץ..." : "חלץ צבעים מהלוגו"}
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* 4 Colors with drag-to-reorder */}
-      <div style={{ marginBottom: 16 }}>
-        <label style={labelStyle}>4 צבעי מותג (גררו לשינוי סדר)</label>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {brand.colors.map((color, idx) => (
-            <div
-              key={idx}
-              draggable
-              onDragStart={() => setDragIdx(idx)}
-              onDragOver={e => e.preventDefault()}
-              onDrop={() => { if (dragIdx !== null) { swapColors(dragIdx, idx); setDragIdx(null); } }}
-              onDragEnd={() => setDragIdx(null)}
-              style={{
-                display: "flex", alignItems: "center", gap: 8,
-                padding: "8px 10px", borderRadius: 10,
-                background: dragIdx === idx ? `${color}15` : "#FAFAFA",
-                border: `1.5px solid ${dragIdx === idx ? color : "rgba(108,92,231,0.08)"}`,
-                cursor: "grab", transition: "all 0.15s",
-                opacity: dragIdx === idx ? 0.7 : 1,
-              }}
-            >
-              {/* Drag handle */}
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A29BFE" strokeWidth="2" strokeLinecap="round">
-                <circle cx="9" cy="6" r="1.5" fill="#A29BFE" /><circle cx="15" cy="6" r="1.5" fill="#A29BFE" />
-                <circle cx="9" cy="12" r="1.5" fill="#A29BFE" /><circle cx="15" cy="12" r="1.5" fill="#A29BFE" />
-                <circle cx="9" cy="18" r="1.5" fill="#A29BFE" /><circle cx="15" cy="18" r="1.5" fill="#A29BFE" />
-              </svg>
-              {/* Number badge */}
-              <div style={{
-                width: 20, height: 20, borderRadius: 6,
-                background: color, color: "#FFF",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 11, fontWeight: 800, flexShrink: 0,
-              }}>{idx + 1}</div>
-              {/* Role label */}
-              <div style={{ minWidth: 60 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#2D2252" }}>{COLOR_ROLES[idx].name}</div>
-                <div style={{ fontSize: 8, color: "#999", lineHeight: 1.2 }}>{COLOR_ROLES[idx].desc}</div>
-              </div>
-              {/* Color picker */}
-              <input
-                type="color"
-                value={color}
-                onChange={e => updateColor(idx, e.target.value)}
-                onClick={e => e.stopPropagation()}
-                style={{ width: 28, height: 28, border: "none", borderRadius: 6, cursor: "pointer", padding: 0, flexShrink: 0 }}
-              />
-              {/* Hex input */}
-              <input
-                value={color}
-                onChange={e => updateColor(idx, e.target.value)}
-                onClick={e => e.stopPropagation()}
-                dir="ltr"
-                style={{
-                  flex: 1, padding: "4px 8px", borderRadius: 6, fontSize: 11,
-                  border: "1px solid rgba(108,92,231,0.12)", background: "#FFF",
-                  color: "#2D2252", outline: "none", fontFamily: "monospace",
-                }}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Preset palettes */}
-      <div style={{ marginBottom: 16 }}>
-        <label style={labelStyle}>ערכות צבעים מוכנות</label>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {[
-            { name: "AnyDay", colors: ["#6C5CE7", "#A29BFE", "#00B894", "#FDCB6E"] as [string, string, string, string] },
-            { name: "ים וחול", colors: ["#0984E3", "#74B9FF", "#00CEC9", "#FFEAA7"] as [string, string, string, string] },
-            { name: "יער", colors: ["#00B894", "#55EFC4", "#2D3436", "#DFE6E9"] as [string, string, string, string] },
-            { name: "שקיעה", colors: ["#E17055", "#FAB1A0", "#FDCB6E", "#6C5CE7"] as [string, string, string, string] },
-            { name: "ורוד מלכותי", colors: ["#E84393", "#FD79A8", "#6C5CE7", "#DFE6E9"] as [string, string, string, string] },
-            { name: "קלאסי", colors: ["#2D3436", "#636E72", "#0984E3", "#DFE6E9"] as [string, string, string, string] },
-            { name: "זהב", colors: ["#F39C12", "#FDCB6E", "#2D3436", "#DFE6E9"] as [string, string, string, string] },
-            { name: "אדום חם", colors: ["#D63031", "#FF7675", "#FDCB6E", "#DFE6E9"] as [string, string, string, string] },
-          ].map(preset => {
-            const isActive = brand.colors[0] === preset.colors[0] && brand.colors[1] === preset.colors[1];
-            return (
-              <button key={preset.name} onClick={() => setBrand({ ...brand, colors: preset.colors })} style={{
-                padding: "8px 12px", borderRadius: 10, fontSize: 12, fontWeight: 600,
-                border: isActive ? `2px solid ${preset.colors[0]}` : "1.5px solid rgba(108,92,231,0.08)",
-                background: isActive ? `${preset.colors[0]}08` : "#FFF",
-                cursor: "pointer", display: "flex", alignItems: "center", gap: 10,
-                color: "#2D2252", transition: "all 0.15s",
-              }}>
-                <div style={{ display: "flex", gap: 3 }}>
-                  {preset.colors.map((c, i) => (
-                    <div key={i} style={{ width: 16, height: 16, borderRadius: 4, background: c }} />
-                  ))}
-                </div>
-                {preset.name}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Reset */}
-      <button onClick={() => setBrand({ orgName: "", logoUrl: "", colors: ["#6C5CE7", "#A29BFE", "#00B894", "#FDCB6E"] })} style={{
-        width: "100%", padding: "10px", borderRadius: 10,
-        border: "1px solid rgba(108,92,231,0.15)", background: "#FFF",
-        color: "#7C6FD0", fontSize: 12, fontWeight: 600, cursor: "pointer",
-      }}>
-        איפוס לברירת מחדל
-      </button>
-    </div>
-  );
-}
 
 function ImpactPanel({ board, items, pc = "#6C5CE7", ac = "#A29BFE" }: { board: MondayBoard; items: MondayItem[]; pc?: string; ac?: string }) {
   const [exporting, setExporting] = useState(false);
@@ -2957,261 +2598,6 @@ function AlertsPanel({ board, items, pc = "#6C5CE7", ac = "#A29BFE", onAskAI }: 
             );
           })}
         </div>
-      )}
-    </div>
-  );
-}
-
-
-// TrendsPanel - Period comparison & change detection
-
-function TrendsPanel({ board, items, pc = "#6C5CE7", ac = "#A29BFE" }: {
-  board: MondayBoard; items: MondayItem[]; pc?: string; ac?: string;
-}) {
-  const [period, setPeriod] = useState<"week" | "month" | "quarter">("month");
-
-  const dateColumns = board.columns.filter(c => c.type === "date");
-  const statusColumns = board.columns.filter(c => c.type === "color");
-
-  function getItemDate(item: MondayItem): Date | null {
-    for (const dc of dateColumns) {
-      const cv = item.column_values.find(v => v.id === dc.id);
-      if (cv?.text) {
-        const d = new Date(cv.text);
-        if (!isNaN(d.getTime())) return d;
-      }
-    }
-    return null;
-  }
-
-  const now = new Date();
-  const periodDays = period === "week" ? 7 : period === "month" ? 30 : 90;
-  const currentStart = new Date(now.getTime() - periodDays * 86400000);
-  const prevStart = new Date(currentStart.getTime() - periodDays * 86400000);
-
-  const currentItems: MondayItem[] = [];
-  const prevItems: MondayItem[] = [];
-  const noDateItems: MondayItem[] = [];
-
-  items.forEach(item => {
-    const d = getItemDate(item);
-    if (!d) { noDateItems.push(item); return; }
-    if (d >= currentStart) currentItems.push(item);
-    else if (d >= prevStart) prevItems.push(item);
-  });
-
-  function getStatusDist(itemList: MondayItem[]): Record<string, number> {
-    const dist: Record<string, number> = {};
-    itemList.forEach(item => {
-      statusColumns.forEach(sc => {
-        const cv = item.column_values.find(v => v.id === sc.id);
-        if (cv?.text) dist[cv.text] = (dist[cv.text] || 0) + 1;
-      });
-    });
-    return dist;
-  }
-
-  const currentStatus = getStatusDist(currentItems);
-  const prevStatus = getStatusDist(prevItems);
-  const allStatuses = [...new Set([...Object.keys(currentStatus), ...Object.keys(prevStatus)])];
-
-  const changes = allStatuses.map(status => {
-    const curr = currentStatus[status] || 0;
-    const prev = prevStatus[status] || 0;
-    return { status, curr, prev, diff: curr - prev };
-  }).sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
-
-  function getPeopleDist(itemList: MondayItem[]): Record<string, number> {
-    const dist: Record<string, number> = {};
-    itemList.forEach(item => {
-      item.column_values.forEach(cv => {
-        if (["person", "multiple-person"].includes(cv.column.type) && cv.text) {
-          cv.text.split(",").map(n => n.trim()).filter(Boolean).forEach(name => {
-            dist[name] = (dist[name] || 0) + 1;
-          });
-        }
-      });
-    });
-    return dist;
-  }
-
-  const currentPeople = getPeopleDist(currentItems);
-  const prevPeople = getPeopleDist(prevItems);
-  const allPeople = [...new Set([...Object.keys(currentPeople), ...Object.keys(prevPeople)])];
-  const peopleChanges = allPeople.map(name => {
-    const curr = currentPeople[name] || 0;
-    const prev = prevPeople[name] || 0;
-    return { name, curr, prev, diff: curr - prev };
-  }).sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff)).slice(0, 8);
-
-  const timelineMap: Record<string, number> = {};
-  [...currentItems, ...prevItems].forEach(item => {
-    const d = getItemDate(item);
-    if (d) {
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-      timelineMap[key] = (timelineMap[key] || 0) + 1;
-    }
-  });
-  const timeline = Object.entries(timelineMap)
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([date, count]) => ({ date: date.slice(5), count, inCurrent: new Date(date) >= currentStart }));
-
-  const currentVelocity = periodDays > 0 ? (currentItems.length / periodDays).toFixed(1) : "0";
-  const velocityChange = prevItems.length > 0
-    ? Math.round(((currentItems.length - prevItems.length) / prevItems.length) * 100)
-    : 0;
-
-  const hasData = dateColumns.length > 0 && (currentItems.length > 0 || prevItems.length > 0);
-
-  const cardStyle: React.CSSProperties = {
-    background: hexToRgba(pc, 0.03), borderRadius: 12, padding: 14,
-    border: `1px solid ${hexToRgba(pc, 0.1)}`, marginBottom: 12,
-  };
-
-  function ChangeArrow({ up }: { up: boolean }) {
-    return (
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
-        style={{ color: up ? "#00B894" : "#E17055", transform: up ? "none" : "rotate(180deg)" }}>
-        <line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" />
-      </svg>
-    );
-  }
-
-  const pLabels: Record<string, string> = { week: "שבוע", month: "חודש", quarter: "רבעון" };
-
-  return (
-    <div>
-      <h3 style={{ fontSize: 17, fontWeight: 700, color: "#2D2252", marginBottom: 4 }}>
-        טרנדים והשוואות
-      </h3>
-      <p style={{ fontSize: 12, color: ac, marginBottom: 14, lineHeight: 1.5 }}>
-        מה השתנה? לאן זזים? מספרים לא משקרים.
-      </p>
-
-      <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
-        {(["week", "month", "quarter"] as const).map(p => (
-          <button key={p} onClick={() => setPeriod(p)} style={{
-            flex: 1, padding: "8px 0", borderRadius: 8, cursor: "pointer",
-            border: `1.5px solid ${period === p ? pc : hexToRgba(pc, 0.1)}`,
-            background: period === p ? hexToRgba(pc, 0.1) : "#FFF",
-            color: period === p ? pc : "#999", fontSize: 12, fontWeight: 600,
-          }}>
-            {pLabels[p]}
-          </button>
-        ))}
-      </div>
-
-      {!hasData ? (
-        <div style={{ textAlign: "center", padding: "24px", background: hexToRgba(pc, 0.03), borderRadius: 14, border: `1px solid ${hexToRgba(pc, 0.08)}` }}>
-          <div style={{ fontSize: 32, marginBottom: 8 }}>&#128197;</div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: "#2D2252" }}>אין עמודת תאריך בבורד</div>
-          <div style={{ fontSize: 12, color: ac, marginTop: 4 }}>הוסיפו עמודת Date ב-Monday כדי לראות טרנדים</div>
-        </div>
-      ) : (
-        <>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 14 }}>
-            <div style={{ background: "#F9F7FF", borderRadius: 10, padding: "10px 8px", border: `1px solid ${hexToRgba(pc, 0.08)}`, textAlign: "center" }}>
-              <div style={{ fontSize: 20, fontWeight: 800, color: pc }}>{currentItems.length}</div>
-              <div style={{ fontSize: 9, color: "#7C6FD0", marginTop: 2 }}>תקופה נוכחית</div>
-              {prevItems.length > 0 && <div style={{ fontSize: 10, fontWeight: 700, color: currentItems.length >= prevItems.length ? "#00B894" : "#E17055", marginTop: 3 }}>{currentItems.length >= prevItems.length ? "+" : ""}{currentItems.length - prevItems.length}</div>}
-            </div>
-            <div style={{ background: "#F9F7FF", borderRadius: 10, padding: "10px 8px", border: `1px solid ${hexToRgba(pc, 0.08)}`, textAlign: "center" }}>
-              <div style={{ fontSize: 20, fontWeight: 800, color: pc }}>{prevItems.length}</div>
-              <div style={{ fontSize: 9, color: "#7C6FD0", marginTop: 2 }}>תקופה קודמת</div>
-            </div>
-            <div style={{ background: "#F9F7FF", borderRadius: 10, padding: "10px 8px", border: `1px solid ${hexToRgba(pc, 0.08)}`, textAlign: "center" }}>
-              <div style={{ fontSize: 20, fontWeight: 800, color: pc }}>{currentVelocity}</div>
-              <div style={{ fontSize: 9, color: "#7C6FD0", marginTop: 2 }}>קצב יומי</div>
-              {velocityChange !== 0 && <div style={{ fontSize: 10, fontWeight: 700, color: velocityChange >= 0 ? "#00B894" : "#E17055", marginTop: 3 }}>{velocityChange > 0 ? "+" : ""}{velocityChange}%</div>}
-            </div>
-          </div>
-
-          {timeline.length > 1 && (
-            <div style={cardStyle}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "#2D2252", marginBottom: 10 }}>פעילות לאורך זמן</div>
-              <div style={{ display: "flex", alignItems: "flex-end", gap: 2, height: 60 }}>
-                {timeline.map((t, i) => {
-                  const maxCount = Math.max(...timeline.map(x => x.count));
-                  const h = maxCount > 0 ? Math.max(4, (t.count / maxCount) * 56) : 4;
-                  return (
-                    <div key={i} title={`${t.date}: ${t.count}`} style={{
-                      flex: 1, height: h, borderRadius: 3,
-                      background: t.inCurrent ? `linear-gradient(180deg, ${pc}, ${ac})` : hexToRgba(pc, 0.15),
-                      transition: "height 0.3s ease", cursor: "pointer",
-                    }} />
-                  );
-                })}
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 9, color: ac }}>
-                <span>קודם</span>
-                <span>נוכחי</span>
-              </div>
-            </div>
-          )}
-
-          {changes.length > 0 && (
-            <div style={cardStyle}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "#2D2252", marginBottom: 10 }}>שינוי בסטטוסים</div>
-              {changes.slice(0, 6).map((c, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 0", borderBottom: i < Math.min(changes.length, 6) - 1 ? `1px solid ${hexToRgba(pc, 0.06)}` : "none" }}>
-                  <span style={{ fontSize: 12, fontWeight: 500, color: "#2D2252" }}>{c.status}</span>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 11, color: ac }}>{c.prev}</span>
-                    <span style={{ fontSize: 11, color: "#999" }}>→</span>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: pc }}>{c.curr}</span>
-                    {c.diff !== 0 && (
-                      <span style={{ fontSize: 10, fontWeight: 700, color: c.diff > 0 ? "#00B894" : "#E17055", background: c.diff > 0 ? "rgba(0,184,148,0.1)" : "rgba(225,112,85,0.1)", padding: "1px 6px", borderRadius: 4, display: "flex", alignItems: "center", gap: 2 }}>
-                        <ChangeArrow up={c.diff > 0} />
-                        {c.diff > 0 ? `+${c.diff}` : c.diff}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {peopleChanges.length > 0 && (
-            <div style={cardStyle}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "#2D2252", marginBottom: 10 }}>שינוי עומס לפי אנשים</div>
-              {peopleChanges.slice(0, 5).map((p, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "5px 0", borderBottom: i < Math.min(peopleChanges.length, 5) - 1 ? `1px solid ${hexToRgba(pc, 0.06)}` : "none" }}>
-                  <span style={{ fontSize: 12, fontWeight: 500, color: "#2D2252" }}>{p.name}</span>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 11, color: ac }}>{p.prev}</span>
-                    <span style={{ fontSize: 11, color: "#999" }}>→</span>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: pc }}>{p.curr}</span>
-                    {p.diff !== 0 && (
-                      <span style={{ fontSize: 10, fontWeight: 700, color: p.diff > 0 ? "#E17055" : "#00B894", background: p.diff > 0 ? "rgba(225,112,85,0.1)" : "rgba(0,184,148,0.1)", padding: "1px 6px", borderRadius: 4, display: "flex", alignItems: "center", gap: 2 }}>
-                        <ChangeArrow up={p.diff > 0} />
-                        {p.diff > 0 ? `+${p.diff}` : p.diff}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div style={{ background: `linear-gradient(135deg, ${hexToRgba(pc, 0.06)}, ${hexToRgba(ac, 0.06)})`, borderRadius: 12, padding: 14, border: `1px solid ${hexToRgba(pc, 0.1)}` }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: "#2D2252", marginBottom: 6 }}>סיכום מגמה</div>
-            <div style={{ fontSize: 12, color: "#2D2252", lineHeight: 1.6 }}>
-              {currentItems.length > prevItems.length ? (
-                <>עלייה של <strong style={{ color: "#00B894" }}>{currentItems.length - prevItems.length} פריטים</strong> ({velocityChange > 0 ? `+${velocityChange}%` : `${velocityChange}%`}) לעומת התקופה הקודמת.{parseFloat(currentVelocity) > 1 && ` קצב: ${currentVelocity} פריטים/יום.`}</>
-              ) : currentItems.length < prevItems.length ? (
-                <>ירידה של <strong style={{ color: "#E17055" }}>{prevItems.length - currentItems.length} פריטים</strong> ({velocityChange}%) לעומת התקופה הקודמת.</>
-              ) : (
-                <>יציבות מלאה. ({currentItems.length} פריטים בשתי התקופות.)</>
-              )}
-            </div>
-          </div>
-
-          {noDateItems.length > 0 && (
-            <div style={{ fontSize: 10, color: ac, marginTop: 8, textAlign: "center" }}>
-              {noDateItems.length} פריטים ללא תאריך
-            </div>
-          )}
-        </>
       )}
     </div>
   );

@@ -101,11 +101,20 @@ export async function POST(req: NextRequest) {
             results.push(`${item.name}: הועבר ל-${groupName}`);
           } else if (actionType === "notify") {
             const { text } = actionConfig;
-            await mondayQuery(
-              `mutation { create_notification(user_id:${actionConfig.userId || "me"}, target_id:${item.id}, text:"${text}", target_type:Project) { text } }`,
-              apiToken
-            );
-            results.push(`${item.name}: נשלחה התראה`);
+            let userId = actionConfig.userId;
+            if (\!userId) {
+              const meRes = await mondayQuery(`query { me { id } }`, apiToken);
+              userId = meRes?.data?.me?.id;
+            }
+            if (userId) {
+              await mondayQuery(
+                `mutation { create_notification(user_id:${userId}, target_id:${item.id}, text:"${text}", target_type:Project) { text } }`,
+                apiToken
+              );
+              results.push(`${item.name}: נשלחה התראה`);
+            } else {
+              results.push(`${item.name}: לא נמצא משתמש`);
+            }
           } else if (actionType === "archive") {
             await mondayQuery(
               `mutation { archive_item(item_id:${item.id}) { id } }`,
