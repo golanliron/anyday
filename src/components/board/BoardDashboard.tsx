@@ -368,7 +368,7 @@ export function BoardDashboard({
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [sidePanel, setSidePanel] = useState<SidePanel>(null);
-  const [mode, setMode] = useState<"chat" | "dashboard" | "automations" | "impact" | "report">("chat");
+  const [mode, setMode] = useState<"chat" | "dashboard" | "data" | "automations" | "impact" | "report">("chat");
   const [panelWidth, setPanelWidth] = useState(340);
   const [loadingMsg, setLoadingMsg] = useState("");
   const [brand, setBrand] = useState<BrandConfig>({
