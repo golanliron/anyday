@@ -25,7 +25,7 @@ export default function DataEditPanel({ board, items, apiToken, boardId, pc = "#
   const [deletingItem, setDeletingItem] = useState<string | null>(null);
 
   const editableCols = board.columns.filter(c =>
-    c.type \!== "name" && ["color", "text", "long-text", "numeric", "numbers", "dropdown", "email", "phone", "date", "checkbox"].includes(c.type)
+    c.type !== "name" && ["color", "text", "long-text", "numeric", "numbers", "dropdown", "email", "phone", "date", "checkbox"].includes(c.type)
   );
 
   const statusCols = board.columns.filter(c => c.type === "color");
@@ -64,7 +64,7 @@ export default function DataEditPanel({ board, items, apiToken, boardId, pc = "#
         const cv = item.column_values.find(v => v.id === colId);
         if (cv) cv.text = value;
       }
-      showToast("נשמר\!");
+      showToast("נשמר!");
     } catch (e) {
       showToast(e instanceof Error ? e.message : "שגיאה");
     } finally {
@@ -90,11 +90,11 @@ export default function DataEditPanel({ board, items, apiToken, boardId, pc = "#
   }
 
   async function handleAddItem() {
-    if (\!newItemName.trim() || addingItem) return;
+    if (!newItemName.trim() || addingItem) return;
     setAddingItem(true);
     try {
       await createItem(boardId, apiToken, newItemName.trim());
-      showToast(newItemName.trim() + " נוסף\!");
+      showToast(newItemName.trim() + " נוסף!");
       setNewItemName("");
     } catch (e) {
       showToast(e instanceof Error ? e.message : "שגיאה");

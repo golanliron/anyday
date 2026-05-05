@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
           } else if (actionType === "notify") {
             const { text } = actionConfig;
             let userId = actionConfig.userId;
-            if (\!userId) {
+            if (!userId) {
               const meRes = await mondayQuery(`query { me { id } }`, apiToken);
               userId = meRes?.data?.me?.id;
             }
