@@ -890,11 +890,6 @@ export default function Home() {
                     {lang === "he" ? "התחברות ל-Monday.com" : "Connect to Monday.com"}
                   </a>
                 </>
-                    ) : (
-                      <>{lang === "he" ? "התחברות" : "Connect"}</>
-                    )}
-                  </button>
-                </>
               ) : (
                 /* Step 2: Connected — show board list */
                 <>
