@@ -672,7 +672,7 @@ export default function Home() {
                     {t.pricing.popular}
                   </div>
                 )}
-                {idx === 0 && (
+                {i === 0 && (
                   <div style={{
                     position: "absolute", top: -12, right: 16,
                     background: "#00B894", color: "#FFF", fontSize: 10, fontWeight: 800,
@@ -720,6 +720,8 @@ export default function Home() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
 
       {/* ── Get Started Form ── */}
       <section ref={formRef} id="start" style={{
