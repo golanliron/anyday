@@ -105,16 +105,15 @@ const T = {
     },
     pricing: {
       title: "תוכניות ומחירים",
-      sub: "בחרו את התוכנית שמתאימה לכם",
+      sub: "14 ימים ניסיון חינם — בלי כרטיס אשראי",
       plans: [
-        { name: "בקטנה", desc: "בורד אחד או גיליון אחד, נראה מה זה יכול לעשות", boards: "1" },
-        { name: "יאללה", desc: "3 בורדים/גיליונות, דוחות PDF, התראות", boards: "3" },
-        { name: "פרו", desc: "5 בורדים/גיליונות, אוטומציות, דוחות להנהלה", boards: "5" },
-        { name: "הכל שלי", desc: "ללא הגבלה + White Label + API", boards: "ללא הגבלה" },
+        { name: "Pro", desc: "כל הבורדים, דוחות, אוטומציות, עריכה", boards: "ללא הגבלה" },
+        { name: "Team", desc: "Pro + 5 משתמשים + White Label", boards: "ללא הגבלה" },
+        { name: "Enterprise", desc: "התאמות מלאה, API, תמיכה ייעודית", boards: "ללא הגבלה" },
       ],
       popular: "הכי פופולרי",
       month: "₪/חודש",
-      boardLabel: (b: string) => b === "ללא הגבלה" ? "ללא הגבלה" : `${b} ${Number(b) === 1 ? "בורד / גיליון" : "בורדים / גיליונות"}`,
+      boardLabel: (b: string) => b === "ללא הגבלה" ? "כל הבורדים" : b,
       cta: "התחילו עכשיו",
       addon: { badge: "PREMIUM ADD-ON", title: "המערכת שלכם. המותג שלכם.", desc: "לוגו, צבעים, עיצוב מלא. הלקוחות שלכם יחשבו שבניתם את זה לבד. מערכת AI ממותגת שנראית מיליון דולר.", cta: "הוסיפו מיתוג" },
     },
@@ -657,7 +656,7 @@ export default function Home() {
             display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
             gap: 20, alignItems: "stretch",
           }} className="pricing-grid">
-            {t.pricing.plans.map((plan, idx) => ({ ...plan, price: ["250", "450", "750", "1,200"][idx], popular: idx === 2 })).map((plan, i) => (
+            {t.pricing.plans.map((plan, idx) => ({ ...plan, price: ["49", "149", ""][idx], popular: idx === 0 })).map((plan, i) => (
               <div key={i} style={{
                 background: plan.popular ? "linear-gradient(135deg, #6C5CE7, #A29BFE)" : "#FFFFFF",
                 borderRadius: 22, padding: plan.popular ? "4px" : "0",
@@ -670,6 +669,15 @@ export default function Home() {
                     padding: "4px 14px", borderRadius: 20,
                   }}>
                     {t.pricing.popular}
+                  </div>
+                )}
+                {idx === 0 && (
+                  <div style={{
+                    position: "absolute", top: -12, right: 16,
+                    background: "#00B894", color: "#FFF", fontSize: 10, fontWeight: 800,
+                    padding: "3px 10px", borderRadius: 20,
+                  }}>
+                    14 ימים חינם
                   </div>
                 )}
                 <div style={{
@@ -685,8 +693,8 @@ export default function Home() {
                       fontSize: 40, fontWeight: 900,
                       background: "linear-gradient(135deg, #6C5CE7, #A29BFE)",
                       WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-                    }}>{plan.price}</span>
-                    <span style={{ fontSize: 16, color: "#7C6FD0", fontWeight: 600 }}> {t.pricing.month}</span>
+                    }}>{plan.price || "צרו קשר"}</span>
+                    {plan.price && <span style={{ fontSize: 16, color: "#7C6FD0", fontWeight: 600 }}> {t.pricing.month}</span>}
                   </div>
                   <div style={{
                     background: "rgba(108,92,231,0.06)", borderRadius: 10, padding: "8px 16px",
