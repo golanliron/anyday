@@ -679,7 +679,7 @@ export function BoardDashboard({
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
             <path d="M13.73 21a2 2 0 0 1-3.46 0" />
           </svg>
-          התראות
+          בריאות הבורד
         </button>
         {/* Branding button */}
         <button onClick={() => {
@@ -866,7 +866,7 @@ export function BoardDashboard({
                 </div>
               </>}
               
-              {sidePanel === "alerts" && <AlertsPanel board={board} items={items} pc={pc} ac={ac} />}
+              {sidePanel === "alerts" && <AlertsPanel board={board} items={items} pc={pc} ac={ac} onAskAI={(q) => { setSidePanel(null); setMode("chat"); setTimeout(() => sendMessage(q), 100); }} />}
               {sidePanel === "trends" && <TrendsPanel board={board} items={items} pc={pc} ac={ac} />}
               {sidePanel === "data" && <DataEditPanel board={board} items={items} apiToken={apiToken} boardId={boardId} pc={pc} ac={ac} />}
               {sidePanel === "branding" && <BrandingPanel brand={brand} setBrand={setBrand} />}
@@ -2738,8 +2738,8 @@ interface Alert {
   items: string[];
 }
 
-function AlertsPanel({ board, items, pc = "#6C5CE7", ac = "#A29BFE" }: {
-  board: MondayBoard; items: MondayItem[]; pc?: string; ac?: string;
+function AlertsPanel({ board, items, pc = "#6C5CE7", ac = "#A29BFE", onAskAI }: {
+  board: MondayBoard; items: MondayItem[]; pc?: string; ac?: string; onAskAI?: (question: string) => void;
 }) {
   // Analyze board for alerts
   const alerts: Alert[] = [];
@@ -2850,10 +2850,10 @@ function AlertsPanel({ board, items, pc = "#6C5CE7", ac = "#A29BFE" }: {
   return (
     <div>
       <h3 style={{ fontSize: 17, fontWeight: 700, color: "#2D2252", marginBottom: 4 }}>
-        התראות חכמות
+        בריאות הבורד
       </h3>
       <p style={{ fontSize: 12, color: ac, marginBottom: 18, lineHeight: 1.5 }}>
-        AnyDay סורק את הבורד ומזהה בעיות אוטומטית
+        סריקה אוטומטית: צווארי בקבוק, עמודות ריקות, כפילויות. לחצו על התראה כדי לשאול את AI מה לעשות.
       </p>
 
       {/* Health Score */}
@@ -2957,6 +2957,17 @@ function AlertsPanel({ board, items, pc = "#6C5CE7", ac = "#A29BFE" }: {
                     ))}
                     {alert.count > 5 && <span> | +{alert.count - 5} נוספים</span>}
                   </div>
+                )}
+                {onAskAI && (
+                  <button onClick={() => onAskAI(`יש לי בעיה: ${alert.title}. ${alert.detail}. מה אתה ממליץ לעשות?`)} style={{
+                    marginTop: 8, padding: "6px 12px", borderRadius: 8, cursor: "pointer",
+                    background: "none", border: `1px solid ${colors.icon}40`,
+                    color: colors.icon, fontSize: 11, fontWeight: 600,
+                    display: "flex", alignItems: "center", gap: 4,
+                  }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                    שאל את AI מה לעשות
+                  </button>
                 )}
               </div>
             );
