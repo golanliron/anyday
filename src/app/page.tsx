@@ -73,43 +73,44 @@ function IconDoc() {
 
 const T = {
   he: {
-    nav: { features: "יתרונות", how: "איך זה עובד", pricing: "מחירים", cta: "התחילו עכשיו" },
+    nav: { features: "יתרונות", how: "איך זה עובד", pricing: "מחירים", cta: "הזמינו דמו" },
     hero: {
       badge: "AnyDay",
-      title1: "הפכו את הטבלאות, האקסלים והמאנדיי שלכם",
+      title1: "דוח לדירקטוריון? עוד דקה ויש לך אחד.",
       title2: "",
-      titleBrand: "למערכת AI חכמה",
-      title3: " בלחיצה.",
-      sub: "הדרך החכמה לנהל את ה-Monday שלכם",
-      desc: "חברו את מקורות הנתונים שלכם ותתחילו לקבל תשובות, דוחות להנהלה, התראות חכמות ואוטומציות - הכל בעברית, הכל אוטומטי.",
-      cta: "התחילו עכשיו",
+      titleBrand: "",
+      title3: "",
+      sub: "Monday · Google Sheets · Excel · בעברית מלאה",
+      desc: "חברו את מקורות הנתונים שלכם ותתחילו לקבל תשובות, דוחות להנהלה, מתריעה לפני שמאוחר. ואוטומציות - הכל בעברית, הכל אוטומטי.",
+      cta: "הזמינו דמו של 15 דקות",
     },
     features: {
-      title: "ארגז הכלים שלכם",
-      sub: "כל מה שצריך כדי להפוך טבלאות ובורדים למנוע תשובות והזדמנויות",
+      title: "יש לכם כבר את כל המידע. עכשיו תקבלו גם את התשובות.",
+      sub: "AnyDay לא מחליף את Monday או את ה-Sheets שלכם. הוא יושב מעליהם וגורם להם סוף סוף לדבר.",
       items: [
-        { title: "צ׳אט חכם על הנתונים", desc: "שאלו את הבורד או הטבלה שלכם כל שאלה בשפה חופשית וקבלו תשובה מיידית עם נתונים אמיתיים" },
-        { title: "דוח להנהלה בלחיצה", desc: "דוח מנהלים מעוצב מוכן לדירקטוריון תוך 10 שניות - PDF מרהיב עם גרפים ותובנות" },
-        { title: "התראות חכמות", desc: "המערכת סורקת ומזהה צווארי בקבוק, עמודות ריקות ופריטים תקועים - בלי ששאלתם" },
+        { title: "שואלים בעברית. מקבלים תשובה.", desc: "כמה לקוחות חתמו ברבעון? אילו פרויקטים פיגרו ביעד? תשובה מיידית, עם הנתונים, עם המקור." },
+        { title: "דוח לדירקטוריון בלחיצה.", desc: "PDF מעוצב, עם גרפים נכונים, תובנות אסטרטגיות והלוגו שלכם. מוכן לישיבה. בלי לקרוא לאף אחד." },
+        { title: "התראות חכמות", desc: "לקוחה שלא הגיבה 14 יום. פרויקט שזז שלוש פעמים. AnyDay מזהה ושולח — בלי שתשאלו." },
         { title: "אוטומציות שמבצעות", desc: "לא מסבירה מה לעשות - עושה. שינוי סטטוס, העברה לקבוצה, ארכיון - ישירות מהצ'אט" },
       ],
     },
     steps: {
-      title: "איך זה עובד?",
-      sub: "שלושה צעדים ואתם בפנים",
+      title: "שלושה צעדים. שתי דקות. בלי IT.",
+      sub: "",
       items: [
-        { title: "לחצו התחברות", desc: "חיבור ישיר ל-Monday בלחיצה אחת" },
-        { title: "בחרו בורד", desc: "כל הבורדים שלכם מופיעים אוטומטית" },
-        { title: "התחילו לעבוד", desc: "סיכומים, דוחות, אוטומציות ועריכה — הכל מוכן" },
+        { title: "חברו את המקור", desc: "Monday, Google Sheets או Excel. OAuth של לחיצה אחת. בלי טכנולוג בארגון." },
+        { title: "תנו ל-AnyDay לקרוא", desc: "המערכת מבינה את המבנה, מזהה את העמודות, מחברת בין הבורדים. שתי דקות." },
+        { title: "שאלו. קבלו. תפעלו.", desc: "סיכומים, דוחות, אוטומציות ועריכה — הכל מוכן" },
       ],
     },
     pricing: {
-      title: "תוכניות ומחירים",
-      sub: "14 ימים ניסיון חינם — בלי כרטיס אשראי",
+      title: "תוכנית לכל שלב בארגון.",
+      sub: "חיבור מלא לכל הבורדים והגיליונות, בכל החבילות. ההבדל הוא ביכולות.",
       plans: [
         { name: "Pro", desc: "כל הבורדים, דוחות, אוטומציות, עריכה", boards: "ללא הגבלה" },
-        { name: "Team", desc: "Pro + 5 משתמשים + White Label", boards: "ללא הגבלה" },
-        { name: "Enterprise", desc: "התאמות מלאה, API, תמיכה ייעודית", boards: "ללא הגבלה" },
+        { name: "לידרים", desc: "לסמנכ״לית שמובילה תחום", boards: "דוחות + התראות + 500 שאלות" },
+        { name: "דירקטורים", desc: "למנכ״לית שמדווחת לדירקטוריון", boards: "אוטמציות + 2,000 שאלות" },
+        { name: "ארגון", desc: "לארגונים עם 50+ עובדים", boards: "White Label + SSO + API" },
       ],
       popular: "הכי פופולרי",
       month: "₪/חודש",
@@ -118,8 +119,8 @@ const T = {
       addon: { badge: "PREMIUM ADD-ON", title: "המערכת שלכם. המותג שלכם.", desc: "לוגו, צבעים, עיצוב מלא. הלקוחות שלכם יחשבו שבניתם את זה לבד. מערכת AI ממותגת שנראית מיליון דולר.", cta: "הוסיפו מיתוג" },
     },
     form: {
-      title: "מתחילים עכשיו",
-      sub: "הכניסו את הפרטים והדשבורד מוכן תוך שניות",
+      title: "התחילו 7 ימים חינם",
+      sub: "חברו את המקורות שלכם ותתחילו לקבל תשובות",
       tokenLabel: "API Token",
       tokenHelp: "איך מוצאים את ה-API Token?",
       tokenSteps: [
@@ -149,8 +150,8 @@ const T = {
     },
     contact: {
       title: "רוצים מערכת ואוטומציות רק בשבילכם?",
-      sub: "התלהבתם? בואו נדבר על התאמה אישית לארגון שלכם",
-      cta: "צרו קשר",
+      sub: "ללא כרטיס אשראי בניסיון. ללא חוזה. ביטול בלחיצה.",
+      cta: "הזמינו דמו של 15 דקות",
     },
     footer: "כל הזכויות שמורות.",
   },
@@ -656,7 +657,7 @@ export default function Home() {
             display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
             gap: 20, alignItems: "stretch",
           }} className="pricing-grid">
-            {t.pricing.plans.map((plan, idx) => ({ ...plan, price: ["49", "149", ""][idx], popular: idx === 0 })).map((plan, i) => (
+            {t.pricing.plans.map((plan, idx) => ({ ...plan, price: ["250", "450", "750", "1,200"][idx], popular: idx === 2 })).map((plan, i) => (
               <div key={i} style={{
                 background: plan.popular ? "linear-gradient(135deg, #6C5CE7, #A29BFE)" : "#FFFFFF",
                 borderRadius: 22, padding: plan.popular ? "4px" : "0",
@@ -677,7 +678,7 @@ export default function Home() {
                     background: "#00B894", color: "#FFF", fontSize: 10, fontWeight: 800,
                     padding: "3px 10px", borderRadius: 20,
                   }}>
-                    14 ימים חינם
+                    7 ימים חינם
                   </div>
                 )}
                 <div style={{
@@ -1047,8 +1048,59 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Footer ── */}
-      {/* ── Contact ── */}
+      {/* Security */}
+      <section style={{
+        padding: "60px 24px", background: "#FFFFFF", textAlign: "center",
+      }}>
+        <div style={{ maxWidth: 900, margin: "0 auto" }}>
+          <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 40, color: "#2D2252" }}>
+            {lang === "he" ? "הנתונים שלכם נשארים שלכם." : "Your data stays yours."}
+          </h2>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 20 }}>
+            {[
+              { icon: String.fromCodePoint(0x1F510), title: lang === "he" ? "הצפנה מקצה לקצה" : "End-to-end encryption", desc: "AES-256" },
+              { icon: String.fromCodePoint(0x1F1EE, 0x1F1F1), title: lang === "he" ? "שרתים בארץ" : "Local servers", desc: lang === "he" ? "לא יוצא מישראל" : "Never leaves Israel" },
+              { icon: String.fromCodePoint(0x1F6AB), title: lang === "he" ? "בלי אימון מודלים" : "No model training", desc: lang === "he" ? "הנתונים לא מאמנים אף מודל" : "Never trains any model" },
+              { icon: String.fromCodePoint(0x1F5D1), title: lang === "he" ? "מחיקה בלחיצה" : "Delete anytime", desc: lang === "he" ? "בכל רגע, ללא שאלות" : "No questions asked" },
+            ].map((item, i) => (
+              <div key={i} style={{ background: "#F9F7FF", borderRadius: 16, padding: "24px 16px", border: "1px solid rgba(108,92,231,0.1)" }}>
+                <div style={{ fontSize: 32, marginBottom: 12 }}>{item.icon}</div>
+                <h4 style={{ fontSize: 14, fontWeight: 700, color: "#2D2252", marginBottom: 6 }}>{item.title}</h4>
+                <p style={{ fontSize: 12, color: "#7C6FD0", margin: 0, lineHeight: 1.5 }}>{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section style={{ padding: "60px 24px", background: "#F9F7FF", textAlign: "right" }}>
+        <div style={{ maxWidth: 700, margin: "0 auto" }}>
+          <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 32, color: "#2D2252", textAlign: "center" }}>
+            {lang === "he" ? "שאלות שכל מנהלת שואלת" : "Frequently Asked Questions"}
+          </h2>
+          {(lang === "he" ? [
+            { q: "למה לא פשוט Monday AI או ChatGPT?", a: "Monday AI מוגבל לבורד אחד ולא מבין עברית עסקית. ChatGPT לא מחובר לנתונים. AnyDay מחבר את כל המקורות ומבצע פעולות אמיתיות." },
+            { q: "האם זה מחליף את הצוות שלי?", a: "לא. זה מחליף את הזמן שהצוות מבזבז על איסוף נתונים והכנת דוחות." },
+            { q: "מה אם אני לא מרוצה?", a: "7 ימי ניסיון חינם, ללא כרטיס. ביטול בלחיצה, ללא קנסות." },
+            { q: "האם זה באמת עובד בעברית?", a: "כן. AnyDay נבנה בעברית מהיום הראשון. מבין סלנג, ראשי תיבות, ואת ההבדל בין סגור לבוצע." },
+            { q: "כמה זמן לוקחת ההטמעה?", a: "שתי דקות לחיבור. שעה לערך ראשון. שבוע לשינוי שיגרה." },
+          ] : [
+            { q: "Why not just use Monday AI or ChatGPT?", a: "Monday AI is limited to one board. ChatGPT is not connected. AnyDay connects all sources and executes real actions." },
+            { q: "Does it replace my team?", a: "No. It frees your team from data collection and report preparation." },
+            { q: "What if I am not satisfied?", a: "7-day free trial, no credit card. Cancel anytime." },
+            { q: "Does it really work in Hebrew?", a: "Yes. Built in Hebrew from day one." },
+            { q: "How long does setup take?", a: "Two minutes to connect. One hour to see first value." },
+          ]).map((faq, i) => (
+            <div key={i} style={{ background: "#FFFFFF", borderRadius: 14, padding: "20px 24px", marginBottom: 12, border: "1px solid rgba(108,92,231,0.1)" }}>
+              <h4 style={{ fontSize: 15, fontWeight: 700, color: "#2D2252", marginBottom: 8 }}>{faq.q}</h4>
+              <p style={{ fontSize: 13, color: "#7C6FD0", margin: 0, lineHeight: 1.7 }}>{faq.a}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Contact / CTA ── */}
       <section style={{
         padding: "60px 24px", background: "#F9F7FF", textAlign: "center",
       }}>
