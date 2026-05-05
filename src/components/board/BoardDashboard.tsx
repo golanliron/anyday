@@ -291,24 +291,24 @@ function FormattedText({ text }: { text: string }) {
 
 const MODE_CONFIG: Record<string, { title: string; subtitle: string; suggestions: string[]; placeholder: string; loadingMessages: string[] }> = {
   chat: {
-    title: "מה נשאל את הבורד היום?",
-    subtitle: "שירי לי שירים, ספרי לי סיפורים... מהנתונים שלכם",
-    suggestions: ["תן לי סיכום של הבורד", "שנה את כל הממתינים לבטיפול", "העבר פריטים שהושלמו לארכיון", "מי אחראי על הכי הרבה פריטים?"],
-    placeholder: "שאלו שאלה על הבורד... (אני כבר על זה)",
+    title: "מה צריך לקרות היום?",
+    subtitle: "סיכום, עדכון, דוח — במשפט אחד",
+    suggestions: ["תן סיכום מצב + המלצות", "שנה את כל הממתינים לבטיפול", "צור פריט חדש: [שם] בקבוצה [שם]", "שלח לי דוח שבועי במייל", "העבר הושלמו לארכיון", "מי אחראי על הכי הרבה?"],
+    placeholder: "כתבו מה צריך לקרות...",
     loadingMessages: [
-      "חופר בנתונים...",
-      "סורק את הבורד שלכם...",
-      "מונדיי שלי, ספר לי...",
-      "רגע, יש פה משהו מעניין...",
-      "עובד על זה, אל תלכו...",
-      "שנייה, מסדר את המספרים...",
+      "מנתח נתונים...",
+      "סורק את הבורד...",
+      "עובד על זה...",
+      "רגע...",
+      "מעבד נתונים...",
+      "מסכם...",
     ],
   },
   dashboard: {
-    title: "דשבורד שמדבר בשבילכם",
-    subtitle: "גרפים, מספרים ותובנות. מוכן לשליחה להנהלה.",
-    suggestions: ["צור דשבורד מנהלים מהבורד הזה", "תן לי 4 KPIs מרכזיים", "הכן דוח אימפקט שבועי", "סכם את הנתונים בטבלה מסודרת"],
-    placeholder: "איזה דשבורד תרצו? (אני אעצב, אתם תקבלו קרדיט)",
+    title: "דשבורד מוכן לשליחה",
+    subtitle: "גרפים, מספרים ותובנות — מוכן לפגישה או למייל",
+    suggestions: ["צור דשבורד מנהלים", "תן 4 KPIs מרכזיים", "הכן סיכום שבועי לצוות", "סכם הכל בטבלה מסודרת"],
+    placeholder: "איזה דשבורד להכין?",
     loadingMessages: [
       "מצייר גרפים...",
       "הנתונים שלכם הופכים לזהב...",
@@ -319,10 +319,10 @@ const MODE_CONFIG: Record<string, { title: string; subtitle: string; suggestions
     ],
   },
   automations: {
-    title: "אוטומציות שעובדות בשבילכם",
-    subtitle: "תגידו מה מעצבן אתכם, ואני אתקן את זה. אוטומטית.",
-    suggestions: ["שנה סטטוס לכל הפריטים של יוסי", "העבר את כל החדשים לקבוצה ראשונה", "ארכב את כל מה שהושלם", "שלח התראה על פריטים תקועים"],
-    placeholder: "מה לאוטמט? (בלי מתכנת, בלי כאב ראש)",
+    title: "אוטומציות שעובדות",
+    subtitle: "שינוי סטטוס, העברה, ארכיון, מייל — תגידו מה לעשות",
+    suggestions: ["שנה סטטוס לכל הפריטים של יוסי", "העבר חדשים לקבוצה ראשונה", "ארכב הושלמו", "שלח מייל סיכום להנהלה", "צור 5 פריטים חדשים", "שלח התראה על תקועים"],
+    placeholder: "מה לאוטמט?",
     loadingMessages: [
       "בונה אוטומציה...",
       "מחבר חוטים מאחורי הקלעים...",
@@ -333,10 +333,10 @@ const MODE_CONFIG: Record<string, { title: string; subtitle: string; suggestions
     ],
   },
   impact: {
-    title: "דוח אימפקט שמרשים",
-    subtitle: "מספרים שמספרים סיפור. מוכן לתורמים, להנהלה, לעולם.",
-    suggestions: ["הכן דוח אימפקט רבעוני", "סכם תוצאות לפי סטטוס עם מגמות", "בנה דוח להנהלה עם KPIs ותובנות", "הפק דוח התקדמות לתורמים"],
-    placeholder: "איזה דוח אימפקט צריך? (אני אכתוב, אתם תחתמו)",
+    title: "דוחות מוכנים",
+    subtitle: "אימפקט, הנהלה, תורמים — בלחיצה",
+    suggestions: ["הכן דוח אימפקט רבעוני", "סכם תוצאות + מגמות", "בנה דוח להנהלה", "הפק דוח לתורמים"],
+    placeholder: "איזה דוח להכין?",
     loadingMessages: [
       "אוסף נתוני אימפקט...",
       "מחפש את הסיפור בנתונים...",
@@ -574,7 +574,7 @@ export function BoardDashboard({
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         <path d="M8 10h.01" /><path d="M12 10h.01" /><path d="M16 10h.01" />
       </svg>
-    ), label: "AI בורד" },
+    ), label: "DayDay" },
     { modeId: "dashboard", panel: "dashboard", icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M18 20V10" /><path d="M12 20V4" /><path d="M6 20v-6" />
@@ -599,11 +599,7 @@ export function BoardDashboard({
         <polyline points="10 9 9 9 8 9" />
       </svg>
     ), label: "דוחות" },
-    { modeId: "impact" as "chat", panel: "trends" as SidePanel, icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-      </svg>
-    ), label: "טרנדים" },
+
 
   ];
 
@@ -679,7 +675,7 @@ export function BoardDashboard({
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
             <path d="M13.73 21a2 2 0 0 1-3.46 0" />
           </svg>
-          בריאות הבורד
+          התראות
         </button>
         {/* Branding button */}
         <button onClick={() => {
@@ -737,20 +733,7 @@ export function BoardDashboard({
               <span style={{ fontSize: 9, fontWeight: 600 }}>{n.label}</span>
             </button>
           ))}
-          <button onClick={() => {
-            setSidePanel(sidePanel === "coming-soon" ? null : "coming-soon");
-          }} style={{
-            marginTop: 12, width: 44, height: 44, borderRadius: 12, border: "none", cursor: "pointer",
-            background: sidePanel === "coming-soon" ? hexToRgba(pc, 0.15) : "transparent",
-            color: sidePanel === "coming-soon" ? pc : "#999",
-            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-            gap: 2, transition: "all 0.2s",
-          }} title="בקרוב">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-            </svg>
-            <span style={{ fontSize: 9, fontWeight: 600 }}>בקרוב</span>
-          </button>
+
 
           {/* Divider */}
           <div style={{ width: 28, height: 1, background: hexToRgba(pc, 0.1), marginTop: 8 }} />
@@ -768,78 +751,10 @@ export function BoardDashboard({
             <span style={{ fontSize: 9, fontWeight: 600 }}>חדש</span>
           </button>
 
-          {/* History */}
-          <button onClick={() => setShowHistory(!showHistory)} style={{
-            width: 44, height: 44, borderRadius: 12, border: "none", cursor: "pointer",
-            background: showHistory ? hexToRgba(pc, 0.15) : "transparent",
-            color: showHistory ? pc : "#999",
-            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-            gap: 2, transition: "all 0.2s", position: "relative",
-          }} title="היסטוריה">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 3v5h5" /><path d="M3.05 13A9 9 0 1 0 6 6L3 3" />
-              <path d="M12 7v5l4 2" />
-            </svg>
-            <span style={{ fontSize: 9, fontWeight: 600 }}>היסטוריה</span>
-            {chatHistory.length > 0 && (
-              <div style={{
-                position: "absolute", top: 2, left: 2, width: 16, height: 16,
-                borderRadius: "50%", background: pc, color: "#FFF",
-                fontSize: 9, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center",
-              }}>{chatHistory.length}</div>
-            )}
-          </button>
+
         </div>
 
-        {/* ── History Panel ── */}
-        {showHistory && (
-          <div style={{
-            width: 260, background: "#FFF", borderLeft: `1px solid ${hexToRgba(pc, 0.1)}`,
-            overflowY: "auto", flexShrink: 0, padding: "16px 12px",
-          }} className="dash-history">
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 700, color: "#2D2252", margin: 0 }}>היסטוריית שיחות</h3>
-              <button onClick={() => setShowHistory(false)} style={{
-                background: "none", border: "none", cursor: "pointer", color: "#999", padding: 2,
-              }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-              </button>
-            </div>
-            {chatHistory.length === 0 ? (
-              <div style={{ textAlign: "center", padding: 20, color: "#999", fontSize: 12 }}>
-                אין שיחות קודמות
-              </div>
-            ) : (
-              chatHistory.map(session => (
-                <div key={session.id} style={{
-                  padding: "10px 12px", borderRadius: 10, marginBottom: 6, cursor: "pointer",
-                  background: activeSessionId === session.id ? hexToRgba(pc, 0.08) : hexToRgba(pc, 0.02),
-                  border: `1px solid ${activeSessionId === session.id ? hexToRgba(pc, 0.2) : hexToRgba(pc, 0.06)}`,
-                  transition: "all 0.15s",
-                }}
-                onClick={() => loadSession(session)}
-                >
-                  <div style={{ fontSize: 12, fontWeight: 600, color: "#2D2252", marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {session.title}
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: 10, color: "#999" }}>
-                      {new Date(session.createdAt).toLocaleDateString("he-IL")} · {session.messages.length} הודעות
-                    </span>
-                    <button onClick={(e) => { e.stopPropagation(); deleteSession(session.id); }} style={{
-                      background: "none", border: "none", cursor: "pointer", padding: 2, color: "#CCC",
-                    }}
-                    onMouseEnter={e => (e.currentTarget.style.color = "#E17055")}
-                    onMouseLeave={e => (e.currentTarget.style.color = "#CCC")}
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        )}
+
 
         {/* ── Side Panel ── */}
         {sidePanel && (
@@ -938,15 +853,11 @@ export function BoardDashboard({
                 alignItems: "center", justifyContent: "center", gap: 24,
               }}>
                 <div style={{
-                  width: 80, height: 80, borderRadius: 22,
-                  background: `linear-gradient(135deg, ${hexToRgba(pc, 0.15)}, ${hexToRgba(ac, 0.25)})`,
-                  border: `2px solid ${hexToRgba(pc, 0.2)}`,
+                  padding: "12px 28px", borderRadius: 16,
+                  background: `linear-gradient(135deg, ${pc}, ${ac})`,
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
-                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke={pc} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                    <path d="M8 10h.01" /><path d="M12 10h.01" /><path d="M16 10h.01" />
-                  </svg>
+                  <span style={{ fontSize: 28, fontWeight: 800, color: "#FFF", letterSpacing: "-0.5px" }}>AnyDay</span>
                 </div>
                 <div style={{ textAlign: "center" }}>
                   <div style={{ fontSize: 20, fontWeight: 700, color: "#2D2252", marginBottom: 6 }}>
@@ -1027,6 +938,53 @@ export function BoardDashboard({
                     >{s}</button>
                   ))}
                 </div>
+
+                {/* Inline history */}
+                {chatHistory.length > 0 && (
+                  <div style={{ width: "100%", maxWidth: 500, marginTop: 20 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#999", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 3v5h5" /><path d="M3.05 13A9 9 0 1 0 6 6L3 3" /><path d="M12 7v5l4 2" />
+                      </svg>
+                      שיחות אחרונות
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      {chatHistory.slice(0, 5).map(session => (
+                        <div key={session.id} style={{
+                          display: "flex", alignItems: "center", gap: 8,
+                          padding: "8px 12px", borderRadius: 10, cursor: "pointer",
+                          background: hexToRgba(pc, 0.03),
+                          border: `1px solid ${hexToRgba(pc, 0.08)}`,
+                          transition: "all 0.15s",
+                        }}
+                        onClick={() => loadSession(session)}
+                        onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = hexToRgba(pc, 0.08); }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = hexToRgba(pc, 0.03); }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={pc} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                          </svg>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: "#2D2252", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {session.title}
+                            </div>
+                            <div style={{ fontSize: 10, color: "#999" }}>
+                              {new Date(session.createdAt).toLocaleDateString("he-IL")} · {session.messages.length} הודעות
+                            </div>
+                          </div>
+                          <button onClick={(e) => { e.stopPropagation(); deleteSession(session.id); }} style={{
+                            background: "none", border: "none", cursor: "pointer", padding: 2, color: "#CCC", flexShrink: 0,
+                          }}
+                          onMouseEnter={e => (e.currentTarget.style.color = "#E17055")}
+                          onMouseLeave={e => (e.currentTarget.style.color = "#CCC")}
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <>
@@ -1644,9 +1602,35 @@ function AutomationsPanel({ board, items, apiToken, boardId, pc = "#6C5CE7", ac 
       <h3 style={{ fontSize: 17, fontWeight: 700, color: "#2D2252", marginBottom: 4 }}>
         אוטומציות אמיתיות
       </h3>
-      <p style={{ fontSize: 12, color: ac, marginBottom: 16, lineHeight: 1.5 }}>
-        בחרו תנאי, בחרו פעולה, לחצו הפעל. AnyDay מבצע את זה ישירות על הבורד.
+      <p style={{ fontSize: 12, color: ac, marginBottom: 14, lineHeight: 1.5 }}>
+        בחרו תנאי, בחרו פעולה, לחצו הפעל. DayDay מבצע את זה ישירות על הבורד.
       </p>
+
+      {/* Capabilities showcase */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 18 }}>
+        {[
+          { icon: "M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z", label: "שנה סטטוס", desc: "עדכון סטטוס לפריטים", act: "change_status" },
+          { icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0", label: "העבר לקבוצה", desc: "העברה בין קבוצות", act: "move_to_group" },
+          { icon: "M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8", label: "ארכיון", desc: "העבר פריטים לארכיון", act: "archive" },
+          { icon: "M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9", label: "שלח התראה", desc: "התראה למשתמשים", act: "notify" },
+          { icon: "M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z", label: "שלח מייל", desc: "שליחת מייל אוטומטית", act: "send_email" },
+          { icon: "M12 6v6m0 0v6m0-6h6m-6 0H6", label: "צור פריט", desc: "הוספת פריטים חדשים", act: "create_item" },
+        ].map((cap) => (
+          <button key={cap.act} onClick={() => { setActionType(cap.act === "send_email" || cap.act === "create_item" ? "" : cap.act as typeof actionType); }} style={{
+            background: actionType === cap.act ? hexToRgba(pc, 0.1) : hexToRgba(pc, 0.03),
+            border: `1px solid ${actionType === cap.act ? hexToRgba(pc, 0.3) : hexToRgba(pc, 0.08)}`,
+            borderRadius: 10, padding: "10px 8px", cursor: "pointer",
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+            transition: "all 0.15s",
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={actionType === cap.act ? pc : "#999"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d={cap.icon} />
+            </svg>
+            <span style={{ fontSize: 11, fontWeight: 700, color: actionType === cap.act ? pc : "#2D2252" }}>{cap.label}</span>
+            <span style={{ fontSize: 9, color: "#999" }}>{cap.desc}</span>
+          </button>
+        ))}
+      </div>
 
       {/* Saved automations */}
       {savedAutomations.length > 0 && (
@@ -2850,7 +2834,7 @@ function AlertsPanel({ board, items, pc = "#6C5CE7", ac = "#A29BFE", onAskAI }: 
   return (
     <div>
       <h3 style={{ fontSize: 17, fontWeight: 700, color: "#2D2252", marginBottom: 4 }}>
-        בריאות הבורד
+        התראות
       </h3>
       <p style={{ fontSize: 12, color: ac, marginBottom: 18, lineHeight: 1.5 }}>
         סריקה אוטומטית: צווארי בקבוק, עמודות ריקות, כפילויות. לחצו על התראה כדי לשאול את AI מה לעשות.
@@ -2862,7 +2846,7 @@ function AlertsPanel({ board, items, pc = "#6C5CE7", ac = "#A29BFE", onAskAI }: 
         borderRadius: 16, padding: "20px", marginBottom: 18,
         border: `1px solid ${hexToRgba(pc, 0.1)}`, textAlign: "center",
       }}>
-        <div style={{ fontSize: 11, color: ac, marginBottom: 6, fontWeight: 600 }}>בריאות הבורד</div>
+        <div style={{ fontSize: 11, color: ac, marginBottom: 6, fontWeight: 600 }}>התראות</div>
         <div style={{
           fontSize: 48, fontWeight: 800, color: healthColor,
           lineHeight: 1,
@@ -3234,254 +3218,3 @@ function TrendsPanel({ board, items, pc = "#6C5CE7", ac = "#A29BFE" }: {
 }
 
 
-function DataEditPanel({ board, items, apiToken, boardId, pc = "#6C5CE7", ac = "#A29BFE" }: {
-  board: MondayBoard; items: MondayItem[]; apiToken: string; boardId: string; pc?: string; ac?: string;
-}) {
-  const [editingCell, setEditingCell] = useState<{ itemId: string; colId: string } | null>(null);
-  const [editValue, setEditValue] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [savedCells, setSavedCells] = useState<Set<string>>(new Set());
-  const [newItemName, setNewItemName] = useState("");
-  const [addingItem, setAddingItem] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [toast, setToast] = useState<string | null>(null);
-
-  const editableCols = board.columns.filter(c =>
-    c.type !== "name" && ["color", "text", "long-text", "numeric", "numbers", "dropdown", "email", "phone", "date"].includes(c.type)
-  ).slice(0, 6);
-
-  const statusCols = board.columns.filter(c => c.type === "color");
-
-  const statusOptions: Record<string, string[]> = {};
-  statusCols.forEach(col => {
-    const vals = new Set<string>();
-    items.forEach(item => {
-      const cv = item.column_values.find(v => v.id === col.id);
-      if (cv?.text) vals.add(cv.text);
-    });
-    statusOptions[col.id] = [...vals];
-  });
-
-  const filteredItems = searchQuery
-    ? items.filter(it => it.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        it.column_values.some(cv => cv.text?.toLowerCase().includes(searchQuery.toLowerCase())))
-    : items;
-
-  function showToast(msg: string) {
-    setToast(msg);
-    setTimeout(() => setToast(null), 2500);
-  }
-
-  async function handleSave(itemId: string, colId: string, value: string) {
-    setSaving(true);
-    try {
-      const col = board.columns.find(c => c.id === colId);
-      if (col?.type === "color") {
-        await changeColumnValue(boardId, apiToken, itemId, colId, { label: value });
-      } else {
-        await changeSimpleValue(boardId, apiToken, itemId, colId, value);
-      }
-      setSavedCells(prev => new Set(prev).add(`${itemId}-${colId}`));
-      const item = items.find(it => it.id === itemId);
-      if (item) {
-        const cv = item.column_values.find(v => v.id === colId);
-        if (cv) cv.text = value;
-      }
-      showToast("נשמר בהצלחה!");
-    } catch (e) {
-      showToast(e instanceof Error ? e.message : "שגיאה בשמירה");
-    } finally {
-      setSaving(false);
-      setEditingCell(null);
-    }
-  }
-
-  async function handleAddItem() {
-    if (!newItemName.trim() || addingItem) return;
-    setAddingItem(true);
-    try {
-      await createItem(boardId, apiToken, newItemName.trim());
-      showToast(`"${newItemName.trim()}" נוסף בהצלחה`);
-      setNewItemName("");
-    } catch (e) {
-      showToast(e instanceof Error ? e.message : "שגיאה");
-    } finally {
-      setAddingItem(false);
-    }
-  }
-
-  const cellKey = (itemId: string, colId: string) => `${itemId}-${colId}`;
-
-  return (
-    <div>
-      <h3 style={{ fontSize: 17, fontWeight: 700, color: "#2D2252", marginBottom: 4 }}>עריכה ישירה</h3>
-      <p style={{ fontSize: 12, color: ac, marginBottom: 14, lineHeight: 1.5 }}>
-        לחצו על תא כדי לערוך. השינויים נשמרים ישירות ב-Monday.
-      </p>
-
-      {toast && (
-        <div style={{
-          position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", zIndex: 999,
-          background: "#2D2252", color: "#FFF", padding: "10px 24px", borderRadius: 12,
-          fontSize: 13, fontWeight: 600, boxShadow: "0 8px 30px rgba(0,0,0,0.2)",
-        }}>
-          {toast}
-        </div>
-      )}
-
-      <div style={{
-        display: "flex", gap: 8, marginBottom: 16,
-        background: hexToRgba(pc, 0.03), borderRadius: 10, padding: 10,
-        border: `1px solid ${hexToRgba(pc, 0.1)}`,
-      }}>
-        <input
-          value={newItemName}
-          onChange={e => setNewItemName(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && handleAddItem()}
-          placeholder="הוסיפו פריט חדש..."
-          style={{
-            flex: 1, background: "#FFF", border: `1px solid ${hexToRgba(pc, 0.15)}`,
-            borderRadius: 8, padding: "8px 12px", fontSize: 13, outline: "none",
-            color: "#2D2252",
-          }}
-        />
-        <button onClick={handleAddItem} disabled={!newItemName.trim() || addingItem} style={{
-          background: `linear-gradient(135deg, ${pc}, ${ac})`,
-          color: "#FFF", border: "none", borderRadius: 8, padding: "8px 16px",
-          fontSize: 13, fontWeight: 700, cursor: newItemName.trim() ? "pointer" : "not-allowed",
-          opacity: newItemName.trim() ? 1 : 0.5, whiteSpace: "nowrap",
-        }}>
-          {addingItem ? "..." : "+ הוספה"}
-        </button>
-      </div>
-
-      <input
-        value={searchQuery}
-        onChange={e => setSearchQuery(e.target.value)}
-        placeholder="חיפוש פריטים..."
-        style={{
-          width: "100%", background: "#F9F7FF", border: `1px solid ${hexToRgba(pc, 0.12)}`,
-          borderRadius: 8, padding: "8px 12px", fontSize: 13, outline: "none",
-          marginBottom: 12, color: "#2D2252",
-        }}
-      />
-
-      <div style={{ fontSize: 11, color: ac, marginBottom: 8 }}>
-        {filteredItems.length} / {items.length} פריטים
-      </div>
-
-      <div style={{ maxHeight: "calc(100vh - 340px)", overflowY: "auto" }}>
-        {filteredItems.slice(0, 50).map(item => (
-          <div key={item.id} style={{
-            background: "#FFF", borderRadius: 10, padding: "12px 14px",
-            border: `1px solid ${hexToRgba(pc, 0.08)}`, marginBottom: 8,
-            transition: "all 0.15s",
-          }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#2D2252", marginBottom: 8 }}>
-              {item.name}
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-              {editableCols.map(col => {
-                const cv = item.column_values.find(v => v.id === col.id);
-                const value = cv?.text || "";
-                const isEditing = editingCell?.itemId === item.id && editingCell?.colId === col.id;
-                const wasSaved = savedCells.has(cellKey(item.id, col.id));
-                const isStatus = col.type === "color";
-
-                if (isEditing && isStatus) {
-                  return (
-                    <div key={col.id} style={{
-                      display: "flex", flexDirection: "column", gap: 4,
-                      background: hexToRgba(pc, 0.04), borderRadius: 8, padding: 8,
-                      border: `1.5px solid ${pc}`, minWidth: 140,
-                    }}>
-                      <div style={{ fontSize: 10, color: ac, fontWeight: 600 }}>{col.title}</div>
-                      {(statusOptions[col.id] || []).map(opt => (
-                        <button key={opt} onClick={() => handleSave(item.id, col.id, opt)} disabled={saving} style={{
-                          background: opt === value ? pc : hexToRgba(pc, 0.06),
-                          color: opt === value ? "#FFF" : "#2D2252",
-                          border: "none", borderRadius: 6, padding: "5px 10px",
-                          fontSize: 12, fontWeight: 600, cursor: saving ? "wait" : "pointer",
-                          textAlign: "right", transition: "all 0.15s",
-                        }}>
-                          {opt}
-                        </button>
-                      ))}
-                      <button onClick={() => setEditingCell(null)} style={{
-                        background: "none", border: "none", cursor: "pointer",
-                        fontSize: 11, color: "#E17055", fontWeight: 600, marginTop: 2,
-                      }}>ביטול</button>
-                    </div>
-                  );
-                }
-
-                if (isEditing) {
-                  return (
-                    <div key={col.id} style={{
-                      display: "flex", flexDirection: "column", gap: 4,
-                      background: hexToRgba(pc, 0.04), borderRadius: 8, padding: 8,
-                      border: `1.5px solid ${pc}`, minWidth: 140,
-                    }}>
-                      <div style={{ fontSize: 10, color: ac, fontWeight: 600 }}>{col.title}</div>
-                      <input
-                        autoFocus
-                        value={editValue}
-                        onChange={e => setEditValue(e.target.value)}
-                        onKeyDown={e => {
-                          if (e.key === "Enter") handleSave(item.id, col.id, editValue);
-                          if (e.key === "Escape") setEditingCell(null);
-                        }}
-                        style={{
-                          background: "#FFF", border: `1px solid ${hexToRgba(pc, 0.2)}`,
-                          borderRadius: 6, padding: "5px 8px", fontSize: 12, outline: "none",
-                          color: "#2D2252",
-                        }}
-                      />
-                      <div style={{ display: "flex", gap: 4 }}>
-                        <button onClick={() => handleSave(item.id, col.id, editValue)} disabled={saving} style={{
-                          flex: 1, background: pc, color: "#FFF", border: "none",
-                          borderRadius: 6, padding: "4px 8px", fontSize: 11, fontWeight: 700,
-                          cursor: saving ? "wait" : "pointer",
-                        }}>{saving ? "..." : "שמור"}</button>
-                        <button onClick={() => setEditingCell(null)} style={{
-                          background: "none", border: `1px solid ${hexToRgba(pc, 0.15)}`,
-                          borderRadius: 6, padding: "4px 8px", fontSize: 11, cursor: "pointer",
-                          color: "#2D2252",
-                        }}>X</button>
-                      </div>
-                    </div>
-                  );
-                }
-
-                return (
-                  <button key={col.id} onClick={() => {
-                    setEditingCell({ itemId: item.id, colId: col.id });
-                    setEditValue(value);
-                  }} style={{
-                    background: isStatus
-                      ? hexToRgba(pc, value ? 0.1 : 0.03)
-                      : hexToRgba(pc, 0.03),
-                    border: `1px solid ${wasSaved ? "#00B894" : hexToRgba(pc, 0.08)}`,
-                    borderRadius: 8, padding: "6px 10px", cursor: "pointer",
-                    transition: "all 0.15s", textAlign: "right",
-                    minWidth: 0,
-                  }}>
-                    <div style={{ fontSize: 9, color: ac, fontWeight: 600, marginBottom: 2 }}>{col.title}</div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: value ? "#2D2252" : "#CCC", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 120 }}>
-                      {value || "---"}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-        {filteredItems.length > 50 && (
-          <div style={{ textAlign: "center", padding: 12, fontSize: 12, color: ac }}>
-            מציג 50 מתוך {filteredItems.length} פריטים. השתמשו בחיפוש למציאת פריטים נוספים.
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
