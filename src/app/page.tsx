@@ -265,9 +265,19 @@ export default function Home() {
   const t = T[lang];
   const formRef = useRef<HTMLDivElement>(null);
 
-  // Load saved token from localStorage and fetch boards
+  // Load saved token from localStorage OR from OAuth redirect
   useEffect(() => {
     try {
+      const params = new URLSearchParams(window.location.search);
+      const oauthToken = params.get("monday_token");
+      if (oauthToken) {
+        setApiToken(oauthToken);
+        setTokenConnected(true);
+        localStorage.setItem("anyday-token", oauthToken);
+        listBoards(oauthToken).then(boards => setBoardsList(boards)).catch(() => {});
+        window.history.replaceState({}, "", window.location.pathname);
+        return;
+      }
       const saved = localStorage.getItem("anyday-token");
       if (saved) {
         setApiToken(saved);
@@ -838,7 +848,7 @@ export default function Home() {
             {/* Monday Form — Smart Board Picker */}
             {dataSource === "monday" && <>
               {!tokenConnected ? (
-                /* Step 1: Enter token & connect */
+                /* Step 1: Connect via OAuth */
                 <>
                   <div style={{ textAlign: "center", marginBottom: 20 }}>
                     <div style={{
@@ -851,75 +861,9 @@ export default function Home() {
                       {lang === "he" ? "חברו את Monday.com שלכם" : "Connect your Monday.com"}
                     </h3>
                     <p style={{ fontSize: 13, color: "#7C6FD0", lineHeight: 1.6 }}>
-                      {lang === "he" ? "הכניסו את ה-API Token פעם אחת ותראו את כל הבורדים שלכם" : "Enter your API Token once and see all your boards"}
+                      {lang === "he" ? "לחצו על הכפתור והרשו גישה - בלי להעתיק טוקנים" : "Click the button and authorize - no tokens to copy"}
                     </p>
                   </div>
-
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                    <label style={{ fontWeight: 700, fontSize: 14, color: "#2D2252" }}>
-                      {t.form.tokenLabel}
-                    </label>
-                    <button onClick={() => setShowTokenHelp(!showTokenHelp)} style={{
-                      width: 22, height: 22, borderRadius: "50%",
-                      background: showTokenHelp ? "#6C5CE7" : "rgba(108,92,231,0.1)",
-                      color: showTokenHelp ? "#FFF" : "#6C5CE7",
-                      border: "none", fontSize: 12, fontWeight: 800, cursor: "pointer",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      transition: "all 0.2s",
-                    }}>?</button>
-                  </div>
-                  {showTokenHelp && (
-                    <div style={{
-                      background: "linear-gradient(135deg, rgba(108,92,231,0.06), rgba(162,155,254,0.08))",
-                      borderRadius: 14, padding: "16px 18px", marginBottom: 14,
-                      border: "1px solid rgba(108,92,231,0.12)",
-                    }}>
-                      <p style={{ fontSize: 13, fontWeight: 700, color: "#2D2252", margin: "0 0 12px" }}>
-                        {t.form.tokenHelp}
-                      </p>
-                      {t.form.tokenSteps.map((text, idx) => (
-                        <div key={idx} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                          <div style={{
-                            width: 28, height: 28, borderRadius: 8,
-                            background: "#6C5CE7", color: "#FFF",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            fontSize: 13, fontWeight: 800, flexShrink: 0,
-                          }}>{idx + 1}</div>
-                          <span style={{ fontSize: 13, color: "#2D2252", lineHeight: 1.5 }}>{text}</span>
-                        </div>
-                      ))}
-                      <div style={{
-                        marginTop: 10, background: "rgba(108,92,231,0.08)", borderRadius: 8,
-                        padding: "8px 12px", fontSize: 11, color: "#6C5CE7", fontWeight: 600,
-                        direction: "ltr", textAlign: "left", fontFamily: "monospace",
-                      }}>
-                        {t.form.tokenPath}
-                      </div>
-                    </div>
-                  )}
-                  {!showTokenHelp && (
-                    <p style={{ color: "#A29BFE", fontSize: 12, margin: "0 0 10px", lineHeight: 1.5 }}>
-                      {t.form.tokenPath}
-                    </p>
-                  )}
-                  <input
-                    type="password"
-                    value={apiToken}
-                    onChange={(e) => setApiToken(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && !loadingBoards && handleConnectToken()}
-                    placeholder="eyJhbGciOi..."
-                    style={{
-                      width: "100%", background: "#F9F7FF",
-                      border: "1.5px solid rgba(108,92,231,0.15)",
-                      color: "#2D2252", borderRadius: 12,
-                      padding: "13px 16px", fontSize: 14,
-                      outline: "none", direction: "ltr",
-                      transition: "border-color 0.2s",
-                      marginBottom: 16,
-                    }}
-                    onFocus={e => e.target.style.borderColor = "#6C5CE7"}
-                    onBlur={e => e.target.style.borderColor = "rgba(108,92,231,0.15)"}
-                  />
 
                   {error && (
                     <div style={{
@@ -931,24 +875,21 @@ export default function Home() {
                     </div>
                   )}
 
-                  <button
-                    onClick={handleConnectToken}
-                    disabled={!apiToken.trim() || loadingBoards}
+                  <a
+                    href="/api/monday-oauth/authorize"
                     style={{
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                       width: "100%",
-                      background: (!apiToken.trim() || loadingBoards)
-                        ? "rgba(108,92,231,0.2)"
-                        : "linear-gradient(135deg, #6C5CE7, #A29BFE)",
+                      background: "linear-gradient(135deg, #6C5CE7, #A29BFE)",
                       color: "#FFF", border: "none", borderRadius: 12,
                       padding: "15px", fontSize: 16, fontWeight: 700,
-                      cursor: (!apiToken.trim() || loadingBoards) ? "not-allowed" : "pointer",
-                      transition: "all 0.3s ease",
-                      boxShadow: (!apiToken.trim() || loadingBoards) ? "none" : "0 6px 20px rgba(108,92,231,0.25)",
-                      display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                      cursor: "pointer", textDecoration: "none",
+                      boxShadow: "0 6px 20px rgba(108,92,231,0.25)",
                     }}
                   >
-                    {loadingBoards ? (
-                      <><Spinner size={16} color="#FFF" /> {lang === "he" ? "מתחבר..." : "Connecting..."}</>
+                    {lang === "he" ? "התחברות ל-Monday.com" : "Connect to Monday.com"}
+                  </a>
+                </>
                     ) : (
                       <>{lang === "he" ? "התחברות" : "Connect"}</>
                     )}
