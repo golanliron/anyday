@@ -80,7 +80,7 @@ const T = {
       title2: "",
       titleBrand: "למערכת AI חכמה",
       title3: " בלחיצה.",
-      sub: "Monday · Google Sheets · Excel",
+      sub: "הדרך החכמה לנהל את ה-Monday שלכם",
       desc: "חברו את מקורות הנתונים שלכם ותתחילו לקבל תשובות, דוחות להנהלה, התראות חכמות ואוטומציות - הכל בעברית, הכל אוטומטי.",
       cta: "התחילו עכשיו",
     },
@@ -96,11 +96,11 @@ const T = {
     },
     steps: {
       title: "איך זה עובד?",
-      sub: "בחרו את המקור שלכם - שלושה צעדים ואתם בפנים",
+      sub: "שלושה צעדים ואתם בפנים",
       items: [
-        { title: "בחרו מקור נתונים", desc: "Monday, Google Sheets או Excel" },
-        { title: "חברו בלחיצה", desc: "API Token, לינק לשיט או העלאת קובץ" },
-        { title: "קבלו תשובות", desc: "AI שמנתח, מתריע ומייצר דוחות" },
+        { title: "לחצו התחברות", desc: "חיבור ישיר ל-Monday בלחיצה אחת" },
+        { title: "בחרו בורד", desc: "כל הבורדים שלכם מופיעים אוטומטית" },
+        { title: "התחילו לעבוד", desc: "סיכומים, דוחות, אוטומציות ועריכה — הכל מוכן" },
       ],
     },
     pricing: {
@@ -181,9 +181,9 @@ const T = {
       title: "How it works?",
       sub: "Three steps and you're in",
       items: [
-        { title: "Paste API Token", desc: "From your Monday profile" },
-        { title: "Enter Board ID", desc: "From the board URL" },
-        { title: "Get Answers", desc: "Start talking to your data" },
+        { title: "Click Connect", desc: "One-click Monday.com login" },
+        { title: "Pick a Board", desc: "All your boards appear automatically" },
+        { title: "Start Working", desc: "Reports, automations, editing — all ready" },
       ],
     },
     pricing: {
