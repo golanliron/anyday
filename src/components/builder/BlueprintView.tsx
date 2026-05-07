@@ -22,6 +22,7 @@ interface ExecuteResponse {
 interface BlueprintViewProps {
   blueprint: BuilderBlueprint;
   onReset: () => void;
+  mondayToken?: string | null;
 }
 
 const COLUMN_TYPE_ICONS: Record<string, string> = {
@@ -62,15 +63,19 @@ const COLUMN_TYPE_LABELS: Record<string, string> = {
   location: "\u05DE\u05D9\u05E7\u05D5\u05DD",
 };
 
-export function BlueprintView({ blueprint, onReset }: BlueprintViewProps) {
+export function BlueprintView({ blueprint, onReset, mondayToken }: BlueprintViewProps) {
   const [token, setToken] = useState("");
   const [building, setBuilding] = useState(false);
   const [executeResult, setExecuteResult] = useState<ExecuteResponse | null>(null);
   const [executeError, setExecuteError] = useState<string | null>(null);
+  const [showManualToken, setShowManualToken] = useState(false);
+
+  // Use OAuth token if available
+  const effectiveToken = mondayToken || token.trim();
 
   async function handleBuild() {
-    if (!token.trim()) {
-      setExecuteError("\u05E0\u05D0 \u05DC\u05D4\u05D6\u05D9\u05DF API Token \u05E9\u05DC Monday.");
+    if (!effectiveToken) {
+      setExecuteError("\u05E0\u05D0 \u05DC\u05D4\u05EA\u05D7\u05D1\u05E8 \u05DC-Monday \u05E7\u05D5\u05D3\u05DD.");
       return;
     }
     setBuilding(true);
@@ -81,7 +86,7 @@ export function BlueprintView({ blueprint, onReset }: BlueprintViewProps) {
       const res = await fetch("/api/builder-execute", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ blueprint, apiToken: token.trim() }),
+        body: JSON.stringify({ blueprint, apiToken: effectiveToken }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -178,54 +183,133 @@ export function BlueprintView({ blueprint, onReset }: BlueprintViewProps) {
             {"\u05DE\u05E8\u05D5\u05E6\u05D9\u05DD \u05DE\u05D4\u05DE\u05D1\u05E0\u05D4? \u05D1\u05D5\u05D0\u05D5 \u05E0\u05D1\u05E0\u05D4 \u05D0\u05EA \u05D6\u05D4 \u05D1-Monday"}
           </h3>
           <p style={{ fontSize: 14, color: "var(--color-muted)", lineHeight: 1.6, marginBottom: 20, maxWidth: 440, marginLeft: "auto", marginRight: "auto", textAlign: "center" }}>
-            {"\u05D4\u05D6\u05D9\u05E0\u05D5 \u05D0\u05EA \u05D4-API Token \u05E9\u05DC Monday \u05D5\u05E0\u05D9\u05E6\u05D5\u05E8 \u05D0\u05EA \u05D4\u05D1\u05D5\u05E8\u05D3\u05D9\u05DD, \u05D4\u05E2\u05DE\u05D5\u05D3\u05D5\u05EA \u05D5\u05D4\u05E7\u05D1\u05D5\u05E6\u05D5\u05EA \u05D9\u05E9\u05D9\u05E8\u05D5\u05EA \u05D1\u05D7\u05E9\u05D1\u05D5\u05DF \u05E9\u05DC\u05DB\u05DD."}
+            {mondayToken
+              ? "\u05D0\u05EA\u05DD \u05DE\u05D7\u05D5\u05D1\u05E8\u05D9\u05DD \u05DC-Monday. \u05DC\u05D7\u05E6\u05D5 \u05DB\u05D3\u05D9 \u05DC\u05D9\u05E6\u05D5\u05E8 \u05D0\u05EA \u05D4\u05D1\u05D5\u05E8\u05D3\u05D9\u05DD, \u05D4\u05E2\u05DE\u05D5\u05D3\u05D5\u05EA \u05D5\u05D4\u05E7\u05D1\u05D5\u05E6\u05D5\u05EA \u05D9\u05E9\u05D9\u05E8\u05D5\u05EA \u05D1\u05D7\u05E9\u05D1\u05D5\u05DF \u05E9\u05DC\u05DB\u05DD."
+              : "\u05D7\u05D1\u05E8\u05D5 \u05D0\u05EA \u05D7\u05E9\u05D1\u05D5\u05DF \u05D4-Monday \u05E9\u05DC\u05DB\u05DD \u05D5\u05E0\u05D9\u05E6\u05D5\u05E8 \u05D0\u05EA \u05D4\u05D1\u05D5\u05E8\u05D3\u05D9\u05DD \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9\u05EA."}
           </p>
 
-          {/* Token input */}
-          <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
-            <input
-              type="password"
-              placeholder="eyJhbGciOi..."
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleBuild()}
-              disabled={building}
-              style={{
-                flex: 1,
-                padding: "12px 16px",
-                borderRadius: 10,
-                border: "1px solid var(--color-border)",
-                background: "var(--color-bg)",
-                fontSize: 15,
-                fontFamily: "monospace",
-                direction: "ltr",
-                textAlign: "left",
-                outline: "none",
-              }}
-            />
-            <button
-              onClick={handleBuild}
-              disabled={building || !token.trim()}
-              style={{
-                padding: "12px 28px",
-                borderRadius: 10,
-                border: "none",
-                background: building || !token.trim() ? "var(--color-border)" : "var(--color-accent)",
-                color: building || !token.trim() ? "var(--color-muted)" : "#fff",
-                fontSize: 15,
-                fontWeight: 600,
-                cursor: building || !token.trim() ? "not-allowed" : "pointer",
-                whiteSpace: "nowrap",
-                fontFamily: "var(--font-dm)",
-              }}
-            >
-              {building ? "\u05D1\u05D5\u05E0\u05D4..." : "\u05D1\u05E0\u05D5 \u05DC\u05D9 \u05D0\u05EA \u05D6\u05D4 \u05D1-Monday"}
-            </button>
-          </div>
+          {/* Connected state — just show build button */}
+          {mondayToken && !building && (
+            <div style={{ textAlign: "center" }}>
+              <button
+                onClick={handleBuild}
+                disabled={building}
+                style={{
+                  padding: "14px 36px",
+                  borderRadius: 10,
+                  border: "none",
+                  background: "var(--color-accent)",
+                  color: "#fff",
+                  fontSize: 16,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  fontFamily: "var(--font-dm)",
+                  boxShadow: "0 4px 16px rgba(108,92,231,0.25)",
+                }}
+              >
+                {"\u05D1\u05E0\u05D5 \u05DC\u05D9 \u05D0\u05EA \u05D6\u05D4 \u05D1-Monday"}
+              </button>
+            </div>
+          )}
 
-          <p style={{ fontSize: 12, color: "var(--color-muted2)", margin: 0, textAlign: "center" }}>
-            {"\uD83D\uDD12 \u05D4\u05D8\u05D5\u05E7\u05DF \u05DC\u05D0 \u05E0\u05E9\u05DE\u05E8. \u05DE\u05E9\u05DE\u05E9 \u05DC\u05D9\u05E6\u05D9\u05E8\u05EA \u05D4\u05D1\u05D5\u05E8\u05D3\u05D9\u05DD \u05D5\u05E0\u05DE\u05D7\u05E7 \u05DE\u05D9\u05D3."}
-          </p>
+          {/* Not connected — show connect button + manual token fallback */}
+          {!mondayToken && !building && (
+            <>
+              <div style={{ textAlign: "center", marginBottom: 16 }}>
+                <button
+                  onClick={() => {
+                    window.location.href = "/api/monday-oauth/authorize?return_to=/builder";
+                  }}
+                  style={{
+                    padding: "14px 36px",
+                    borderRadius: 10,
+                    border: "none",
+                    background: "var(--color-accent)",
+                    color: "#fff",
+                    fontSize: 16,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    fontFamily: "var(--font-dm)",
+                    boxShadow: "0 4px 16px rgba(108,92,231,0.25)",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                    <polyline points="10 17 15 12 10 7" />
+                    <line x1="15" y1="12" x2="3" y2="12" />
+                  </svg>
+                  {"\u05D4\u05EA\u05D7\u05D1\u05E8\u05D5 \u05DC-Monday"}
+                </button>
+                <p style={{ fontSize: 12, color: "var(--color-muted2)", margin: "10px 0 0" }}>
+                  {"\u05DC\u05D7\u05D9\u05E6\u05D4 \u05D0\u05D7\u05EA. \u05E7\u05E8\u05D9\u05D0\u05D4 \u05D1\u05DC\u05D1\u05D3, \u05D1\u05DC\u05D9 \u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD."}
+                </p>
+              </div>
+
+              {/* Manual token fallback */}
+              <div style={{
+                display: "flex", alignItems: "center", gap: 12,
+                marginBottom: 12,
+              }}>
+                <div style={{ flex: 1, height: 1, background: "var(--color-border)" }} />
+                <button
+                  onClick={() => setShowManualToken(!showManualToken)}
+                  style={{
+                    fontSize: 12, color: "var(--color-muted)", background: "none",
+                    border: "none", cursor: "pointer", fontFamily: "var(--font-dm)",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {showManualToken ? "\u05D4\u05E1\u05EA\u05E8\u05D4" : "\u05D0\u05D5 \u05D4\u05D6\u05D9\u05E0\u05D5 Token \u05D9\u05D3\u05E0\u05D9\u05EA"}
+                </button>
+                <div style={{ flex: 1, height: 1, background: "var(--color-border)" }} />
+              </div>
+
+              {showManualToken && (
+                <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+                  <input
+                    type="password"
+                    placeholder="eyJhbGciOi..."
+                    value={token}
+                    onChange={(e) => setToken(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleBuild()}
+                    style={{
+                      flex: 1,
+                      padding: "12px 16px",
+                      borderRadius: 10,
+                      border: "1px solid var(--color-border)",
+                      background: "var(--color-bg)",
+                      fontSize: 15,
+                      fontFamily: "monospace",
+                      direction: "ltr",
+                      textAlign: "left",
+                      outline: "none",
+                    }}
+                  />
+                  <button
+                    onClick={handleBuild}
+                    disabled={!token.trim()}
+                    style={{
+                      padding: "12px 28px",
+                      borderRadius: 10,
+                      border: "none",
+                      background: !token.trim() ? "var(--color-border)" : "var(--color-accent)",
+                      color: !token.trim() ? "var(--color-muted)" : "#fff",
+                      fontSize: 15,
+                      fontWeight: 600,
+                      cursor: !token.trim() ? "not-allowed" : "pointer",
+                      whiteSpace: "nowrap",
+                      fontFamily: "var(--font-dm)",
+                    }}
+                  >
+                    {"\u05D1\u05E0\u05D5"}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
 
           {/* Loading spinner */}
           {building && (

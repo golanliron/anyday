@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import type { SystemType, OrgType, BuilderBlueprint } from "@/types/builder";
 import { generateBlueprint } from "@/lib/builder-engine";
@@ -9,6 +9,25 @@ import { BlueprintView } from "@/components/builder/BlueprintView";
 
 export default function BuilderPage() {
   const [blueprint, setBlueprint] = useState<BuilderBlueprint | null>(null);
+  const [mondayToken, setMondayToken] = useState<string | null>(null);
+
+  // Pick up token from OAuth redirect or localStorage
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const oauthToken = params.get("monday_token");
+      if (oauthToken) {
+        setMondayToken(oauthToken);
+        localStorage.setItem("anyday-token", oauthToken);
+        window.history.replaceState({}, "", window.location.pathname);
+        return;
+      }
+      const saved = localStorage.getItem("anyday-token");
+      if (saved) {
+        setMondayToken(saved);
+      }
+    } catch {}
+  }, []);
 
   function handleGenerate(systemType: SystemType, orgType: OrgType, description: string) {
     const bp = generateBlueprint(systemType, orgType, description);
@@ -17,6 +36,11 @@ export default function BuilderPage() {
 
   function handleReset() {
     setBlueprint(null);
+  }
+
+  function handleDisconnect() {
+    setMondayToken(null);
+    try { localStorage.removeItem("anyday-token"); } catch {}
   }
 
   return (
@@ -63,6 +87,24 @@ export default function BuilderPage() {
           <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Monday Builder</h1>
           <p style={{ fontSize: 13, color: "var(--color-muted)", margin: 0 }}>by AnyDay</p>
         </div>
+        {/* Connected indicator */}
+        {mondayToken && (
+          <div style={{ marginRight: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{
+              fontSize: 12, fontWeight: 600, color: "var(--color-green)",
+              background: "var(--color-green-light)", padding: "4px 10px", borderRadius: 8,
+            }}>
+              {"\u2705 \u05DE\u05D7\u05D5\u05D1\u05E8 \u05DC-Monday"}
+            </span>
+            <button onClick={handleDisconnect} style={{
+              fontSize: 11, color: "var(--color-muted)", background: "none",
+              border: "none", cursor: "pointer", textDecoration: "underline",
+              fontFamily: "var(--font-dm)",
+            }}>
+              {"\u05E0\u05EA\u05E7"}
+            </button>
+          </div>
+        )}
       </header>
 
       <main className="builder-main" style={{ maxWidth: 760, margin: "0 auto", padding: "32px 20px" }}>
@@ -106,7 +148,11 @@ export default function BuilderPage() {
 
         {/* Blueprint result */}
         {blueprint && (
-          <BlueprintView blueprint={blueprint} onReset={handleReset} />
+          <BlueprintView
+            blueprint={blueprint}
+            onReset={handleReset}
+            mondayToken={mondayToken}
+          />
         )}
       </main>
     </div>
