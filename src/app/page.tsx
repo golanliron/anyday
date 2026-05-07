@@ -574,11 +574,15 @@ export default function Home() {
               transition: "all 0.3s",
             }}>{lang === "he" ? "התחילו 7 ימים חינם" : "Start 7-day free trial"}</button>
           </div>
-          <div style={{ marginTop: 16, textAlign: "center" }}>
+          <div style={{ marginTop: 16, textAlign: "center", display: "flex", gap: 20, justifyContent: "center", flexWrap: "wrap" }}>
             <a href="/health-check" style={{
               color: "#6C5CE7", fontSize: 14, fontWeight: 600, textDecoration: "none",
               borderBottom: "1px dashed rgba(108,92,231,0.4)", paddingBottom: 2,
             }}>{lang === "he" ? "\uD83E\uDE7A בדקו את ה-Monday שלכם" : "\uD83E\uDE7A Check your Monday health"}</a>
+            <a href="/builder" style={{
+              color: "#6C5CE7", fontSize: 14, fontWeight: 600, textDecoration: "none",
+              borderBottom: "1px dashed rgba(108,92,231,0.4)", paddingBottom: 2,
+            }}>{lang === "he" ? "\uD83C\uDFD7\uFE0F בנו מערכת Monday חדשה" : "\uD83C\uDFD7\uFE0F Build a new Monday system"}</a>
           </div>
         </div>
       </section>
