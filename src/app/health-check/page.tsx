@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import type { HealthCheckResult, HealthFinding } from "@/types/health";
 import { getDemoResult } from "@/lib/health-demo-data";
@@ -39,10 +39,35 @@ export default function HealthCheckPage() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ScanResponse | null>(null);
   const [isDemo, setIsDemo] = useState(false);
+  const [mondayToken, setMondayToken] = useState<string | null>(null);
+  const [showManualToken, setShowManualToken] = useState(false);
+
+  // Pick up token from OAuth redirect or localStorage
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const oauthToken = params.get("monday_token");
+      if (oauthToken) {
+        setMondayToken(oauthToken);
+        localStorage.setItem("anyday-token", oauthToken);
+        window.history.replaceState({}, "", window.location.pathname);
+        return;
+      }
+      const saved = localStorage.getItem("anyday-token");
+      if (saved) setMondayToken(saved);
+    } catch {}
+  }, []);
+
+  const effectiveToken = mondayToken || token.trim();
+
+  function handleDisconnect() {
+    setMondayToken(null);
+    try { localStorage.removeItem("anyday-token"); } catch {}
+  }
 
   async function handleScan() {
-    if (!token.trim()) {
-      setError("נא להזין API Token של Monday. אפשר למצוא אותו ב-Monday \u2192 Admin \u2192 API.");
+    if (!effectiveToken) {
+      setError(mondayToken ? "\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05D7\u05D9\u05D1\u05D5\u05E8. \u05E0\u05E1\u05D5 \u05DC\u05D4\u05EA\u05D7\u05D1\u05E8 \u05DE\u05D7\u05D3\u05E9." : "\u05E0\u05D0 \u05DC\u05D4\u05EA\u05D7\u05D1\u05E8 \u05DC-Monday \u05E7\u05D5\u05D3\u05DD.");
       return;
     }
 
@@ -55,7 +80,7 @@ export default function HealthCheckPage() {
       const res = await fetch("/api/health-check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: token.trim() }),
+        body: JSON.stringify({ token: effectiveToken }),
       });
 
       const data = await res.json();
@@ -137,6 +162,23 @@ export default function HealthCheckPage() {
           <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Monday Health Check</h1>
           <p style={{ fontSize: 13, color: "var(--color-muted)", margin: 0 }}>by AnyDay</p>
         </div>
+        {mondayToken && (
+          <div style={{ marginRight: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{
+              fontSize: 12, fontWeight: 600, color: "var(--color-green)",
+              background: "var(--color-green-light)", padding: "4px 10px", borderRadius: 8,
+            }}>
+              {"\u2705 \u05DE\u05D7\u05D5\u05D1\u05E8 \u05DC-Monday"}
+            </span>
+            <button onClick={handleDisconnect} style={{
+              fontSize: 11, color: "var(--color-muted)", background: "none",
+              border: "none", cursor: "pointer", textDecoration: "underline",
+              fontFamily: "var(--font-dm)",
+            }}>
+              {"\u05E0\u05EA\u05E7"}
+            </button>
+          </div>
+        )}
       </header>
 
       <main className="hc-main" style={{ maxWidth: 720, margin: "0 auto", padding: "32px 20px" }}>
@@ -173,7 +215,7 @@ export default function HealthCheckPage() {
               </div>
             </div>
 
-            {/* Token card */}
+            {/* Connection card */}
             <div className="fade-up-2 hc-card" style={{
               background: "var(--color-surf)",
               borderRadius: 16,
@@ -182,84 +224,176 @@ export default function HealthCheckPage() {
               marginBottom: 24,
             }}>
               <h3 style={{ fontSize: 18, fontWeight: 700, marginTop: 0, marginBottom: 8 }}>
-                התחילו סריקה
+                {"\u05D4\u05EA\u05D7\u05D9\u05DC\u05D5 \u05E1\u05E8\u05D9\u05E7\u05D4"}
               </h3>
-              <p style={{ color: "var(--color-muted)", fontSize: 14, lineHeight: 1.6, marginBottom: 20 }}>
-                הזינו את ה-API Token של Monday.com ונבדוק מה המצב.
-                <br />
-                <span style={{ fontSize: 12 }}>
-                  {"("}אפשר למצוא ב-Monday {"\u2192"} Admin {"\u2192"} API{")"}
-                </span>
-              </p>
 
-              <div className="hc-input-row" style={{ display: "flex", gap: 10 }}>
-                <input
-                  type="password"
-                  placeholder="eyJhbGciOi..."
-                  value={token}
-                  onChange={e => setToken(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && handleScan()}
-                  style={{
-                    flex: 1,
-                    padding: "12px 16px",
-                    borderRadius: 10,
-                    border: "1px solid var(--color-border)",
-                    background: "var(--color-bg)",
-                    fontSize: 15,
-                    fontFamily: "monospace",
-                    direction: "ltr",
-                    textAlign: "left",
-                    outline: "none",
-                  }}
-                />
-                <button
-                  onClick={handleScan}
-                  style={{
-                    padding: "12px 28px",
-                    borderRadius: 10,
-                    border: "none",
-                    background: "var(--color-accent)",
-                    color: "#fff",
-                    fontSize: 15,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                    fontFamily: "var(--font-dm)",
-                  }}
-                >
-                  התחל סריקה
-                </button>
-              </div>
+              {/* Connected — just show scan button */}
+              {mondayToken && (
+                <>
+                  <p style={{ color: "var(--color-muted)", fontSize: 14, lineHeight: 1.6, marginBottom: 20 }}>
+                    {"\u05D0\u05EA\u05DD \u05DE\u05D7\u05D5\u05D1\u05E8\u05D9\u05DD \u05DC-Monday. \u05DC\u05D7\u05E6\u05D5 \u05DB\u05D3\u05D9 \u05DC\u05E1\u05E8\u05D5\u05E7 \u05D0\u05EA \u05D4\u05D1\u05D5\u05E8\u05D3\u05D9\u05DD \u05E9\u05DC\u05DB\u05DD."}
+                  </p>
+                  <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "center", flexWrap: "wrap" }}>
+                    <button
+                      onClick={handleScan}
+                      style={{
+                        padding: "14px 36px",
+                        borderRadius: 10,
+                        border: "none",
+                        background: "var(--color-accent)",
+                        color: "#fff",
+                        fontSize: 16,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        fontFamily: "var(--font-dm)",
+                        boxShadow: "0 4px 16px rgba(108,92,231,0.25)",
+                      }}
+                    >
+                      {"\u05D4\u05EA\u05D7\u05DC \u05E1\u05E8\u05D9\u05E7\u05D4"}
+                    </button>
+                    <button
+                      onClick={handleDemo}
+                      style={{
+                        background: "none",
+                        border: "1px solid var(--color-border)",
+                        borderRadius: 8,
+                        padding: "10px 18px",
+                        fontSize: 13,
+                        color: "var(--color-accent)",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        fontFamily: "var(--font-dm)",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {"\u05E6\u05E4\u05D9\u05D9\u05D4 \u05D1\u05D3\u05D5\u05D2\u05DE\u05D4"}
+                    </button>
+                  </div>
+                </>
+              )}
 
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginTop: 12,
-                flexWrap: "wrap",
-                gap: 8,
-              }}>
-                <p style={{ fontSize: 12, color: "var(--color-muted2)", margin: 0 }}>
-                  {"\uD83D\uDD12"} הטוקן לא נשמר. משמש לסריקה חד-פעמית ונמחק מיד.
-                </p>
-                <button
-                  onClick={handleDemo}
-                  style={{
-                    background: "none",
-                    border: "1px solid var(--color-border)",
-                    borderRadius: 8,
-                    padding: "6px 14px",
-                    fontSize: 13,
-                    color: "var(--color-accent)",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    fontFamily: "var(--font-dm)",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  צפייה בדוגמה
-                </button>
-              </div>
+              {/* Not connected — OAuth button + manual fallback */}
+              {!mondayToken && (
+                <>
+                  <p style={{ color: "var(--color-muted)", fontSize: 14, lineHeight: 1.6, marginBottom: 20 }}>
+                    {"\u05D7\u05D1\u05E8\u05D5 \u05D0\u05EA \u05D7\u05E9\u05D1\u05D5\u05DF \u05D4-Monday \u05E9\u05DC\u05DB\u05DD \u05D5\u05E0\u05D1\u05D3\u05D5\u05E7 \u05DE\u05D4 \u05D4\u05DE\u05E6\u05D1."}
+                  </p>
+
+                  <div style={{ textAlign: "center", marginBottom: 16 }}>
+                    <button
+                      onClick={() => {
+                        window.location.href = "/api/monday-oauth/authorize?return_to=/health-check";
+                      }}
+                      style={{
+                        padding: "14px 36px",
+                        borderRadius: 10,
+                        border: "none",
+                        background: "var(--color-accent)",
+                        color: "#fff",
+                        fontSize: 16,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        fontFamily: "var(--font-dm)",
+                        boxShadow: "0 4px 16px rgba(108,92,231,0.25)",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                        <polyline points="10 17 15 12 10 7" />
+                        <line x1="15" y1="12" x2="3" y2="12" />
+                      </svg>
+                      {"\u05D4\u05EA\u05D7\u05D1\u05E8\u05D5 \u05DC-Monday"}
+                    </button>
+                    <p style={{ fontSize: 12, color: "var(--color-muted2)", margin: "10px 0 0" }}>
+                      {"\u05DC\u05D7\u05D9\u05E6\u05D4 \u05D0\u05D7\u05EA. \u05E7\u05E8\u05D9\u05D0\u05D4 \u05D1\u05DC\u05D1\u05D3, \u05D1\u05DC\u05D9 \u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD."}
+                    </p>
+                  </div>
+
+                  {/* Divider with manual toggle */}
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 12,
+                    marginBottom: 12,
+                  }}>
+                    <div style={{ flex: 1, height: 1, background: "var(--color-border)" }} />
+                    <button
+                      onClick={() => setShowManualToken(!showManualToken)}
+                      style={{
+                        fontSize: 12, color: "var(--color-muted)", background: "none",
+                        border: "none", cursor: "pointer", fontFamily: "var(--font-dm)",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {showManualToken ? "\u05D4\u05E1\u05EA\u05E8\u05D4" : "\u05D0\u05D5 \u05D4\u05D6\u05D9\u05E0\u05D5 Token \u05D9\u05D3\u05E0\u05D9\u05EA"}
+                    </button>
+                    <div style={{ flex: 1, height: 1, background: "var(--color-border)" }} />
+                  </div>
+
+                  {showManualToken && (
+                    <div className="hc-input-row" style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+                      <input
+                        type="password"
+                        placeholder="eyJhbGciOi..."
+                        value={token}
+                        onChange={e => setToken(e.target.value)}
+                        onKeyDown={e => e.key === "Enter" && handleScan()}
+                        style={{
+                          flex: 1,
+                          padding: "12px 16px",
+                          borderRadius: 10,
+                          border: "1px solid var(--color-border)",
+                          background: "var(--color-bg)",
+                          fontSize: 15,
+                          fontFamily: "monospace",
+                          direction: "ltr",
+                          textAlign: "left",
+                          outline: "none",
+                        }}
+                      />
+                      <button
+                        onClick={handleScan}
+                        disabled={!token.trim()}
+                        style={{
+                          padding: "12px 28px",
+                          borderRadius: 10,
+                          border: "none",
+                          background: !token.trim() ? "var(--color-border)" : "var(--color-accent)",
+                          color: !token.trim() ? "var(--color-muted)" : "#fff",
+                          fontSize: 15,
+                          fontWeight: 600,
+                          cursor: !token.trim() ? "not-allowed" : "pointer",
+                          whiteSpace: "nowrap",
+                          fontFamily: "var(--font-dm)",
+                        }}
+                      >
+                        {"\u05E1\u05E8\u05E7\u05D5"}
+                      </button>
+                    </div>
+                  )}
+
+                  <div style={{ textAlign: "center" }}>
+                    <button
+                      onClick={handleDemo}
+                      style={{
+                        background: "none",
+                        border: "1px solid var(--color-border)",
+                        borderRadius: 8,
+                        padding: "6px 14px",
+                        fontSize: 13,
+                        color: "var(--color-accent)",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        fontFamily: "var(--font-dm)",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {"\u05E6\u05E4\u05D9\u05D9\u05D4 \u05D1\u05D3\u05D5\u05D2\u05DE\u05D4"}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </>
         )}
