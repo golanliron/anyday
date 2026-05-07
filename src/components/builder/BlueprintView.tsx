@@ -1,6 +1,23 @@
 "use client";
 
+import { useState } from "react";
 import type { BuilderBlueprint, BuilderBoard, BuilderColumn } from "@/types/builder";
+
+interface BoardResult {
+  boardName: string;
+  boardId: string | null;
+  columns: string[];
+  groups: string[];
+  error?: string;
+}
+
+interface ExecuteResponse {
+  success: boolean;
+  totalBoards: number;
+  successCount: number;
+  results: BoardResult[];
+  error?: string;
+}
 
 interface BlueprintViewProps {
   blueprint: BuilderBlueprint;
@@ -46,6 +63,40 @@ const COLUMN_TYPE_LABELS: Record<string, string> = {
 };
 
 export function BlueprintView({ blueprint, onReset }: BlueprintViewProps) {
+  const [token, setToken] = useState("");
+  const [building, setBuilding] = useState(false);
+  const [executeResult, setExecuteResult] = useState<ExecuteResponse | null>(null);
+  const [executeError, setExecuteError] = useState<string | null>(null);
+
+  async function handleBuild() {
+    if (!token.trim()) {
+      setExecuteError("\u05E0\u05D0 \u05DC\u05D4\u05D6\u05D9\u05DF API Token \u05E9\u05DC Monday.");
+      return;
+    }
+    setBuilding(true);
+    setExecuteError(null);
+    setExecuteResult(null);
+
+    try {
+      const res = await fetch("/api/builder-execute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ blueprint, apiToken: token.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setExecuteError(data.error || "\u05E9\u05D2\u05D9\u05D0\u05D4 \u05DC\u05D0 \u05E6\u05E4\u05D5\u05D9\u05D4.");
+        return;
+      }
+      setExecuteResult(data);
+      setToken("");
+    } catch {
+      setExecuteError("\u05DC\u05D0 \u05D4\u05E6\u05DC\u05D7\u05E0\u05D5 \u05DC\u05D4\u05EA\u05D7\u05D1\u05E8 \u05DC\u05E9\u05E8\u05EA. \u05E0\u05E1\u05D5 \u05E9\u05D5\u05D1.");
+    } finally {
+      setBuilding(false);
+    }
+  }
+
   return (
     <div>
       {/* Blueprint header */}
@@ -114,52 +165,167 @@ export function BlueprintView({ blueprint, onReset }: BlueprintViewProps) {
         <BoardCard key={bi} board={board} index={bi} />
       ))}
 
-      {/* Build in Monday CTA */}
-      <div className="fade-up-4" style={{
-        background: "var(--color-surf)",
-        borderRadius: 16,
-        border: "1px solid var(--color-border)",
-        padding: "28px 24px",
-        textAlign: "center",
-        marginTop: 24,
-      }}>
-        <h3 style={{ fontSize: 18, fontWeight: 700, marginTop: 0, marginBottom: 8, color: "var(--color-text)" }}>
-          {"\u05DE\u05E8\u05D5\u05E6\u05D9\u05DD \u05DE\u05D4\u05DE\u05D1\u05E0\u05D4? \u05D1\u05D5\u05D0\u05D5 \u05E0\u05D1\u05E0\u05D4 \u05D0\u05EA \u05D6\u05D4 \u05D1-Monday"}
-        </h3>
-        <p style={{ fontSize: 14, color: "var(--color-muted)", lineHeight: 1.6, marginBottom: 16, maxWidth: 440, marginLeft: "auto", marginRight: "auto" }}>
-          {"\u05D1\u05E7\u05E8\u05D5\u05D1 AnyDay \u05EA\u05D5\u05DB\u05DC \u05DC\u05D9\u05E6\u05D5\u05E8 \u05D0\u05EA \u05D4\u05D1\u05D5\u05E8\u05D3\u05D9\u05DD, \u05D4\u05E2\u05DE\u05D5\u05D3\u05D5\u05EA \u05D5\u05D4\u05D0\u05D5\u05D8\u05D5\u05DE\u05E6\u05D9\u05D5\u05EA \u05D9\u05E9\u05D9\u05E8\u05D5\u05EA \u05D1\u05D7\u05E9\u05D1\u05D5\u05DF \u05D4-Monday \u05E9\u05DC\u05DB\u05DD."}
-        </p>
-        <button
-          disabled
-          style={{
-            padding: "14px 32px",
-            borderRadius: 10,
-            border: "none",
-            background: "var(--color-border)",
-            color: "var(--color-muted)",
-            fontSize: 15,
-            fontWeight: 600,
-            cursor: "not-allowed",
-            fontFamily: "var(--font-dm)",
-            position: "relative",
-          }}
-        >
-          {"\u05D1\u05E0\u05D5 \u05DC\u05D9 \u05D0\u05EA \u05D6\u05D4 \u05D1-Monday"}
-          <span style={{
-            position: "absolute",
-            top: -8,
-            left: -8,
-            background: "var(--color-accent)",
-            color: "#fff",
-            fontSize: 10,
-            fontWeight: 700,
-            padding: "2px 8px",
-            borderRadius: 10,
+      {/* Build in Monday section */}
+      {!executeResult && (
+        <div className="fade-up-4" style={{
+          background: "var(--color-surf)",
+          borderRadius: 16,
+          border: "1px solid var(--color-border)",
+          padding: "28px 24px",
+          marginTop: 24,
+        }}>
+          <h3 style={{ fontSize: 18, fontWeight: 700, marginTop: 0, marginBottom: 8, color: "var(--color-text)", textAlign: "center" }}>
+            {"\u05DE\u05E8\u05D5\u05E6\u05D9\u05DD \u05DE\u05D4\u05DE\u05D1\u05E0\u05D4? \u05D1\u05D5\u05D0\u05D5 \u05E0\u05D1\u05E0\u05D4 \u05D0\u05EA \u05D6\u05D4 \u05D1-Monday"}
+          </h3>
+          <p style={{ fontSize: 14, color: "var(--color-muted)", lineHeight: 1.6, marginBottom: 20, maxWidth: 440, marginLeft: "auto", marginRight: "auto", textAlign: "center" }}>
+            {"\u05D4\u05D6\u05D9\u05E0\u05D5 \u05D0\u05EA \u05D4-API Token \u05E9\u05DC Monday \u05D5\u05E0\u05D9\u05E6\u05D5\u05E8 \u05D0\u05EA \u05D4\u05D1\u05D5\u05E8\u05D3\u05D9\u05DD, \u05D4\u05E2\u05DE\u05D5\u05D3\u05D5\u05EA \u05D5\u05D4\u05E7\u05D1\u05D5\u05E6\u05D5\u05EA \u05D9\u05E9\u05D9\u05E8\u05D5\u05EA \u05D1\u05D7\u05E9\u05D1\u05D5\u05DF \u05E9\u05DC\u05DB\u05DD."}
+          </p>
+
+          {/* Token input */}
+          <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+            <input
+              type="password"
+              placeholder="eyJhbGciOi..."
+              value={token}
+              onChange={(e) => setToken(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleBuild()}
+              disabled={building}
+              style={{
+                flex: 1,
+                padding: "12px 16px",
+                borderRadius: 10,
+                border: "1px solid var(--color-border)",
+                background: "var(--color-bg)",
+                fontSize: 15,
+                fontFamily: "monospace",
+                direction: "ltr",
+                textAlign: "left",
+                outline: "none",
+              }}
+            />
+            <button
+              onClick={handleBuild}
+              disabled={building || !token.trim()}
+              style={{
+                padding: "12px 28px",
+                borderRadius: 10,
+                border: "none",
+                background: building || !token.trim() ? "var(--color-border)" : "var(--color-accent)",
+                color: building || !token.trim() ? "var(--color-muted)" : "#fff",
+                fontSize: 15,
+                fontWeight: 600,
+                cursor: building || !token.trim() ? "not-allowed" : "pointer",
+                whiteSpace: "nowrap",
+                fontFamily: "var(--font-dm)",
+              }}
+            >
+              {building ? "\u05D1\u05D5\u05E0\u05D4..." : "\u05D1\u05E0\u05D5 \u05DC\u05D9 \u05D0\u05EA \u05D6\u05D4 \u05D1-Monday"}
+            </button>
+          </div>
+
+          <p style={{ fontSize: 12, color: "var(--color-muted2)", margin: 0, textAlign: "center" }}>
+            {"\uD83D\uDD12 \u05D4\u05D8\u05D5\u05E7\u05DF \u05DC\u05D0 \u05E0\u05E9\u05DE\u05E8. \u05DE\u05E9\u05DE\u05E9 \u05DC\u05D9\u05E6\u05D9\u05E8\u05EA \u05D4\u05D1\u05D5\u05E8\u05D3\u05D9\u05DD \u05D5\u05E0\u05DE\u05D7\u05E7 \u05DE\u05D9\u05D3."}
+          </p>
+
+          {/* Loading spinner */}
+          {building && (
+            <div style={{ textAlign: "center", marginTop: 20 }}>
+              <div style={{
+                width: 36, height: 36,
+                border: "3px solid var(--color-border)",
+                borderTopColor: "var(--color-accent)",
+                borderRadius: "50%",
+                animation: "spin 0.8s linear infinite",
+                margin: "0 auto 12px",
+              }} />
+              <p style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)", margin: 0 }}>
+                {"\u05D9\u05D5\u05E6\u05E8\u05D9\u05DD \u05D1\u05D5\u05E8\u05D3\u05D9\u05DD, \u05E2\u05DE\u05D5\u05D3\u05D5\u05EA \u05D5\u05E7\u05D1\u05D5\u05E6\u05D5\u05EA..."}
+              </p>
+              <p style={{ fontSize: 13, color: "var(--color-muted)", margin: "4px 0 0" }}>
+                {"\u05D6\u05D4 \u05D9\u05DB\u05D5\u05DC \u05DC\u05E7\u05D7\u05EA \u05E2\u05D3 30 \u05E9\u05E0\u05D9\u05D5\u05EA."}
+              </p>
+            </div>
+          )}
+
+          {/* Error */}
+          {executeError && (
+            <div style={{
+              marginTop: 12,
+              background: "var(--color-red-light)",
+              borderRadius: 10,
+              padding: "12px 16px",
+              border: "1px solid var(--color-red)",
+            }}>
+              <p style={{ margin: 0, fontSize: 14, color: "var(--color-red)", fontWeight: 600 }}>
+                {executeError}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Execution results */}
+      {executeResult && (
+        <div className="fade-up" style={{
+          marginTop: 24,
+        }}>
+          {/* Success/partial banner */}
+          <div style={{
+            background: executeResult.success ? "var(--color-green-light)" : "var(--color-amber-light)",
+            borderRadius: 16,
+            border: `1px solid ${executeResult.success ? "var(--color-green)" : "var(--color-amber)"}`,
+            padding: "24px 28px",
+            textAlign: "center",
+            marginBottom: 16,
           }}>
-            {"\u05D1\u05E7\u05E8\u05D5\u05D1"}
-          </span>
-        </button>
-      </div>
+            <div style={{ fontSize: 40, marginBottom: 8 }}>
+              {executeResult.success ? "\u2705" : "\u26A0\uFE0F"}
+            </div>
+            <h3 style={{
+              fontSize: 20, fontWeight: 700, margin: "0 0 8px",
+              color: executeResult.success ? "var(--color-green)" : "#B8860B",
+            }}>
+              {executeResult.success
+                ? `${executeResult.successCount} \u05D1\u05D5\u05E8\u05D3\u05D9\u05DD \u05E0\u05D5\u05E6\u05E8\u05D5 \u05D1\u05D4\u05E6\u05DC\u05D7\u05D4!`
+                : `${executeResult.successCount} \u05DE\u05EA\u05D5\u05DA ${executeResult.totalBoards} \u05D1\u05D5\u05E8\u05D3\u05D9\u05DD \u05E0\u05D5\u05E6\u05E8\u05D5`
+              }
+            </h3>
+            <p style={{ fontSize: 14, color: "var(--color-text2)", margin: 0, lineHeight: 1.6 }}>
+              {"\u05D4\u05D1\u05D5\u05E8\u05D3\u05D9\u05DD \u05DE\u05D7\u05DB\u05D9\u05DD \u05D0\u05EA\u05DB\u05DD \u05D1\u05D7\u05E9\u05D1\u05D5\u05DF \u05D4-Monday. \u05D4\u05D9\u05DB\u05E0\u05E1\u05D5 \u05DC-Monday \u05DB\u05D3\u05D9 \u05DC\u05E8\u05D0\u05D5\u05EA \u05D0\u05D5\u05EA\u05DD."}
+            </p>
+          </div>
+
+          {/* Per-board results */}
+          {executeResult.results.map((r, i) => (
+            <div key={i} style={{
+              background: "var(--color-surf)",
+              borderRadius: 12,
+              border: "1px solid var(--color-border)",
+              borderRight: `4px solid ${r.error ? "var(--color-red)" : "var(--color-green)"}`,
+              padding: "16px 20px",
+              marginBottom: 10,
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                <span>{r.error ? "\u274C" : "\u2705"}</span>
+                <strong style={{ fontSize: 15, color: "var(--color-text)" }}>{r.boardName}</strong>
+                {r.boardId && (
+                  <span style={{ fontSize: 12, color: "var(--color-muted)", fontFamily: "monospace" }}>
+                    ID: {r.boardId}
+                  </span>
+                )}
+              </div>
+              {r.error && (
+                <p style={{ fontSize: 13, color: "var(--color-red)", margin: "4px 0 0" }}>{r.error}</p>
+              )}
+              {!r.error && (
+                <p style={{ fontSize: 13, color: "var(--color-muted)", margin: "4px 0 0" }}>
+                  {r.columns.length} {"\u05E2\u05DE\u05D5\u05D3\u05D5\u05EA"} + {r.groups.length} {"\u05E7\u05D1\u05D5\u05E6\u05D5\u05EA"}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Bottom actions */}
       <div className="fade-up-4" style={{
@@ -187,7 +353,7 @@ export function BlueprintView({ blueprint, onReset }: BlueprintViewProps) {
           {"\uD83D\uDD04 \u05D1\u05E0\u05D5 \u05DE\u05E2\u05E8\u05DB\u05EA \u05D0\u05D7\u05E8\u05EA"}
         </button>
         <button
-          onClick={() => window.location.href = "mailto:hello@anyday.co.il?subject=\u05D0\u05D4\u05D1\u05EA\u05D9 \u05D0\u05EA \u05D4\u05DE\u05D1\u05E0\u05D4 \u05E9\u05DC AnyDay — \u05E8\u05D5\u05E6\u05D4 \u05DC\u05D4\u05EA\u05E7\u05D3\u05DD"}
+          onClick={() => window.location.href = "mailto:hello@anyday.co.il?subject=\u05D0\u05D4\u05D1\u05EA\u05D9 \u05D0\u05EA \u05D4\u05DE\u05D1\u05E0\u05D4 \u05E9\u05DC AnyDay \u2014 \u05E8\u05D5\u05E6\u05D4 \u05DC\u05D4\u05EA\u05E7\u05D3\u05DD"}
           style={{
             padding: "12px 32px",
             borderRadius: 10,
