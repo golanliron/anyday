@@ -100,7 +100,7 @@ const T = {
       items: [
         { title: "חברו את המקור", desc: "Monday, Google Sheets או Excel. OAuth של לחיצה אחת. בלי טכנולוג בארגון." },
         { title: "תנו ל-AnyDay לקרוא", desc: "המערכת מבינה את המבנה, מזהה את העמודות, מחברת בין הבורדים. שתי דקות." },
-        { title: "שאלו. קבלו. תפעלו.", desc: "צ'אט, דשבורד, דוחות, אימפקט, אוטומציות, עריכה ובניית בורדים — הכל מוכן." },
+        { title: "שאלו. קבלו. תפעלו.", desc: "בעברית, בכתב, בקול. כמו לדבר עם אנליסט — רק מהיר יותר וזמין 24/7." },
       ],
     },
     pricing: {
@@ -115,8 +115,8 @@ const T = {
       popular: "הכי פופולרי",
       month: "₪/חודש",
       boardLabel: (b: string) => b === "ללא הגבלה" ? "כל הבורדים" : b,
-      cta: "התחילו עכשיו",
-      addon: { badge: "PREMIUM ADD-ON", title: "המערכת שלכם. המותג שלכם.", desc: "לוגו, צבעים, עיצוב מלא. הלקוחות שלכם יחשבו שבניתם את זה לבד. מערכת AI ממותגת שנראית מיליון דולר.", cta: "הוסיפו מיתוג" },
+      ctas: ["התחילו 7 ימים חינם", "הזמינו דמו של 15 דקות", "הזמינו דמו של 15 דקות", "דברו איתנו על הטמעה"],
+      addon: { badge: "PREMIUM ADD-ON", title: "המערכת שלכם. המותג שלכם.", desc: "+199 ₪/חודש — לוגו, צבעים, עיצוב מלא. הלקוחות שלכם יחשבו שבניתם את זה לבד.", cta: "הוסיפו מיתוג" },
     },
     form: {
       title: "התחילו 7 ימים חינם",
@@ -148,10 +148,39 @@ const T = {
         "תרגום דוחות לאנגלית",
       ],
     },
+    problem: {
+      title: "כל שבוע, אותו טקס.",
+      paragraphs: [
+        "הוועד מבקש עדכון. אתם שולחים מייל לאנליסטית, היא מסננת בורדים, מורידה ל-Excel, בונה גרפים — ומחזירה אחרי יומיים PDF שעוד צריך הגהה. הישיבה בעוד שעה.",
+        "מנהלת תפעול שואלת כמה פרויקטים תקועים. אתם לא יודעים. נכנסים יחד למאנדיי, מסננים, מחפשים, ובסוף — מנחשים.",
+        "יש לכם 14 בורדים, 6 גיליונות וארבעה אקסלים. הנתונים נמצאים. התשובות לא.",
+      ],
+    },
+    security: {
+      title: "הנתונים שלכם נשארים שלכם.",
+      items: [
+        { icon: "lock", label: "הצפנה מקצה לקצה", desc: "תקן AES-256" },
+        { icon: "flag", label: "שרתים בארץ", desc: "לא יוצא מישראל" },
+        { icon: "block", label: "בלי אימון מודלים", desc: "הנתונים שלכם לא מאמנים אף מודל. אף פעם." },
+        { icon: "trash", label: "מחיקה בלחיצה", desc: "בכל רגע, ללא שאלות" },
+      ],
+    },
+    faq: {
+      title: "שאלות שכל מנהלת שואלת",
+      items: [
+        { q: "למה לא פשוט להשתמש ב-Monday AI או ChatGPT?", a: "Monday AI מוגבל לבורד אחד ולא מבין עברית עסקית. ChatGPT לא מחובר לנתונים שלכם בכלל. AnyDay מחבר את כל המקורות, מבין עברית טבעית, ומבצע פעולות אמיתיות — לא רק מציע." },
+        { q: "האם זה מחליף את הצוות שלי?", a: "לא. זה מחליף את הזמן שהצוות מבזבז על איסוף נתונים והכנת דוחות, ומשחרר אותם לעבודה אסטרטגית." },
+        { q: "מה אם אני לא מרוצה?", a: "חבילת \"בודקים\" — 7 ימי ניסיון חינם, ללא כרטיס. בכל החבילות — ביטול בלחיצה, ללא קנסות, ללא חוזים ארוכי טווח." },
+        { q: "האם זה באמת עובד בעברית?", a: "כן. AnyDay נבנה בעברית מהיום הראשון — לא תרגום של מוצר אמריקאי. מבין סלנג עסקי, ראשי תיבות, וגם את ההבדל בין \"סגור\" ל\"בוצע\"." },
+        { q: "כמה זמן לוקחת ההטמעה?", a: "שתי דקות לחיבור. שעה לראיית ערך ראשון. שבוע לשינוי שיגרת העבודה." },
+      ],
+    },
     contact: {
       title: "הישיבה הבאה בעוד שבוע.",
       sub: "מה תעדיפו — לילה ארוך עם Excel, או דוח שמוכן בעוד דקה?",
-      cta: "התחילו 7 ימים חינם",
+      cta: "הזמינו דמו של 15 דקות",
+      cta2: "התחילו 7 ימים חינם",
+      note: "ללא כרטיס אשראי בניסיון. ללא חוזה. ביטול בלחיצה.",
     },
     footer: "כל הזכויות שמורות.",
   },
@@ -530,9 +559,42 @@ export default function Home() {
           }}>
             {t.hero.desc}
           </p>
-          {/* CTA buttons removed */}
+          <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+            <button onClick={scrollToForm} style={{
+              background: "linear-gradient(135deg, #6C5CE7, #A29BFE)",
+              color: "#FFF", border: "none", borderRadius: 14,
+              padding: "16px 32px", fontSize: 16, fontWeight: 700, cursor: "pointer",
+              boxShadow: "0 8px 24px rgba(108,92,231,0.3)",
+              transition: "all 0.3s",
+            }}>{lang === "he" ? "הזמינו דמו של 15 דקות" : "Book a 15-min demo"}</button>
+            <button onClick={() => window.location.href = "#pricing"} style={{
+              background: "rgba(108,92,231,0.08)",
+              color: "#6C5CE7", border: "1.5px solid rgba(108,92,231,0.2)", borderRadius: 14,
+              padding: "16px 32px", fontSize: 16, fontWeight: 700, cursor: "pointer",
+              transition: "all 0.3s",
+            }}>{lang === "he" ? "התחילו 7 ימים חינם" : "Start 7-day free trial"}</button>
+          </div>
         </div>
       </section>
+
+      {/* ── Problem ── */}
+      {"problem" in t && (
+        <section style={{
+          padding: "80px 24px", background: "#F9F7FF", textAlign: "center",
+        }}>
+          <div style={{ maxWidth: 680, margin: "0 auto" }}>
+            <h2 style={{ fontSize: 32, fontWeight: 800, marginBottom: 32, color: "#2D2252" }}>
+              {(t as typeof T.he).problem.title}
+            </h2>
+            {(t as typeof T.he).problem.paragraphs.map((p, i) => (
+              <p key={i} style={{
+                fontSize: 16, color: "#7C6FD0", lineHeight: 1.8,
+                marginBottom: 20, textAlign: "right",
+              }}>{p}</p>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ── Features ── */}
       <section id="features" style={{
@@ -696,8 +758,13 @@ export default function Home() {
                     transition: "all 0.3s",
                     boxShadow: plan.popular ? "0 6px 20px rgba(108,92,231,0.25)" : "none",
                   }}>
-                    {t.pricing.cta}
+                    {"ctas" in t.pricing ? (t.pricing as typeof T.he.pricing).ctas[i] : "Get Started"}
                   </button>
+                  {i === 0 && (
+                    <p style={{ fontSize: 11, color: "#7C6FD0", marginTop: 8, marginBottom: 0 }}>
+                      {lang === "he" ? "ללא כרטיס אשראי" : "No credit card required"}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}
@@ -705,376 +772,49 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Connect Form ── */}
-      <section ref={formRef} id="start" style={{
-        padding: "80px 24px", background: "#FFFFFF", textAlign: "center",
-      }}>
-        <div style={{ maxWidth: 480, margin: "0 auto" }}>
-          <div style={{
-            background: "#FFFFFF", borderRadius: 22, padding: "36px 32px",
-            border: "1px solid rgba(108,92,231,0.1)",
-            textAlign: "right",
-          }} className="form-card">
-            {/* Data Source Tabs */}
-            <div className="form-tabs" style={{ display: "flex", gap: 6, marginBottom: 24, background: "rgba(108,92,231,0.04)", borderRadius: 14, padding: 4 }}>
-              {([
-                { id: "monday" as const, label: "Monday.com", icon: "M" },
-                { id: "sheets" as const, label: "Google Sheets", icon: "S" },
-                { id: "excel" as const, label: "Excel", icon: "X" },
-              ]).map(src => (
-                <button key={src.id} onClick={() => setDataSource(src.id)} style={{
-                  flex: 1, padding: "10px 8px", borderRadius: 10, border: "none", cursor: "pointer",
-                  background: dataSource === src.id ? "#6C5CE7" : "transparent",
-                  color: dataSource === src.id ? "#FFF" : "#7C6FD0",
-                  fontSize: 13, fontWeight: 700, transition: "all 0.2s",
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                }}>
-                  <span style={{
-                    width: 22, height: 22, borderRadius: 6,
-                    background: dataSource === src.id ? "rgba(255,255,255,0.2)" : "rgba(108,92,231,0.08)",
-                    display: "inline-flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 11, fontWeight: 800,
-                  }}>{src.icon}</span>
-                  {src.label}
-                </button>
+      {/* ── Security ── */}
+      {"security" in t && (
+        <section style={{
+          padding: "60px 24px", background: "#FFFFFF", textAlign: "center",
+        }}>
+          <div style={{ maxWidth: 900, margin: "0 auto" }}>
+            <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 40, color: "#2D2252" }}>
+              {(t as typeof T.he).security.title}
+            </h2>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 20 }}>
+              {(t as typeof T.he).security.items.map((item, i) => (
+                <div key={i} style={{ background: "#F9F7FF", borderRadius: 16, padding: "24px 16px", border: "1px solid rgba(108,92,231,0.1)" }}>
+                  <div style={{ fontSize: 32, marginBottom: 12 }}>
+                    {["lock", "flag", "block", "trash"][i] === "lock" ? String.fromCodePoint(0x1F510) :
+                     ["lock", "flag", "block", "trash"][i] === "flag" ? String.fromCodePoint(0x1F1EE, 0x1F1F1) :
+                     ["lock", "flag", "block", "trash"][i] === "block" ? String.fromCodePoint(0x1F6AB) :
+                     String.fromCodePoint(0x1F5D1)}
+                  </div>
+                  <h4 style={{ fontSize: 14, fontWeight: 700, color: "#2D2252", marginBottom: 6 }}>{item.label}</h4>
+                  <p style={{ fontSize: 12, color: "#7C6FD0", margin: 0, lineHeight: 1.5 }}>{item.desc}</p>
+                </div>
               ))}
             </div>
-
-            {/* Monday Form — Smart Board Picker */}
-            {dataSource === "monday" && <>
-              {!tokenConnected ? (
-                /* Step 1: Connect via OAuth */
-                <>
-                  <div style={{ textAlign: "center", marginBottom: 20 }}>
-                    <div style={{
-                      width: 56, height: 56, borderRadius: 14, margin: "0 auto 12px",
-                      background: "linear-gradient(135deg, #6C5CE7, #A29BFE)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 24, color: "#FFF", fontWeight: 800,
-                    }}>M</div>
-                    <h3 style={{ fontSize: 18, fontWeight: 700, color: "#2D2252", marginBottom: 4 }}>
-                      {lang === "he" ? "חברו את Monday.com שלכם" : "Connect your Monday.com"}
-                    </h3>
-                    <p style={{ fontSize: 13, color: "#7C6FD0", lineHeight: 1.6 }}>
-                      {lang === "he" ? "לחצו על הכפתור והרשו גישה - בלי להעתיק טוקנים" : "Click the button and authorize - no tokens to copy"}
-                    </p>
-                  </div>
-
-                  {error && (
-                    <div style={{
-                      background: "rgba(225,112,85,0.08)", border: "1px solid rgba(225,112,85,0.2)",
-                      borderRadius: 10, padding: "10px 14px", marginBottom: 14,
-                      color: "#E17055", fontSize: 13, textAlign: "center",
-                    }}>
-                      {error}
-                    </div>
-                  )}
-
-                  <a
-                    href="/api/monday-oauth/authorize"
-                    style={{
-                      display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                      width: "100%",
-                      background: "linear-gradient(135deg, #6C5CE7, #A29BFE)",
-                      color: "#FFF", border: "none", borderRadius: 12,
-                      padding: "15px", fontSize: 16, fontWeight: 700,
-                      cursor: "pointer", textDecoration: "none",
-                      boxShadow: "0 6px 20px rgba(108,92,231,0.25)",
-                    }}
-                  >
-                    {lang === "he" ? "התחברות ל-Monday.com" : "Connect to Monday.com"}
-                  </a>
-                </>
-              ) : (
-                /* Step 2: Connected — show board list */
-                <>
-                  <div style={{
-                    display: "flex", alignItems: "center", justifyContent: "space-between",
-                    marginBottom: 20, padding: "12px 16px",
-                    background: "rgba(0,210,91,0.06)", borderRadius: 12,
-                    border: "1px solid rgba(0,210,91,0.15)",
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{
-                        width: 10, height: 10, borderRadius: "50%", background: "#00D25B",
-                        boxShadow: "0 0 8px rgba(0,210,91,0.4)",
-                      }} />
-                      <span style={{ fontSize: 13, fontWeight: 700, color: "#2D2252" }}>
-                        {lang === "he" ? "מחובר ל-Monday.com" : "Connected to Monday.com"}
-                      </span>
-                    </div>
-                    <button onClick={handleDisconnect} style={{
-                      background: "none", border: "none", cursor: "pointer",
-                      fontSize: 12, color: "#E17055", fontWeight: 600,
-                    }}>
-                      {lang === "he" ? "התנתק" : "Disconnect"}
-                    </button>
-                  </div>
-
-                  {boardsList.length > 0 ? (
-                    <>
-                      <p style={{ fontSize: 14, fontWeight: 700, color: "#2D2252", marginBottom: 12 }}>
-                        {lang === "he" ? "בחרו בורד:" : "Choose a board:"}
-                      </p>
-                      <div style={{ maxHeight: 360, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
-                        {boardsList.map(b => (
-                          <button key={b.id} onClick={() => handleSelectBoard(b.id)} disabled={loading} style={{
-                            width: "100%", textAlign: "right", padding: "14px 16px",
-                            background: loading ? "rgba(108,92,231,0.04)" : "#F9F7FF",
-                            border: "1.5px solid rgba(108,92,231,0.12)",
-                            borderRadius: 12, cursor: loading ? "wait" : "pointer",
-                            transition: "all 0.2s",
-                            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
-                          }}
-                          onMouseEnter={e => { if (!loading) { e.currentTarget.style.borderColor = "#6C5CE7"; e.currentTarget.style.background = "rgba(108,92,231,0.06)"; } }}
-                          onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(108,92,231,0.12)"; e.currentTarget.style.background = "#F9F7FF"; }}
-                          >
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: 14, fontWeight: 700, color: "#2D2252", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                {b.name}
-                              </div>
-                              {b.description && (
-                                <div style={{ fontSize: 11, color: "#7C6FD0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                  {b.description}
-                                </div>
-                              )}
-                            </div>
-                            <div style={{
-                              background: "rgba(108,92,231,0.08)", borderRadius: 8,
-                              padding: "4px 10px", fontSize: 12, fontWeight: 700, color: "#6C5CE7",
-                              flexShrink: 0,
-                            }}>
-                              {b.items_count} {lang === "he" ? "פריטים" : "items"}
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  ) : (
-                    <div style={{ textAlign: "center", padding: "20px 0", color: "#7C6FD0", fontSize: 14 }}>
-                      {lang === "he" ? "לא נמצאו בורדים" : "No boards found"}
-                    </div>
-                  )}
-
-                  {loading && (
-                    <div style={{
-                      display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                      marginTop: 16, color: "#6C5CE7", fontSize: 14, fontWeight: 600,
-                    }}>
-                      <Spinner size={16} color="#6C5CE7" /> {lang === "he" ? "טוען את הבורד..." : "Loading board..."}
-                    </div>
-                  )}
-
-                  {error && (
-                    <div style={{
-                      background: "rgba(225,112,85,0.08)", border: "1px solid rgba(225,112,85,0.2)",
-                      borderRadius: 10, padding: "10px 14px", marginTop: 14,
-                      color: "#E17055", fontSize: 13, textAlign: "center",
-                    }}>
-                      {error}
-                    </div>
-                  )}
-                </>
-              )}
-            </>}
-
-            {/* Google Sheets Form */}
-            {dataSource === "sheets" && <>
-              <div style={{ textAlign: "center", padding: "20px 0" }}>
-                <div style={{
-                  width: 64, height: 64, borderRadius: 16, margin: "0 auto 16px",
-                  background: "linear-gradient(135deg, #34A853, #0F9D58)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 28, color: "#FFF", fontWeight: 800,
-                }}>S</div>
-                <h3 style={{ fontSize: 18, fontWeight: 700, color: "#2D2252", marginBottom: 8 }}>
-                  {lang === "he" ? "חברו את Google Sheets שלכם" : "Connect your Google Sheets"}
-                </h3>
-                <p style={{ fontSize: 13, color: "#7C6FD0", marginBottom: 20, lineHeight: 1.6 }}>
-                  {lang === "he" ? "הדביקו את הלינק של הגיליון שלכם ו-AnyDay ינתח אותו" : "Paste your sheet link and AnyDay will analyze it"}
-                </p>
-              </div>
-
-              <label style={{ fontWeight: 700, fontSize: 14, color: "#2D2252", marginBottom: 6, display: "block" }}>
-                {lang === "he" ? "לינק לגיליון" : "Sheet URL"}
-              </label>
-              <p style={{ color: "#A29BFE", fontSize: 12, margin: "0 0 10px" }}>
-                {lang === "he" ? "docs.google.com/spreadsheets/d/..." : "docs.google.com/spreadsheets/d/..."}
-              </p>
-              <input
-                type="url"
-                value={sheetsUrl}
-                onChange={(e) => setSheetsUrl(e.target.value)}
-                placeholder="https://docs.google.com/spreadsheets/d/..."
-                style={{
-                  width: "100%", background: "#F9F7FF",
-                  border: "1.5px solid rgba(108,92,231,0.15)",
-                  color: "#2D2252", borderRadius: 12,
-                  padding: "13px 16px", fontSize: 14,
-                  outline: "none", direction: "ltr",
-                  transition: "border-color 0.2s",
-                  marginBottom: 12,
-                }}
-                onFocus={e => e.target.style.borderColor = "#34A853"}
-                onBlur={e => e.target.style.borderColor = "rgba(108,92,231,0.15)"}
-              />
-
-              <div style={{
-                background: "rgba(52,168,83,0.06)", borderRadius: 12, padding: "14px 16px",
-                border: "1px solid rgba(52,168,83,0.15)", marginBottom: 16,
-              }}>
-                <p style={{ fontSize: 12, fontWeight: 700, color: "#2D2252", margin: "0 0 8px" }}>
-                  {lang === "he" ? "איך זה עובד?" : "How it works?"}
-                </p>
-                {(lang === "he" ? [
-                  "פתחו את הגיליון ב-Google Sheets",
-                  "לחצו Share ותוודאו שזה \"Anyone with link can view\"",
-                  "העתיקו את הלינק והדביקו כאן",
-                ] : [
-                  "Open your spreadsheet in Google Sheets",
-                  "Click Share and set to \"Anyone with link can view\"",
-                  "Copy the link and paste here",
-                ]).map((step, i) => (
-                  <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 4, fontSize: 12, color: "#2D2252" }}>
-                    <div style={{
-                      width: 20, height: 20, borderRadius: 6, background: "#34A853",
-                      color: "#FFF", fontSize: 11, fontWeight: 800,
-                      display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                    }}>{i + 1}</div>
-                    <span>{step}</span>
-                  </div>
-                ))}
-              </div>
-
-              <button
-                onClick={handleLoadSheets}
-                disabled={!sheetsUrl.trim() || loading}
-                style={{
-                  width: "100%", marginTop: 8,
-                  background: (!sheetsUrl.trim() || loading)
-                    ? "rgba(52,168,83,0.3)"
-                    : "linear-gradient(135deg, #34A853, #0F9D58)",
-                  color: "#FFF", border: "none", borderRadius: 12,
-                  padding: "15px", fontSize: 16, fontWeight: 700,
-                  cursor: (!sheetsUrl.trim() || loading) ? "not-allowed" : "pointer",
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                  boxShadow: (!sheetsUrl.trim() || loading) ? "none" : "0 6px 20px rgba(52,168,83,0.25)",
-                  transition: "all 0.3s",
-                }}
-              >
-                {loading ? (
-                  <><Spinner size={16} color="#FFF" /> {lang === "he" ? "טוען גיליון..." : "Loading sheet..."}</>
-                ) : (
-                  lang === "he" ? "התחילו - ניתוח הגיליון" : "Start - Analyze Sheet"
-                )}
-              </button>
-            </>}
-
-            {/* Excel Form */}
-            {dataSource === "excel" && <>
-              <div style={{ textAlign: "center", padding: "20px 0" }}>
-                <div style={{
-                  width: 64, height: 64, borderRadius: 16, margin: "0 auto 16px",
-                  background: "linear-gradient(135deg, #217346, #185C37)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 28, color: "#FFF", fontWeight: 800,
-                }}>X</div>
-                <h3 style={{ fontSize: 18, fontWeight: 700, color: "#2D2252", marginBottom: 8 }}>
-                  {lang === "he" ? "העלו קובץ Excel" : "Upload Excel File"}
-                </h3>
-                <p style={{ fontSize: 13, color: "#7C6FD0", marginBottom: 20, lineHeight: 1.6 }}>
-                  {lang === "he" ? "גררו קובץ .xlsx או .csv ו-AnyDay ינתח אותו" : "Drag an .xlsx or .csv file and AnyDay will analyze it"}
-                </p>
-              </div>
-
-              <div style={{
-                border: "2px dashed rgba(33,115,70,0.3)",
-                borderRadius: 16, padding: "40px 20px",
-                textAlign: "center", marginBottom: 16,
-                background: "rgba(33,115,70,0.03)",
-              }}>
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#217346" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 12 }}>
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="17 8 12 3 7 8" />
-                  <line x1="12" y1="3" x2="12" y2="15" />
-                </svg>
-                <p style={{ fontSize: 14, fontWeight: 600, color: "#217346", marginBottom: 4 }}>
-                  {lang === "he" ? "גררו קובץ לכאן" : "Drag file here"}
-                </p>
-                <p style={{ fontSize: 12, color: "#7C6FD0" }}>
-                  .xlsx, .xls, .csv
-                </p>
-              </div>
-
-              <button
-                disabled={true}
-                style={{
-                  width: "100%",
-                  background: "linear-gradient(135deg, #217346, #185C37)",
-                  color: "#FFF", border: "none", borderRadius: 12,
-                  padding: "15px", fontSize: 16, fontWeight: 700,
-                  cursor: "not-allowed", opacity: 0.5,
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                }}
-              >
-                {lang === "he" ? "בקרוב - ניתוח Excel" : "Coming Soon - Excel Analysis"}
-              </button>
-            </>}
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* Security */}
-      <section style={{
-        padding: "60px 24px", background: "#FFFFFF", textAlign: "center",
-      }}>
-        <div style={{ maxWidth: 900, margin: "0 auto" }}>
-          <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 40, color: "#2D2252" }}>
-            {lang === "he" ? "הנתונים שלכם נשארים שלכם." : "Your data stays yours."}
-          </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 20 }}>
-            {[
-              { icon: String.fromCodePoint(0x1F510), title: lang === "he" ? "הצפנה מקצה לקצה" : "End-to-end encryption", desc: "AES-256" },
-              { icon: String.fromCodePoint(0x1F1EE, 0x1F1F1), title: lang === "he" ? "שרתים בארץ" : "Local servers", desc: lang === "he" ? "לא יוצא מישראל" : "Never leaves Israel" },
-              { icon: String.fromCodePoint(0x1F6AB), title: lang === "he" ? "בלי אימון מודלים" : "No model training", desc: lang === "he" ? "הנתונים לא מאמנים אף מודל" : "Never trains any model" },
-              { icon: String.fromCodePoint(0x1F5D1), title: lang === "he" ? "מחיקה בלחיצה" : "Delete anytime", desc: lang === "he" ? "בכל רגע, ללא שאלות" : "No questions asked" },
-            ].map((item, i) => (
-              <div key={i} style={{ background: "#F9F7FF", borderRadius: 16, padding: "24px 16px", border: "1px solid rgba(108,92,231,0.1)" }}>
-                <div style={{ fontSize: 32, marginBottom: 12 }}>{item.icon}</div>
-                <h4 style={{ fontSize: 14, fontWeight: 700, color: "#2D2252", marginBottom: 6 }}>{item.title}</h4>
-                <p style={{ fontSize: 12, color: "#7C6FD0", margin: 0, lineHeight: 1.5 }}>{item.desc}</p>
+      {/* ── FAQ ── */}
+      {"faq" in t && (
+        <section style={{ padding: "60px 24px", background: "#F9F7FF", textAlign: "right" }}>
+          <div style={{ maxWidth: 700, margin: "0 auto" }}>
+            <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 32, color: "#2D2252", textAlign: "center" }}>
+              {(t as typeof T.he).faq.title}
+            </h2>
+            {(t as typeof T.he).faq.items.map((faq, i) => (
+              <div key={i} style={{ background: "#FFFFFF", borderRadius: 14, padding: "20px 24px", marginBottom: 12, border: "1px solid rgba(108,92,231,0.1)" }}>
+                <h4 style={{ fontSize: 15, fontWeight: 700, color: "#2D2252", marginBottom: 8 }}>{faq.q}</h4>
+                <p style={{ fontSize: 13, color: "#7C6FD0", margin: 0, lineHeight: 1.7 }}>{faq.a}</p>
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* FAQ */}
-      <section style={{ padding: "60px 24px", background: "#F9F7FF", textAlign: "right" }}>
-        <div style={{ maxWidth: 700, margin: "0 auto" }}>
-          <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 32, color: "#2D2252", textAlign: "center" }}>
-            {lang === "he" ? "שאלות שכל מנהלת שואלת" : "Frequently Asked Questions"}
-          </h2>
-          {(lang === "he" ? [
-            { q: "למה לא פשוט Monday AI או ChatGPT?", a: "Monday AI מוגבל לבורד אחד ולא מבין עברית עסקית. ChatGPT לא מחובר לנתונים. AnyDay מחבר את כל המקורות ומבצע פעולות אמיתיות." },
-            { q: "האם זה מחליף את הצוות שלי?", a: "לא. זה מחליף את הזמן שהצוות מבזבז על איסוף נתונים והכנת דוחות." },
-            { q: "מה אם אני לא מרוצה?", a: "7 ימי ניסיון חינם, ללא כרטיס. ביטול בלחיצה, ללא קנסות." },
-            { q: "האם זה באמת עובד בעברית?", a: "כן. AnyDay נבנה בעברית מהיום הראשון. מבין סלנג, ראשי תיבות, ואת ההבדל בין סגור לבוצע." },
-            { q: "כמה זמן לוקחת ההטמעה?", a: "שתי דקות לחיבור. שעה לערך ראשון. שבוע לשינוי שיגרה." },
-          ] : [
-            { q: "Why not just use Monday AI or ChatGPT?", a: "Monday AI is limited to one board. ChatGPT is not connected. AnyDay connects all sources and executes real actions." },
-            { q: "Does it replace my team?", a: "No. It frees your team from data collection and report preparation." },
-            { q: "What if I am not satisfied?", a: "7-day free trial, no credit card. Cancel anytime." },
-            { q: "Does it really work in Hebrew?", a: "Yes. Built in Hebrew from day one." },
-            { q: "How long does setup take?", a: "Two minutes to connect. One hour to see first value." },
-          ]).map((faq, i) => (
-            <div key={i} style={{ background: "#FFFFFF", borderRadius: 14, padding: "20px 24px", marginBottom: 12, border: "1px solid rgba(108,92,231,0.1)" }}>
-              <h4 style={{ fontSize: 15, fontWeight: 700, color: "#2D2252", marginBottom: 8 }}>{faq.q}</h4>
-              <p style={{ fontSize: 13, color: "#7C6FD0", margin: 0, lineHeight: 1.7 }}>{faq.a}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ── Final CTA ── */}
       <section style={{
@@ -1082,25 +822,37 @@ export default function Home() {
       }}>
         <div style={{ maxWidth: 560, margin: "0 auto" }}>
           <h2 style={{ fontSize: 26, fontWeight: 800, color: "#2D2252", marginBottom: 12, lineHeight: 1.4 }}>
-            {lang === "he" ? "הישיבה הבאה בעוד שבוע." : "Your next meeting is in a week."}
+            {t.contact.title}
           </h2>
           <p style={{ fontSize: 16, color: "#7C6FD0", marginBottom: 28, lineHeight: 1.7 }}>
-            {lang === "he" ? "מה תעדיפו — לילה ארוך עם Excel, או דוח שמוכן בעוד דקה?" : "Would you prefer a long night with Excel, or a report ready in a minute?"}
+            {t.contact.sub}
           </p>
           <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-            <button onClick={() => formRef.current?.scrollIntoView({ behavior: "smooth" })} style={{
+            <button onClick={scrollToForm} style={{
               background: "linear-gradient(135deg, #6C5CE7, #A29BFE)",
               color: "#FFF", border: "none", borderRadius: 14,
               padding: "14px 36px", fontSize: 16, fontWeight: 700,
               cursor: "pointer", boxShadow: "0 6px 20px rgba(108,92,231,0.25)",
               transition: "all 0.3s ease",
             }}>
-              {lang === "he" ? "התחילו 7 ימים חינם" : "Start 7-day free trial"}
+              {t.contact.cta}
             </button>
+            {"cta2" in t.contact && (
+              <button onClick={() => window.location.href = "#pricing"} style={{
+                background: "rgba(108,92,231,0.08)",
+                color: "#6C5CE7", border: "1.5px solid rgba(108,92,231,0.2)", borderRadius: 14,
+                padding: "14px 36px", fontSize: 16, fontWeight: 700,
+                cursor: "pointer", transition: "all 0.3s",
+              }}>
+                {(t.contact as typeof T.he.contact).cta2}
+              </button>
+            )}
           </div>
-          <p style={{ fontSize: 13, color: "#A29BFE", marginTop: 16 }}>
-            {lang === "he" ? "ללא כרטיס אשראי. ללא חוזה. ביטול בלחיצה." : "No credit card. No contract. Cancel anytime."}
-          </p>
+          {"note" in t.contact && (
+            <p style={{ fontSize: 13, color: "#A29BFE", marginTop: 16 }}>
+              {(t.contact as typeof T.he.contact).note}
+            </p>
+          )}
         </div>
       </section>
 
