@@ -574,6 +574,12 @@ export default function Home() {
               transition: "all 0.3s",
             }}>{lang === "he" ? "התחילו 7 ימים חינם" : "Start 7-day free trial"}</button>
           </div>
+          <div style={{ marginTop: 16, textAlign: "center" }}>
+            <a href="/health-check" style={{
+              color: "#6C5CE7", fontSize: 14, fontWeight: 600, textDecoration: "none",
+              borderBottom: "1px dashed rgba(108,92,231,0.4)", paddingBottom: 2,
+            }}>{lang === "he" ? "\uD83E\uDE7A בדקו את ה-Monday שלכם" : "\uD83E\uDE7A Check your Monday health"}</a>
+          </div>
         </div>
       </section>
 
