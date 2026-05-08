@@ -117,17 +117,17 @@ export default function Home() {
 
         <div className="hero__inner">
           <div className="hero__text">
-            <p className="hero__over reveal-up">The Monday.com AI Layer</p>
+            <p className="hero__over reveal-up">הסוכן האישי שלך ב-Monday.com</p>
             <h1 className="hero__h1">
-              <span className="reveal-up" style={{animationDelay:".1s"}}>דוח לדירקטוריון?</span>
-              <span className="hero__accent reveal-up" style={{animationDelay:".2s"}}>עוד דקה ויש לך.</span>
+              <span className="reveal-up" style={{animationDelay:".1s"}}>צריך משהו במאנדיי?</span>
+              <span className="hero__accent reveal-up" style={{animationDelay:".2s"}}>תבקש. AnyDay תעשה.</span>
             </h1>
             <p className="hero__sub reveal-up" style={{animationDelay:".35s"}}>
-              AnyDay מחבר בורדים, גיליונות ואקסלים — ומחזיר דוחות, תובנות והתראות חכמות. בעברית. בלי טכנולוג.
+              דוח? שאלה? בנייה של בורד? התראה כשמשהו תקוע? פשוט תגידו מה אתם צריכים — בעברית, בשאלה אחת — ו-AnyDay עושה. בלי מטמיע. בלי מפתח. בלי לחכות לאף אחד.
             </p>
             <div className="hero__btns reveal-up" style={{animationDelay:".5s"}}>
-              <button onClick={scrollToDemo} className="btn btn--lime">הזמינו דמו</button>
-              <a href="/workspace" className="btn btn--outline">התחילו בחינם</a>
+              <button onClick={scrollToDemo} className="btn btn--lime">תראו לי מה היא עושה →</button>
+              <a href="/workspace" className="btn btn--outline">להתחיל בחינם</a>
             </div>
           </div>
 
@@ -140,10 +140,10 @@ export default function Home() {
               </div>
               <div className="dash__body">
                 <div className="dash__chat">
-                  <div className="chat-q">כמה לקוחות חתמו ברבעון?</div>
+                  <div className="chat-q">מה המצב עם הרבעון?</div>
                   <div className="chat-a">
                     <span className="chat-a__tag">AnyDay</span>
-                    ברבעון הנוכחי נחתמו <strong>47 לקוחות חדשים</strong> — עלייה של 23% לעומת הרבעון הקודם.
+                    סגרתם <strong>47 עסקאות חדשות</strong> — 23% יותר מרבעון קודם. 3 עסקאות תקועות מעל שבועיים.
                     <div className="chat-a__bar">
                       <div className="chat-a__fill" />
                     </div>
@@ -175,10 +175,10 @@ export default function Home() {
       {/* ─── STATS RIBBON ─── */}
       <section className="stats">
         {[
-          { num: 47, suffix: "+", label: "לקוחות ברבעון" },
-          { num: 89, suffix: "%", label: "אחוז ביצוע" },
-          { num: 2, suffix: " דק'", label: "זמן הטמעה" },
-          { num: 14, suffix: "+", label: "בורדים מחוברים" },
+          { num: 0, suffix: "", label: "מטמיעים נדרשים" },
+          { num: 2, suffix: " דק׳", label: "מבקשה לתוצאה" },
+          { num: 24, suffix: "/7", label: "סוכן שלא הולך הביתה" },
+          { num: 100, suffix: "%", label: "עברית טבעית" },
         ].map((s, i) => (
           <div key={i} className="stat" data-reveal>
             <div className="stat__num">
@@ -192,29 +192,29 @@ export default function Home() {
       {/* ─── FEATURES ─── */}
       <section id="features" className="features">
         <div className="features__header" data-reveal>
-          <span className="tag">יכולות</span>
+          <span className="tag">מה זה עושה</span>
           <h2 className="big-title">לא עוד<br/>דשבורד.</h2>
         </div>
 
         {[
           {
-            title: "שואלים בעברית.\nמקבלים תשובה.",
-            desc: "\"כמה לקוחות חתמו ברבעון?\" תשובה מיידית, עם הנתונים, עם המקור. כמו אנליסט שזמין 24/7.",
+            title: "שאלת בעברית.\nקיבלת תשובה.",
+            desc: "\"כמה עסקאות נסגרו ברבעון?\" — תשובה תוך שנייה, עם המקור, עם הגרף. בלי לפתוח בורד אחד.",
             visual: "chat",
           },
           {
-            title: "דוחות ודשבורד\nבלחיצה.",
-            desc: "דוח PDF לדירקטוריון, דשבורד אימפקט עם גרפים, סיכום רבעוני — מוכן לישיבה תוך דקה.",
+            title: "דוח לישיבה?\nדקה.",
+            desc: "PDF לדירקטוריון, דשבורד עם גרפים, סיכום רבעוני. מה שלקח לצוות שלך חצי יום — מוכן לפני הקפה.",
             visual: "report",
           },
           {
-            title: "מתריעה לפני\nשמאוחר.",
-            desc: "לקוחה שלא הגיבה 14 יום. פרויקט שזז 3 פעמים. AnyDay מזהה ושולח לפני שהבעיה מתפוצצת.",
+            title: "יודעת שיש בעיה\nלפני שאתם.",
+            desc: "לקוח לא הגיב 14 יום? פרויקט נדחה שלוש פעמים? AnyDay שולחת התראה לפני שמישהו שואל \"מה קרה שם?\"",
             visual: "alert",
           },
           {
-            title: "בונה מערכות\nשלמות.",
-            desc: "\"תבני לי CRM\" — נבנה. \"תעלי אקסל\" — מועלה ומתמפה לבורד חדש. שיחה אחת.",
+            title: "אמרת \"תבני לי CRM\".\nהיא בנתה.",
+            desc: "העלאת אקסל, מיפוי לבורד, בניית מערכת — בשיחה אחת. בלי מפתח, בלי IT, בלי \"נחזור אליך\".",
             visual: "build",
           },
         ].map((f, i) => (
@@ -265,16 +265,16 @@ export default function Home() {
       {/* ─── HOW ─── */}
       <section id="how" className="how">
         <div className="how__header" data-reveal>
-          <span className="tag tag--dark">תהליך</span>
-          <h2 className="big-title big-title--light">שלושה צעדים.<br/>שתי דקות.<br/>בלי IT.</h2>
+          <span className="tag tag--dark">איך זה עובד</span>
+          <h2 className="big-title big-title--light">שתי דקות.<br/>אפס IT.<br/>ואתם בפנים.</h2>
         </div>
 
         <div className="timeline">
           <div className="timeline__line" />
           {[
-            { num: "01", title: "חברו את המקור", desc: "Monday, Google Sheets או Excel. OAuth בלחיצה אחת.", color: "var(--lime)" },
-            { num: "02", title: "AnyDay קורא", desc: "מבין מבנה, מזהה עמודות, מחבר בורדים.", color: "var(--orange)" },
-            { num: "03", title: "שאלו. קבלו. תפעלו.", desc: "בעברית. כמו אנליסט — רק מהיר יותר.", color: "var(--cyan)" },
+            { num: "01", title: "חברו את Monday", desc: "לחיצה אחת. אין מה להתקין, אין מה להגדיר.", color: "var(--lime)" },
+            { num: "02", title: "AnyDay לומדת את המבנה", desc: "בורדים, עמודות, קשרים — הכל נקרא אוטומטית.", color: "var(--orange)" },
+            { num: "03", title: "שאלו מה שבא לכם", desc: "בעברית פשוטה. כאילו שלחתם הודעה לאנליסט שזמין תמיד.", color: "var(--cyan)" },
           ].map((s, i) => (
             <div key={i} className="tl-step" data-reveal>
               <div className="tl-step__dot" style={{background: s.color}} />
@@ -290,15 +290,15 @@ export default function Home() {
       <section id="pricing" className="pricing">
         <div className="pricing__header" data-reveal>
           <span className="tag">מחירים</span>
-          <h2 className="big-title">תוכנית לכל שלב.</h2>
+          <h2 className="big-title">בחרו את הגודל שלכם.</h2>
         </div>
 
         <div className="plans">
           {[
-            { name: "בודקים", price: "250", items: ["צ'אט AI בעברית","100 שאלות/חודש","חיבור בורד אחד"], cta: "7 ימים חינם", badge: "FREE TRIAL" },
-            { name: "לידרים", price: "450", items: ["דוחות PDF","התראות חכמות","500 שאלות/חודש"], cta: "הזמינו דמו" },
-            { name: "דירקטורים", price: "750", items: ["אוטומציות","דשבורד אימפקט","2,000 שאלות/חודש","בורדים ללא הגבלה"], cta: "הזמינו דמו", pop: true },
-            { name: "ארגון", price: "1,200", items: ["White Label","SSO + API","תמיכה ייעודית"], cta: "דברו איתנו" },
+            { name: "סטארטר", price: "250", items: ["צ׳אט AI בעברית","100 שאלות בחודש","בורד אחד"], cta: "7 ימים חינם →", badge: "לנסות" },
+            { name: "צוות", price: "450", items: ["דוחות PDF מוכנים","התראות חכמות","500 שאלות בחודש"], cta: "תראו לי דמו →" },
+            { name: "מנהלים", price: "750", items: ["אוטומציות מלאות","דשבורד אימפקט","2,000 שאלות בחודש","בורדים ללא הגבלה"], cta: "תראו לי דמו →", pop: true },
+            { name: "ארגון", price: "1,200", items: ["White Label","SSO + API","תמיכה ייעודית","SLA מותאם"], cta: "בואו נדבר →" },
           ].map((p, i) => (
             <div key={i} className={`plan ${p.pop ? "plan--pop" : ""}`} data-reveal>
               {(p.pop || p.badge) && <div className="plan__badge">{p.pop ? "פופולרי" : p.badge}</div>}
@@ -320,10 +320,10 @@ export default function Home() {
       <section className="trust" data-reveal>
         <div className="trust__inner">
           {[
-            ["🔐","הצפנה AES-256"],["🇮🇱","שרתים בארץ"],["🚫","בלי אימון מודלים"],["🗑️","מחיקה בלחיצה"],
-          ].map(([icon,label],i) => (
+            "הצפנה AES-256","שרתים בישראל","לא מאמנים על הנתונים שלכם","מחיקה מלאה בלחיצה",
+          ].map((label,i) => (
             <div key={i} className="trust__item">
-              <span>{icon}</span><span>{label}</span>
+              <span className="trust__check">✓</span><span>{label}</span>
             </div>
           ))}
         </div>
@@ -333,14 +333,15 @@ export default function Home() {
       <section className="faq-section">
         <div className="faq-section__header" data-reveal>
           <span className="tag">שאלות</span>
-          <h2 className="big-title">שאלתם? ענינו.</h2>
+          <h2 className="big-title">שאלות שכולם שואלים.</h2>
         </div>
         <div className="faq-list">
           {[
-            { q: "למה לא Monday AI או ChatGPT?", a: "Monday AI מוגבל לבורד אחד. ChatGPT לא מחובר לנתונים. AnyDay מחבר הכל, מבין עברית, ומבצע פעולות אמיתיות." },
-            { q: "האם זה מחליף את הצוות?", a: "לא. זה משחרר את הצוות מאיסוף נתונים — לעבודה אסטרטגית." },
-            { q: "כמה זמן לוקחת ההטמעה?", a: "שתי דקות לחיבור. שעה לראיית ערך. שבוע לשינוי שיגרת עבודה." },
-            { q: "מה אם אני לא מרוצה?", a: "7 ימי ניסיון חינם. ביטול בלחיצה. ללא חוזים." },
+            { q: "רגע, למה לא פשוט Monday AI או ChatGPT?", a: "Monday AI רואה בורד אחד בכל פעם. ChatGPT לא מחובר לנתונים שלכם. AnyDay מחברת את כל הבורדים, מבינה עברית, ובאמת עושה דברים — לא רק מדברת." },
+            { q: "זה מחליף לי את האנליסט?", a: "לא. זה משחרר את האנליסט (ואתכם) מלשבת שעתיים על אקסל לפני כל ישיבה. הזמן הזה חוזר לעבודה אסטרטגית." },
+            { q: "כמה זמן עד שזה עובד?", a: "שתי דקות לחיבור. שעה לתשובה הראשונה שתפתיע אתכם. שבוע עד שתשכחו איך עבדתם לפני." },
+            { q: "ואם לא מתאים?", a: "7 ימי ניסיון חינם. ביטול בלחיצה. בלי חוזה, בלי שיחת retension, בלי \"אבל רגע\"." },
+            { q: "הנתונים שלי בטוחים?", a: "הצפנה AES-256, שרתים בישראל, אנחנו לא מאמנים מודלים על הנתונים שלכם. ואפשר למחוק הכל בלחיצה אחת." },
           ].map((faq, i) => (
             <div key={i} className={`faq ${openFaq === i ? "faq--open" : ""}`} data-reveal
               onClick={() => setOpenFaq(openFaq === i ? null : i)}>
@@ -359,11 +360,11 @@ export default function Home() {
         <div className="final__bg" />
         <div className="final__content" data-reveal>
           <h2 className="final__title">
-            הישיבה הבאה<br/>בעוד שבוע.
+            הצוות שלכם<br/>עובד קשה מדי<br/>על הדבר הלא נכון.
           </h2>
-          <p className="final__accent">הדוח מוכן בעוד דקה.</p>
+          <p className="final__accent">תנו ל-AnyDay לעשות את האיסוף. אתם תעשו את ההחלטות.</p>
           <p className="final__sub">ללא כרטיס אשראי · ללא חוזה · ביטול בלחיצה</p>
-          <button onClick={scrollToDemo} className="btn btn--lime btn--xl">הזמינו דמו →</button>
+          <button onClick={scrollToDemo} className="btn btn--lime btn--xl">רוצים לראות? תזמינו דמו →</button>
         </div>
       </section>
 

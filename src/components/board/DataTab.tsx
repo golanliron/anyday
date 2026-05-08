@@ -60,15 +60,15 @@ export function DataTab({ board, items, loading }: { board: MondayBoard; items: 
                 <AreaChart data={dateTimeline} margin={{ right: 10, left: -20 }}>
                   <defs>
                     <linearGradient id="colorArea" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#0035FF" stopOpacity={0.2} />
-                      <stop offset="95%" stopColor="#0035FF" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#D4FF2B" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="#D4FF2B" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="name" tick={{ fill: "var(--color-muted)", fontSize: 11 }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fill: "var(--color-muted)", fontSize: 11 }} axisLine={false} tickLine={false} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Area type="monotone" dataKey="value" name="פריטים" stroke="#0035FF" strokeWidth={2} fill="url(#colorArea)" />
+                  <Area type="monotone" dataKey="value" name="פריטים" stroke="#D4FF2B" strokeWidth={2} fill="url(#colorArea)" />
                 </AreaChart>
               </ResponsiveContainer>
             </GlassCard>

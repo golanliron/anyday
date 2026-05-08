@@ -123,7 +123,7 @@ export default function WorkspacePage() {
         }
         .ws-board-card:hover {
           border-color: var(--color-accent) !important;
-          box-shadow: 0 4px 20px rgba(0,53,255,0.12) !important;
+          box-shadow: 0 4px 20px rgba(212,255,43,0.12) !important;
           transform: translateY(-2px);
         }
         .ws-board-card { transition: all 0.2s ease; cursor: pointer; }
@@ -195,7 +195,7 @@ export default function WorkspacePage() {
                 background: "var(--color-accent)", color: "#fff",
                 fontSize: 17, fontWeight: 700, cursor: "pointer",
                 fontFamily: "var(--font-dm)",
-                boxShadow: "0 4px 16px rgba(0,53,255,0.25)",
+                boxShadow: "0 4px 16px rgba(212,255,43,0.15)",
                 display: "inline-flex", alignItems: "center", gap: 10,
               }}
             >
@@ -282,26 +282,26 @@ export default function WorkspacePage() {
             <div
               onClick={() => setShowBuilder(true)}
               style={{
-                background: "#0035FF",
+                background: "var(--color-surf)",
                 borderRadius: 16, padding: "24px 28px", marginBottom: 20,
                 cursor: "pointer", transition: "transform 0.2s, box-shadow 0.2s",
-                boxShadow: "0 4px 20px rgba(0,53,255,0.25)",
+                boxShadow: "0 4px 20px rgba(212,255,43,0.1)",
                 display: "flex", alignItems: "center", gap: 16,
-                border: "none",
+                border: "1px solid var(--color-accent)",
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 30px rgba(0,53,255,0.4), 0 0 40px rgba(255,239,0,0.15)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,53,255,0.25)"; }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 30px rgba(212,255,43,0.2)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 20px rgba(212,255,43,0.1)"; }}
             >
               <div style={{
                 width: 48, height: 48, borderRadius: 50,
-                background: "#FFEF00", display: "flex",
+                background: "var(--color-accent)", display: "flex",
                 alignItems: "center", justifyContent: "center",
-                fontSize: 22, flexShrink: 0, color: "#0035FF", fontWeight: 900,
+                fontSize: 22, flexShrink: 0, color: "var(--color-bg)", fontWeight: 900,
               }}>
                 A
               </div>
               <div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: "#FFEF00", marginBottom: 4 }}>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "var(--color-accent)", marginBottom: 4 }}>
                   {"\u05D1\u05E0\u05D5 \u05DE\u05E2\u05E8\u05DB\u05EA \u05D7\u05D3\u05E9\u05D4 \u05E2\u05DD AI"}
                 </div>
                 <div style={{ fontSize: 13, color: "rgba(255,255,255,0.85)", lineHeight: 1.5 }}>

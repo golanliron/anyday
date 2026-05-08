@@ -18,7 +18,7 @@ class PanelErrorBoundary extends Component<{ children: ReactNode; onReset?: () =
           <p style={{ fontWeight: 700, color: "#E17055", marginBottom: 8 }}>משהו השתבש בטעינת הפאנל</p>
           <p style={{ fontSize: 12, color: "#666", marginBottom: 4 }}>{this.state.error.message}</p>
           <p style={{ fontSize: 10, color: "#999", marginBottom: 16, direction: "ltr", maxHeight: 60, overflow: "auto" }}>{this.state.error.stack?.split("\n").slice(0, 3).join("\n")}</p>
-          <button onClick={() => { this.setState({ error: null }); this.props.onReset?.(); }} style={{ background: "#0035FF", color: "#FFF", border: "none", borderRadius: 8, padding: "8px 20px", cursor: "pointer", fontSize: 13 }}>חזרה</button>
+          <button onClick={() => { this.setState({ error: null }); this.props.onReset?.(); }} style={{ background: "var(--color-accent)", color: "var(--color-bg)", border: "none", borderRadius: 8, padding: "8px 20px", cursor: "pointer", fontSize: 13 }}>חזרה</button>
         </div>
       );
     }
@@ -48,7 +48,7 @@ interface BrandConfig {
   colors: [string, string, string, string]; // ראשי, משני, שלישי, רביעי
 }
 
-const BAR_COLORS = ["#0035FF", "#FFEF00", "#00B894", "#FDCB6E", "#E17055", "#0984E3", "#FD79A8", "#55EFC4"];
+const BAR_COLORS = ["#D4FF2B", "#22D3EE", "#2ED573", "#FFA502", "#FF6B35", "#FF4757", "#A78BFA", "#34D399"];
 
 function hexToRgba(hex: string, alpha: number): string {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -67,7 +67,7 @@ function extractColorsFromImage(imgSrc: string): Promise<[string, string, string
       canvas.width = size;
       canvas.height = size;
       const ctx = canvas.getContext("2d");
-      if (!ctx) { resolve(["#0035FF", "#FFEF00", "#00B894", "#FDCB6E"]); return; }
+      if (!ctx) { resolve(["#D4FF2B", "#22D3EE", "#2ED573", "#FFA502"]); return; }
       ctx.drawImage(img, 0, 0, size, size);
       const data = ctx.getImageData(0, 0, size, size).data;
       // Collect non-white, non-black pixels
@@ -79,7 +79,7 @@ function extractColorsFromImage(imgSrc: string): Promise<[string, string, string
         if (brightness > 240 || brightness < 15) continue; // skip near-white/black
         pixels.push([r, g, b]);
       }
-      if (pixels.length < 10) { resolve(["#0035FF", "#FFEF00", "#00B894", "#FDCB6E"]); return; }
+      if (pixels.length < 10) { resolve(["#D4FF2B", "#22D3EE", "#2ED573", "#FFA502"]); return; }
       // Simple k-means with 4 clusters
       const clusters: [number, number, number][] = [
         pixels[0],
@@ -116,7 +116,7 @@ function extractColorsFromImage(imgSrc: string): Promise<[string, string, string
         "#" + c.map(v => v.toString(16).padStart(2, "0")).join("");
       resolve([toHex(clusters[0]), toHex(clusters[1]), toHex(clusters[2]), toHex(clusters[3])]);
     };
-    img.onerror = () => resolve(["#0035FF", "#FFEF00", "#00B894", "#FDCB6E"]);
+    img.onerror = () => resolve(["#D4FF2B", "#22D3EE", "#2ED573", "#FFA502"]);
     img.src = imgSrc;
   });
 }
@@ -151,14 +151,14 @@ function FormattedText({ text }: { text: string }) {
 
     // Horizontal rule
     if (/^-{3,}$/.test(trimmed) || /^\*{3,}$/.test(trimmed)) {
-      elements.push(<div key={i} style={{ height: 1, background: "var(--brand-pc, #0035FF)", opacity: 0.15, margin: "12px 0" }} />);
+      elements.push(<div key={i} style={{ height: 1, background: "var(--brand-pc, #D4FF2B)", opacity: 0.15, margin: "12px 0" }} />);
       i++; continue;
     }
 
     // Headers ## and ###
     if (trimmed.startsWith("### ")) {
       elements.push(
-        <div key={i} style={{ fontSize: 14, fontWeight: 700, color: "var(--brand-pc, #0035FF)", marginTop: 14, marginBottom: 6 }}>
+        <div key={i} style={{ fontSize: 14, fontWeight: 700, color: "var(--brand-pc, #D4FF2B)", marginTop: 14, marginBottom: 6 }}>
           {renderInline(trimmed.slice(4))}
         </div>
       );
@@ -167,8 +167,8 @@ function FormattedText({ text }: { text: string }) {
     if (trimmed.startsWith("## ")) {
       elements.push(
         <div key={i} style={{
-          fontSize: 16, fontWeight: 800, color: "#0035FF", marginTop: 16, marginBottom: 8,
-          paddingBottom: 6, borderBottom: "2px solid var(--brand-pc, #0035FF)", opacity: 0.8,
+          fontSize: 16, fontWeight: 800, color: "var(--color-text)", marginTop: 16, marginBottom: 8,
+          paddingBottom: 6, borderBottom: "2px solid var(--brand-pc, #D4FF2B)", opacity: 0.8,
         }}>
           {renderInline(trimmed.slice(3))}
         </div>
@@ -177,7 +177,7 @@ function FormattedText({ text }: { text: string }) {
     }
     if (trimmed.startsWith("# ")) {
       elements.push(
-        <div key={i} style={{ fontSize: 18, fontWeight: 800, color: "#0035FF", marginTop: 16, marginBottom: 10 }}>
+        <div key={i} style={{ fontSize: 18, fontWeight: 800, color: "var(--color-text)", marginTop: 16, marginBottom: 10 }}>
           {renderInline(trimmed.slice(2))}
         </div>
       );
@@ -214,11 +214,11 @@ function FormattedText({ text }: { text: string }) {
 
           elements.push(
             <div key={`table-${tableLines[0]}`} style={{
-              background: "#F8F9FF", borderRadius: 14,
+              background: "var(--color-surf)", borderRadius: 14,
               padding: "14px 16px", margin: "10px 0",
               border: "1px solid #E8E4F7",
             }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#0035FF", marginBottom: 10 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--color-text)", marginBottom: 10 }}>
                 {header[0]} / {header[1]}
               </div>
               {dataRows.map((row, ri) => {
@@ -226,8 +226,8 @@ function FormattedText({ text }: { text: string }) {
                 return (
                   <div key={ri} style={{ marginBottom: 8 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
-                      <span style={{ color: "#0035FF", fontWeight: 500 }}>{row.label}</span>
-                      <span style={{ color: "rgba(0,53,255,0.5)", fontWeight: 600 }}>{row.raw}</span>
+                      <span style={{ color: "var(--color-text)", fontWeight: 500 }}>{row.label}</span>
+                      <span style={{ color: "rgba(240,237,230,0.4)", fontWeight: 600 }}>{row.raw}</span>
                     </div>
                     <div style={{ height: 8, borderRadius: 4, background: "#E8E4F7", overflow: "hidden" }}>
                       <div style={{
@@ -256,7 +256,7 @@ function FormattedText({ text }: { text: string }) {
                     {header.map((h, hi) => (
                       <th key={hi} style={{
                         padding: "10px 12px", textAlign: "right",
-                        fontWeight: 700, color: "#0035FF",
+                        fontWeight: 700, color: "var(--color-text)",
                         borderBottom: "2px solid #E0DCF0",
                       }}>{renderInline(h)}</th>
                     ))}
@@ -270,7 +270,7 @@ function FormattedText({ text }: { text: string }) {
                       {row.map((cell, ci) => (
                         <td key={ci} style={{
                           padding: "8px 12px", textAlign: "right",
-                          color: "#0035FF", borderBottom: "1px solid rgba(0,53,255,0.08)",
+                          color: "var(--color-text)", borderBottom: "1px solid rgba(212,255,43,0.06)",
                         }}>{renderInline(cell)}</td>
                       ))}
                     </tr>
@@ -289,7 +289,7 @@ function FormattedText({ text }: { text: string }) {
     if (numMatch) {
       elements.push(
         <div key={i} style={{ display: "flex", gap: 6, marginBottom: 4 }}>
-          <span style={{ color: "var(--brand-pc, #0035FF)", fontWeight: 700, minWidth: 18 }}>{numMatch[1]}.</span>
+          <span style={{ color: "var(--brand-pc, #D4FF2B)", fontWeight: 700, minWidth: 18 }}>{numMatch[1]}.</span>
           <span>{renderInline(line)}</span>
         </div>
       );
@@ -300,7 +300,7 @@ function FormattedText({ text }: { text: string }) {
     if (trimmed.startsWith("- ") || trimmed.startsWith("• ")) {
       elements.push(
         <div key={i} style={{ display: "flex", gap: 6, marginBottom: 4, paddingRight: 8 }}>
-          <span style={{ color: "var(--brand-pc, #0035FF)" }}>•</span>
+          <span style={{ color: "var(--brand-pc, #D4FF2B)" }}>•</span>
           <span>{renderInline(trimmed.slice(2))}</span>
         </div>
       );
@@ -397,7 +397,7 @@ export function BoardDashboard({
   const [panelWidth, setPanelWidth] = useState(340);
   const [loadingMsg, setLoadingMsg] = useState("");
   const [brand, setBrand] = useState<BrandConfig>({
-    orgName: "", logoUrl: "", colors: ["#0035FF", "#FFEF00", "#00B894", "#FDCB6E"],
+    orgName: "", logoUrl: "", colors: ["#D4FF2B", "#22D3EE", "#2ED573", "#FFA502"],
   });
   const [chatHistory, setChatHistory] = useState<ChatSession[]>([]);
   const [showHistory, setShowHistory] = useState(false);
@@ -490,7 +490,7 @@ export function BoardDashboard({
     };
   }, []);
 
-  const hasBrand = brand.orgName.trim() !== "" || brand.logoUrl.trim() !== "" || brand.colors[0] !== "#0035FF";
+  const hasBrand = brand.orgName.trim() !== "" || brand.logoUrl.trim() !== "" || brand.colors[0] !== "#D4FF2B";
   const [pc, ac] = brand.colors;
   // brand.colors[2] and brand.colors[3] available for charts/exports
 
@@ -681,7 +681,7 @@ export function BoardDashboard({
       `}</style>
       {/* ── Header ── */}
       <div style={{
-        background: "#FFFFFF", borderBottom: `3px solid ${pc}`,
+        background: "var(--color-surf)", borderBottom: `3px solid ${pc}`,
         padding: "0 24px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between",
         flexShrink: 0,
       }}>
@@ -704,12 +704,12 @@ export function BoardDashboard({
               width: 40, height: 40, borderRadius: 10,
               background: `linear-gradient(135deg, ${pc}, ${ac})`,
               display: "flex", alignItems: "center", justifyContent: "center",
-              color: "#FFF", fontSize: 14, fontWeight: 800,
+              color: "var(--color-bg)", fontSize: 14, fontWeight: 800,
               cursor: "pointer",
             }}>{brand.orgName ? brand.orgName.charAt(0) : "D"}</div>
           )}
           <div className="dash-header-info">
-            <div style={{ fontSize: 15, fontWeight: 700, color: "#0035FF" }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--color-text)" }}>
               {hasBrand && brand.orgName ? brand.orgName : board.name}
             </div>
             <div style={{ fontSize: 11, color: ac }}>
@@ -735,11 +735,11 @@ export function BoardDashboard({
         </button>
         {/* User profile */}
         {session?.user && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginRight: 8, borderRight: "1px solid rgba(0,53,255,0.1)", paddingRight: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginRight: 8, borderRight: "1px solid rgba(255,255,255,0.05)", paddingRight: 12 }}>
             <img src={session.user.image || ""} alt="" style={{
               width: 28, height: 28, borderRadius: "50%", border: `2px solid ${hexToRgba(pc, 0.2)}`,
             }} />
-            <span className="dash-header-info" style={{ fontSize: 12, fontWeight: 600, color: "#0035FF" }}>
+            <span className="dash-header-info" style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text)" }}>
               {session.user.name?.split(" ")[0]}
             </span>
           </div>
@@ -802,7 +802,7 @@ export function BoardDashboard({
         {sidePanel && (
           <>
             <div style={{
-              width: panelWidth, background: "#FFFFFF", overflowY: "auto",
+              width: panelWidth, background: "var(--color-surf)", overflowY: "auto",
               borderLeft: `1px solid ${hexToRgba(pc, 0.08)}`,
               padding: 20, flexShrink: 0,
             }} className="dash-side-panel">
@@ -810,7 +810,7 @@ export function BoardDashboard({
               <button className="dash-mobile-nav" onClick={() => setSidePanel(null)} style={{
                 display: "none", position: "sticky", top: 0, zIndex: 10, marginBottom: 12,
                 background: "rgba(0,0,0,0.05)", border: "none", borderRadius: 8, padding: "8px 14px",
-                cursor: "pointer", color: "#0035FF", fontSize: 13, fontWeight: 600, width: "100%",
+                cursor: "pointer", color: "var(--color-text)", fontSize: 13, fontWeight: 600, width: "100%",
               }}>
                 סגור פאנל X
               </button>
@@ -819,7 +819,7 @@ export function BoardDashboard({
               {sidePanel === "automations" && <AutomationsPanel board={board} items={items} apiToken={apiToken} boardId={boardId} pc={pc} ac={ac} />}
               {sidePanel === "impact" && <>
                 <ImpactPanel board={board} items={items} pc={pc} ac={ac} />
-                <div style={{ borderTop: "2px solid rgba(0,53,255,0.1)", margin: "20px 0", paddingTop: 20 }}>
+                <div style={{ borderTop: "2px solid rgba(255,255,255,0.05)", margin: "20px 0", paddingTop: 20 }}>
                   <ReportPanel board={board} items={items} pc={pc} ac={ac} orgName={brand.orgName} />
                 </div>
               </>}
@@ -828,7 +828,7 @@ export function BoardDashboard({
               {sidePanel === "data" && <InlineDataEditPanel board={board} items={items} apiToken={apiToken} boardId={boardId} pc={pc} ac={ac} />}
               {sidePanel === "coming-soon" && (
                 <div>
-                  <h3 style={{ fontSize: 17, fontWeight: 700, color: "#0035FF", marginBottom: 4 }}>בקרוב ב-AnyDay</h3>
+                  <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--color-text)", marginBottom: 4 }}>בקרוב ב-AnyDay</h3>
                   <p style={{ fontSize: 12, color: ac, marginBottom: 18, lineHeight: 1.5 }}>
                     פיצ׳רים שאנחנו עובדים עליהם עכשיו
                   </p>
@@ -843,7 +843,7 @@ export function BoardDashboard({
                     }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                         <span style={{ fontSize: 20 }}>{item.icon}</span>
-                        <span style={{ fontSize: 14, fontWeight: 700, color: "#0035FF" }}>{item.title}</span>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: "var(--color-text)" }}>{item.title}</span>
                       </div>
                       <p style={{ fontSize: 12, color: ac, lineHeight: 1.5, margin: 0 }}>{item.desc}</p>
                     </div>
@@ -882,7 +882,7 @@ export function BoardDashboard({
         {/* ── Chat ── */}
         <div style={{
           flex: 1, display: "flex", flexDirection: "column",
-          background: "#FFFFFF",
+          background: "var(--color-surf)",
         }}>
           {/* Messages */}
           <div style={{
@@ -899,10 +899,10 @@ export function BoardDashboard({
                   background: `linear-gradient(135deg, ${pc}, ${ac})`,
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
-                  <span style={{ fontSize: 28, fontWeight: 800, color: "#FFF", letterSpacing: "-0.5px" }}>AnyDay</span>
+                  <span style={{ fontSize: 28, fontWeight: 800, color: "var(--color-text)", letterSpacing: "-0.5px" }}>AnyDay</span>
                 </div>
                 <div style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: "#0035FF", marginBottom: 6 }}>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: "var(--color-text)", marginBottom: 6 }}>
                     {MODE_CONFIG[mode].title}
                   </div>
                   <div style={{ fontSize: 14, color: ac }}>
@@ -937,7 +937,7 @@ export function BoardDashboard({
                       display: "flex", alignItems: "center", justifyContent: "center",
                       flexShrink: 0,
                     }}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--color-text)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                         <polyline points="14 2 14 8 20 8" />
                         <line x1="16" y1="13" x2="8" y2="13" />
@@ -945,7 +945,7 @@ export function BoardDashboard({
                       </svg>
                     </div>
                     <div>
-                      <div style={{ fontSize: 15, fontWeight: 700, color: "#0035FF", marginBottom: 3 }}>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: "var(--color-text)", marginBottom: 3 }}>
                         תן לי סיכום של הבורד
                       </div>
                       <div style={{ fontSize: 12, color: ac, lineHeight: 1.5 }}>
@@ -964,7 +964,7 @@ export function BoardDashboard({
                 }}>
                   {MODE_CONFIG[mode].suggestions.map((s, i) => (
                     <button key={i} onClick={() => sendMessage(s)} style={{
-                      background: "#F8F9FF", border: `1px solid ${hexToRgba(pc, 0.12)}`,
+                      background: "var(--color-surf)", border: `1px solid ${hexToRgba(pc, 0.12)}`,
                       borderRadius: 20, padding: "8px 16px", cursor: "pointer",
                       color: pc, fontSize: 13, fontWeight: 500,
                       transition: "all 0.2s",
@@ -974,7 +974,7 @@ export function BoardDashboard({
                       (e.target as HTMLButtonElement).style.borderColor = hexToRgba(pc, 0.3);
                     }}
                     onMouseLeave={e => {
-                      (e.target as HTMLButtonElement).style.background = "#F8F9FF";
+                      (e.target as HTMLButtonElement).style.background = "var(--color-surf)";
                       (e.target as HTMLButtonElement).style.borderColor = hexToRgba(pc, 0.12);
                     }}
                     >{s}</button>
@@ -1007,7 +1007,7 @@ export function BoardDashboard({
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                           </svg>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 12, fontWeight: 600, color: "#0035FF", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                               {session.title}
                             </div>
                             <div style={{ fontSize: 10, color: "#999" }}>
@@ -1040,8 +1040,8 @@ export function BoardDashboard({
                       borderRadius: msg.role === "user" ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
                       background: msg.role === "user"
                         ? `linear-gradient(135deg, ${pc}, ${ac})`
-                        : "#F8F9FF",
-                      color: msg.role === "user" ? "#FFF" : "#0035FF",
+                        : "var(--color-surf)",
+                      color: msg.role === "user" ? "var(--color-bg)" : "var(--color-text)",
                       fontSize: 14, lineHeight: 1.7,
                       whiteSpace: "pre-wrap",
                       border: msg.role === "assistant" ? `1px solid ${hexToRgba(pc, 0.1)}` : "none",
@@ -1054,7 +1054,7 @@ export function BoardDashboard({
                   <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
                     <div style={{
                       padding: "14px 20px", borderRadius: "18px 18px 18px 4px",
-                      background: "#F8F9FF", border: `1px solid ${hexToRgba(pc, 0.1)}`,
+                      background: "var(--color-surf)", border: `1px solid ${hexToRgba(pc, 0.1)}`,
                       display: "flex", alignItems: "center", gap: 8,
                     }}>
                       <Spinner size={14} color={pc} />
@@ -1070,11 +1070,11 @@ export function BoardDashboard({
           {/* Input */}
           <div style={{
             padding: "16px 24px", borderTop: `1px solid ${hexToRgba(pc, 0.08)}`,
-            background: "#FFFFFF",
+            background: "var(--color-surf)",
           }}>
             <div style={{
               display: "flex", gap: 10, alignItems: "center",
-              background: "#F8F9FF", borderRadius: 16,
+              background: "var(--color-surf)", borderRadius: 16,
               border: `1.5px solid ${hexToRgba(pc, 0.12)}`,
               padding: "4px 6px 4px 16px",
               transition: "border-color 0.2s",
@@ -1088,7 +1088,7 @@ export function BoardDashboard({
                 disabled={loading}
                 style={{
                   flex: 1, background: "transparent", border: "none",
-                  outline: "none", fontSize: 15, color: "#0035FF",
+                  outline: "none", fontSize: 15, color: "var(--color-text)",
                   padding: "10px 0",
                 }}
               />
@@ -1105,7 +1105,7 @@ export function BoardDashboard({
                   transition: "all 0.2s", flexShrink: 0,
                 }}
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-text)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
                 </svg>
               </button>
@@ -1118,7 +1118,7 @@ export function BoardDashboard({
       {/* ── Mobile Bottom Nav ── */}
       <div className="dash-mobile-nav" style={{
         display: "none", position: "fixed", bottom: 0, left: 0, right: 0,
-        background: "#FFFFFF", borderTop: "2px solid rgba(0,53,255,0.15)",
+        background: "var(--color-surf)", borderTop: "2px solid rgba(255,255,255,0.07)",
         padding: "4px 8px env(safe-area-inset-bottom, 8px)", zIndex: 90,
         justifyContent: "space-around", alignItems: "center",
         boxShadow: "0 -4px 20px rgba(0,0,0,0.08)",
@@ -1128,7 +1128,7 @@ export function BoardDashboard({
             setMode(n.modeId);
             setSidePanel(n.panel);
           }} style={{
-            background: mode === n.modeId ? "rgba(0,53,255,0.12)" : "transparent",
+            background: mode === n.modeId ? "rgba(255,255,255,0.07)" : "transparent",
             border: "none", borderRadius: 10, padding: "6px 10px", cursor: "pointer",
             color: (n.panel ? sidePanel === n.panel : mode === "chat" && !sidePanel) ? pc : "#999",
             display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
@@ -1165,9 +1165,9 @@ const CHART_TYPES: Record<string, string[]> = {
   text: ["bar"],
 };
 
-const COLORS = ["#0035FF", "#FFEF00", "#00B894", "#FDCB6E", "#E17055", "#0984E3", "#FD79A8", "#55EFC4"];
+const COLORS = ["#D4FF2B", "var(--color-accent)", "#00B894", "#FDCB6E", "#E17055", "#0984E3", "#FD79A8", "#55EFC4"];
 
-function DashboardPanel({ board, items, pc = "#0035FF", ac = "#FFEF00" }: { board: MondayBoard; items: MondayItem[]; pc?: string; ac?: string }) {
+function DashboardPanel({ board, items, pc = "#D4FF2B", ac = "var(--color-accent)" }: { board: MondayBoard; items: MondayItem[]; pc?: string; ac?: string }) {
   const [selectedCols, setSelectedCols] = useState<Set<string>>(new Set());
   const [exporting, setExporting] = useState(false);
 
@@ -1230,7 +1230,7 @@ function DashboardPanel({ board, items, pc = "#0035FF", ac = "#FFEF00" }: { boar
           <div style="margin-bottom:8px">
             <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px">
               <span style="color:#0035FF;font-weight:500">${label}</span>
-              <span style="color:rgba(0,53,255,0.5);font-size:12px">${count} (${pct}%)</span>
+              <span style="color:rgba(240,237,230,0.4);font-size:12px">${count} (${pct}%)</span>
             </div>
             <div style="height:10px;border-radius:5px;background:${hexToRgba(pc, 0.06)};overflow:hidden">
               <div style="height:100%;border-radius:5px;background:${color};width:${barWidth}%"></div>
@@ -1308,7 +1308,7 @@ function DashboardPanel({ board, items, pc = "#0035FF", ac = "#FFEF00" }: { boar
 
   return (
     <div>
-      <h3 style={{ fontSize: 17, fontWeight: 700, color: "#0035FF", marginBottom: 6 }}>
+      <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--color-text)", marginBottom: 6 }}>
         הדשבורד שלכם, בדקה
       </h3>
       <p style={{ fontSize: 12, color: ac, marginBottom: 16 }}>
@@ -1339,7 +1339,7 @@ function DashboardPanel({ board, items, pc = "#0035FF", ac = "#FFEF00" }: { boar
         background: selectedAnalysis.length > 0
           ? `linear-gradient(135deg, ${pc}, ${ac})`
           : `${pc}1A`,
-        color: selectedAnalysis.length > 0 ? "#FFF" : ac,
+        color: selectedAnalysis.length > 0 ? "var(--color-bg)" : ac,
         fontSize: 13, fontWeight: 600, marginBottom: 18,
         display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
         transition: "all 0.2s",
@@ -1354,7 +1354,7 @@ function DashboardPanel({ board, items, pc = "#0035FF", ac = "#FFEF00" }: { boar
       </button>
 
       {/* Column selector */}
-      <div style={{ fontSize: 13, fontWeight: 600, color: "#0035FF", marginBottom: 10 }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)", marginBottom: 10 }}>
         עמודות זמינות
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 20, maxHeight: 200, overflowY: "auto" }}>
@@ -1375,19 +1375,19 @@ function DashboardPanel({ board, items, pc = "#0035FF", ac = "#FFEF00" }: { boar
                 transition: "all 0.15s",
               }}>
                 {selectedCols.has(col.id) && (
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--color-text)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                 )}
               </div>
-              <span style={{ fontSize: 13, fontWeight: 500, color: "#0035FF" }}>{col.title}</span>
+              <span style={{ fontSize: 13, fontWeight: 500, color: "var(--color-text)" }}>{col.title}</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <span style={{
                 fontSize: 10, color: pc, background: hexToRgba(pc, 0.08),
                 padding: "2px 6px", borderRadius: 4, fontWeight: 600,
               }}>{col.typeLabel}</span>
-              <span style={{ fontSize: 10, color: "rgba(0,53,255,0.5)" }}>{col.fillRate}%</span>
+              <span style={{ fontSize: 10, color: "rgba(240,237,230,0.4)" }}>{col.fillRate}%</span>
             </div>
           </div>
         ))}
@@ -1396,7 +1396,7 @@ function DashboardPanel({ board, items, pc = "#0035FF", ac = "#FFEF00" }: { boar
       {/* Charts for selected columns */}
       {selectedAnalysis.length > 0 && (
         <div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "#0035FF", marginBottom: 10 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)", marginBottom: 10 }}>
             תצוגה
           </div>
           {selectedAnalysis.map(col => {
@@ -1406,12 +1406,12 @@ function DashboardPanel({ board, items, pc = "#0035FF", ac = "#FFEF00" }: { boar
 
             return (
               <div key={col.id} style={{
-                marginBottom: 16, background: "#F8F9FF", borderRadius: 14,
+                marginBottom: 16, background: "var(--color-surf)", borderRadius: 14,
                 padding: "14px", border: `1px solid ${hexToRgba(pc, 0.08)}`,
               }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "#0035FF", marginBottom: 10 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)", marginBottom: 10 }}>
                   {col.title}
-                  <span style={{ fontSize: 10, color: "#FFEF00", marginRight: 6 }}>
+                  <span style={{ fontSize: 10, color: "var(--color-accent)", marginRight: 6 }}>
                     {col.uniqueValues.length} ערכים
                   </span>
                 </div>
@@ -1421,8 +1421,8 @@ function DashboardPanel({ board, items, pc = "#0035FF", ac = "#FFEF00" }: { boar
                   return (
                     <div key={label} style={{ marginBottom: 6 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
-                        <span style={{ color: "#0035FF", fontWeight: 500, maxWidth: "60%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
-                        <span style={{ color: "rgba(0,53,255,0.5)", fontSize: 11 }}>{count} ({pct}%)</span>
+                        <span style={{ color: "var(--color-text)", fontWeight: 500, maxWidth: "60%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+                        <span style={{ color: "rgba(240,237,230,0.4)", fontSize: 11 }}>{count} ({pct}%)</span>
                       </div>
                       <div style={{ height: 6, borderRadius: 3, background: hexToRgba(pc, 0.06), overflow: "hidden" }}>
                         <div style={{
@@ -1435,7 +1435,7 @@ function DashboardPanel({ board, items, pc = "#0035FF", ac = "#FFEF00" }: { boar
                   );
                 })}
                 {sorted.length > 8 && (
-                  <div style={{ fontSize: 11, color: "#FFEF00", marginTop: 4 }}>
+                  <div style={{ fontSize: 11, color: "var(--color-accent)", marginTop: 4 }}>
                     +{sorted.length - 8} ערכים נוספים
                   </div>
                 )}
@@ -1447,8 +1447,8 @@ function DashboardPanel({ board, items, pc = "#0035FF", ac = "#FFEF00" }: { boar
 
       {selectedAnalysis.length === 0 && (
         <div style={{
-          textAlign: "center", padding: "20px", color: "#FFEF00", fontSize: 13,
-          background: "#F8F9FF", borderRadius: 14, border: `1px solid ${hexToRgba(pc, 0.08)}`,
+          textAlign: "center", padding: "20px", color: "var(--color-accent)", fontSize: 13,
+          background: "var(--color-surf)", borderRadius: 14, border: `1px solid ${hexToRgba(pc, 0.08)}`,
         }}>
           סמנו עמודות למעלה ותראו קסם
         </div>
@@ -1472,7 +1472,7 @@ interface SavedAutomation {
   createdAt: string;
 }
 
-function AutomationsPanel({ board, items, apiToken, boardId, pc = "#0035FF", ac = "#FFEF00" }: {
+function AutomationsPanel({ board, items, apiToken, boardId, pc = "#D4FF2B", ac = "var(--color-accent)" }: {
   board: MondayBoard; items: MondayItem[]; apiToken: string; boardId: string; pc?: string; ac?: string;
 }) {
   const [condCol, setCondCol] = useState("");
@@ -1626,12 +1626,12 @@ function AutomationsPanel({ board, items, apiToken, boardId, pc = "#0035FF", ac 
 
   const selectStyle: React.CSSProperties = {
     width: "100%", padding: "8px 10px", borderRadius: 8, fontSize: 13,
-    border: `1.5px solid ${hexToRgba(pc, 0.15)}`, background: "#FFF",
-    color: "#0035FF", outline: "none", direction: "rtl",
+    border: `1.5px solid ${hexToRgba(pc, 0.15)}`, background: "var(--color-surf)",
+    color: "var(--color-text)", outline: "none", direction: "rtl",
   };
 
   const labelStyle: React.CSSProperties = {
-    fontSize: 12, fontWeight: 600, color: "#0035FF", marginBottom: 6, display: "block",
+    fontSize: 12, fontWeight: 600, color: "var(--color-text)", marginBottom: 6, display: "block",
   };
 
   const sectionStyle: React.CSSProperties = {
@@ -1641,7 +1641,7 @@ function AutomationsPanel({ board, items, apiToken, boardId, pc = "#0035FF", ac 
 
   return (
     <div>
-      <h3 style={{ fontSize: 17, fontWeight: 700, color: "#0035FF", marginBottom: 4 }}>
+      <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--color-text)", marginBottom: 4 }}>
         אוטומציות אמיתיות
       </h3>
       <p style={{ fontSize: 12, color: ac, marginBottom: 14, lineHeight: 1.5 }}>
@@ -1668,7 +1668,7 @@ function AutomationsPanel({ board, items, apiToken, boardId, pc = "#0035FF", ac 
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={actionType === cap.act ? pc : "#999"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d={cap.icon} />
             </svg>
-            <span style={{ fontSize: 11, fontWeight: 700, color: actionType === cap.act ? pc : "#0035FF" }}>{cap.label}</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: actionType === cap.act ? pc : "var(--color-text)" }}>{cap.label}</span>
             <span style={{ fontSize: 9, color: "#999" }}>{cap.desc}</span>
           </button>
         ))}
@@ -1702,15 +1702,15 @@ function AutomationsPanel({ board, items, apiToken, boardId, pc = "#0035FF", ac 
                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
               </svg>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "#0035FF", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {auto.name}
                 </div>
               </div>
               <button onClick={(e) => { e.stopPropagation(); deleteSavedAutomation(auto.id); }} style={{
-                background: "none", border: "none", cursor: "pointer", padding: 2, color: "#FFEF00", flexShrink: 0,
+                background: "none", border: "none", cursor: "pointer", padding: 2, color: "var(--color-accent)", flexShrink: 0,
               }}
               onMouseEnter={e => (e.currentTarget.style.color = "#E17055")}
-              onMouseLeave={e => (e.currentTarget.style.color = "#FFEF00")}
+              onMouseLeave={e => (e.currentTarget.style.color = "var(--color-accent)")}
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
               </button>
@@ -1724,10 +1724,10 @@ function AutomationsPanel({ board, items, apiToken, boardId, pc = "#0035FF", ac 
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
           <div style={{
             width: 22, height: 22, borderRadius: 6, background: pc,
-            color: "#FFF", fontSize: 12, fontWeight: 700,
+            color: "var(--color-bg)", fontSize: 12, fontWeight: 700,
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>1</div>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "#0035FF" }}>כשעמודה שווה ל...</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--color-text)" }}>כשעמודה שווה ל...</span>
         </div>
 
         <label style={labelStyle}>עמודה</label>
@@ -1746,8 +1746,8 @@ function AutomationsPanel({ board, items, apiToken, boardId, pc = "#0035FF", ac 
                 <button key={val} onClick={() => toggleCondVal(val)} style={{
                   padding: "4px 10px", borderRadius: 16, fontSize: 11, fontWeight: 500,
                   border: `1.5px solid ${condVals.includes(val) ? pc : hexToRgba(pc, 0.15)}`,
-                  background: condVals.includes(val) ? hexToRgba(pc, 0.1) : "#FFF",
-                  color: condVals.includes(val) ? pc : "#0035FF",
+                  background: condVals.includes(val) ? hexToRgba(pc, 0.1) : "var(--color-surf)",
+                  color: condVals.includes(val) ? pc : "var(--color-text)",
                   cursor: "pointer", transition: "all 0.15s",
                 }}>{val}</button>
               ))}
@@ -1767,10 +1767,10 @@ function AutomationsPanel({ board, items, apiToken, boardId, pc = "#0035FF", ac 
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
           <div style={{
             width: 22, height: 22, borderRadius: 6, background: condCol ? pc : "#D0D5DF",
-            color: "#FFF", fontSize: 12, fontWeight: 700,
+            color: "var(--color-bg)", fontSize: 12, fontWeight: 700,
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>2</div>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "#0035FF" }}>תבצע...</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--color-text)" }}>תבצע...</span>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -1783,8 +1783,8 @@ function AutomationsPanel({ board, items, apiToken, boardId, pc = "#0035FF", ac 
             <button key={a.id} onClick={() => setActionType(a.id)} style={{
               padding: "10px 12px", borderRadius: 10, fontSize: 13, fontWeight: 500,
               border: `1.5px solid ${actionType === a.id ? pc : hexToRgba(pc, 0.1)}`,
-              background: actionType === a.id ? hexToRgba(pc, 0.08) : "#FFF",
-              color: "#0035FF", cursor: "pointer", textAlign: "right",
+              background: actionType === a.id ? hexToRgba(pc, 0.08) : "var(--color-surf)",
+              color: "var(--color-text)", cursor: "pointer", textAlign: "right",
               display: "flex", alignItems: "center", gap: 8, transition: "all 0.15s",
             }}>
               <span>{a.icon}</span>
@@ -1846,7 +1846,7 @@ function AutomationsPanel({ board, items, apiToken, boardId, pc = "#0035FF", ac 
           background: canExecute
             ? `linear-gradient(135deg, ${pc}, ${ac})`
           : hexToRgba(pc, 0.1),
-        color: canExecute ? "#FFF" : ac,
+        color: canExecute ? "var(--color-bg)" : ac,
         fontSize: 14, fontWeight: 700,
         transition: "all 0.2s", opacity: running ? 0.6 : 1,
       }}>
@@ -1856,7 +1856,7 @@ function AutomationsPanel({ board, items, apiToken, boardId, pc = "#0035FF", ac 
           <button onClick={saveAutomation} style={{
             padding: "12px 14px", borderRadius: 12,
             border: `1.5px solid ${hexToRgba(pc, 0.2)}`,
-            background: "#FFF", cursor: "pointer",
+            background: "var(--color-surf)", cursor: "pointer",
             color: pc, fontSize: 13, fontWeight: 600,
             transition: "all 0.2s", flexShrink: 0,
             display: "flex", alignItems: "center", gap: 4,
@@ -1889,7 +1889,7 @@ function AutomationsPanel({ board, items, apiToken, boardId, pc = "#0035FF", ac 
             <div style={{ maxHeight: 150, overflowY: "auto" }}>
               {results.results.map((r, i) => (
                 <div key={i} style={{
-                  fontSize: 11, color: "#0035FF", padding: "3px 0",
+                  fontSize: 11, color: "var(--color-text)", padding: "3px 0",
                   borderBottom: `1px solid ${hexToRgba(pc, 0.05)}`,
                 }}>
                   {r}
@@ -1904,7 +1904,7 @@ function AutomationsPanel({ board, items, apiToken, boardId, pc = "#0035FF", ac 
 }
 
 
-function ImpactPanel({ board, items, pc = "#0035FF", ac = "#FFEF00" }: { board: MondayBoard; items: MondayItem[]; pc?: string; ac?: string }) {
+function ImpactPanel({ board, items, pc = "#D4FF2B", ac = "var(--color-accent)" }: { board: MondayBoard; items: MondayItem[]; pc?: string; ac?: string }) {
   const [exporting, setExporting] = useState(false);
   const [selectedCols, setSelectedCols] = useState<Set<string>>(new Set());
 
@@ -2030,7 +2030,7 @@ ${chartsHtml}
 
   return (
     <div>
-      <h3 style={{ fontSize: 17, fontWeight: 700, color: "#0035FF", marginBottom: 4 }}>דוח אימפקט</h3>
+      <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--color-text)", marginBottom: 4 }}>דוח אימפקט</h3>
       <p style={{ fontSize: 12, color: ac, marginBottom: 14, lineHeight: 1.5 }}>
         סריקה מלאה של הבורד. מספרים אמיתיים. מוכן לתורמים.
       </p>
@@ -2038,7 +2038,7 @@ ${chartsHtml}
       <button onClick={exportImpactPDF} disabled={exporting} style={{
         width: "100%", padding: "11px", borderRadius: 10, border: "none", cursor: "pointer",
         background: `linear-gradient(135deg, ${pc}, ${ac})`,
-        color: "#FFF", fontSize: 13, fontWeight: 700, marginBottom: 16,
+        color: "var(--color-bg)", fontSize: 13, fontWeight: 700, marginBottom: 16,
         display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
         opacity: exporting ? 0.6 : 1,
       }}>
@@ -2052,17 +2052,17 @@ ${chartsHtml}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
         {kpis.map((k, i) => (
           <div key={i} style={{
-            background: "#F8F9FF", borderRadius: 10, padding: "12px 10px",
+            background: "var(--color-surf)", borderRadius: 10, padding: "12px 10px",
             border: `1px solid ${hexToRgba(pc, 0.08)}`, textAlign: "center",
           }}>
             <div style={{ fontSize: 24, fontWeight: 800, color: k.color }}>{k.value}</div>
-            <div style={{ fontSize: 10, color: "rgba(0,53,255,0.5)" }}>{k.label}</div>
+            <div style={{ fontSize: 10, color: "rgba(240,237,230,0.4)" }}>{k.label}</div>
           </div>
         ))}
       </div>
 
       {/* Column selector */}
-      <div style={{ fontSize: 13, fontWeight: 600, color: "#0035FF", marginBottom: 8 }}>בחרו עמודות לדוח</div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)", marginBottom: 8 }}>בחרו עמודות לדוח</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 16, maxHeight: 180, overflowY: "auto" }}>
         {columnAnalysis.filter(c => c.chartable).map(col => (
           <div key={col.id} onClick={() => toggleCol(col.id)} style={{
@@ -2080,12 +2080,12 @@ ${chartsHtml}
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}>
                 {selectedCols.has(col.id) && (
-                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#FFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--color-text)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                 )}
               </div>
-              <span style={{ fontSize: 12, fontWeight: 500, color: "#0035FF" }}>{col.title}</span>
+              <span style={{ fontSize: 12, fontWeight: 500, color: "var(--color-text)" }}>{col.title}</span>
             </div>
             <span style={{ fontSize: 9, color: pc, background: hexToRgba(pc, 0.08), padding: "1px 5px", borderRadius: 3, fontWeight: 600 }}>{col.typeLabel}</span>
           </div>
@@ -2095,29 +2095,29 @@ ${chartsHtml}
       {/* Charts for selected columns */}
       {selected.length > 0 && (
         <div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "#0035FF", marginBottom: 8 }}>ניתוח</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)", marginBottom: 8 }}>ניתוח</div>
           {selected.map(col => {
             const sorted = Object.entries(col.dist).sort((a, b) => b[1] - a[1]);
             const total = sorted.reduce((sum, [, v]) => sum + v, 0) || 1;
             const maxVal = sorted[0]?.[1] || 1;
             return (
               <div key={col.id} style={cardStyle}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "#0035FF", marginBottom: 8 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text)", marginBottom: 8 }}>
                   {col.title}
-                  <span style={{ fontSize: 9, color: "#FFEF00", marginRight: 6 }}>{Object.keys(col.dist).length} ערכים</span>
+                  <span style={{ fontSize: 9, color: "var(--color-accent)", marginRight: 6 }}>{Object.keys(col.dist).length} ערכים</span>
                 </div>
                 {sorted.slice(0, 6).map(([label, count], i) => (
                   <div key={label} style={{ marginBottom: 5 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 2 }}>
-                      <span style={{ color: "#0035FF", fontWeight: 500 }}>{label}</span>
-                      <span style={{ color: "rgba(0,53,255,0.5)" }}>{count} ({Math.round((count / total) * 100)}%)</span>
+                      <span style={{ color: "var(--color-text)", fontWeight: 500 }}>{label}</span>
+                      <span style={{ color: "rgba(240,237,230,0.4)" }}>{count} ({Math.round((count / total) * 100)}%)</span>
                     </div>
                     <div style={{ height: 6, borderRadius: 3, background: hexToRgba(pc, 0.06), overflow: "hidden" }}>
                       <div style={{ height: "100%", borderRadius: 3, background: COLORS[i % COLORS.length], width: `${Math.round((count / maxVal) * 100)}%` }} />
                     </div>
                   </div>
                 ))}
-                {sorted.length > 6 && <div style={{ fontSize: 9, color: "#FFEF00", marginTop: 3 }}>+{sorted.length - 6} ערכים</div>}
+                {sorted.length > 6 && <div style={{ fontSize: 9, color: "var(--color-accent)", marginTop: 3 }}>+{sorted.length - 6} ערכים</div>}
               </div>
             );
           })}
@@ -2131,7 +2131,7 @@ ${chartsHtml}
       )}
 
       {/* Data completeness */}
-      <div style={{ fontSize: 13, fontWeight: 600, color: "#0035FF", marginBottom: 8, marginTop: 12 }}>שלמות נתונים ({avgFillRate}%)</div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)", marginBottom: 8, marginTop: 12 }}>שלמות נתונים ({avgFillRate}%)</div>
       <div style={cardStyle}>
         {allCols.slice(0, 8).map(c => {
           const barColor = c.rate >= 70 ? "#00B894" : c.rate >= 40 ? "#FDCB6E" : "#E17055";
@@ -2156,7 +2156,7 @@ ${chartsHtml}
 // ReportPanel - One-click management reports
 // ═══════════════════════════════════════════════════════
 
-function ReportPanel({ board, items, pc = "#0035FF", ac = "#FFEF00", orgName = "" }: {
+function ReportPanel({ board, items, pc = "#D4FF2B", ac = "var(--color-accent)", orgName = "" }: {
   board: MondayBoard; items: MondayItem[]; pc?: string; ac?: string; orgName?: string;
 }) {
   const [reportType, setReportType] = useState<string>("management");
@@ -2307,7 +2307,7 @@ function ReportPanel({ board, items, pc = "#0035FF", ac = "#FFEF00", orgName = "
 
   return (
     <div>
-      <h3 style={{ fontSize: 17, fontWeight: 700, color: "#0035FF", marginBottom: 4 }}>
+      <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--color-text)", marginBottom: 4 }}>
         דוח בלחיצה אחת
       </h3>
       <p style={{ fontSize: 12, color: ac, marginBottom: 18, lineHeight: 1.5 }}>
@@ -2320,7 +2320,7 @@ function ReportPanel({ board, items, pc = "#0035FF", ac = "#FFEF00", orgName = "
           <button key={rt.id} onClick={() => { setReportType(rt.id); setGenerated(false); setReport(""); }} style={{
             padding: "12px 14px", borderRadius: 12, cursor: "pointer",
             border: `1.5px solid ${reportType === rt.id ? pc : hexToRgba(pc, 0.1)}`,
-            background: reportType === rt.id ? hexToRgba(pc, 0.08) : "#FFF",
+            background: reportType === rt.id ? hexToRgba(pc, 0.08) : "var(--color-surf)",
             display: "flex", alignItems: "center", gap: 10, textAlign: "right",
             transition: "all 0.15s",
           }}>
@@ -2328,12 +2328,12 @@ function ReportPanel({ board, items, pc = "#0035FF", ac = "#FFEF00", orgName = "
               width: 36, height: 36, borderRadius: 10,
               background: reportType === rt.id ? `linear-gradient(135deg, ${pc}, ${ac})` : hexToRgba(pc, 0.06),
               display: "flex", alignItems: "center", justifyContent: "center",
-              color: reportType === rt.id ? "#FFF" : pc, flexShrink: 0,
+              color: reportType === rt.id ? "var(--color-bg)" : pc, flexShrink: 0,
             }}>
               {iconMap[rt.icon]}
             </div>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#0035FF" }}>{rt.label}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)" }}>{rt.label}</div>
               <div style={{ fontSize: 11, color: ac }}>{rt.desc}</div>
             </div>
           </button>
@@ -2344,13 +2344,13 @@ function ReportPanel({ board, items, pc = "#0035FF", ac = "#FFEF00", orgName = "
       <button onClick={generateReport} disabled={generating} style={{
         width: "100%", padding: "12px", borderRadius: 12, border: "none", cursor: generating ? "not-allowed" : "pointer",
         background: `linear-gradient(135deg, ${pc}, ${ac})`,
-        color: "#FFF", fontSize: 14, fontWeight: 700,
+        color: "var(--color-bg)", fontSize: 14, fontWeight: 700,
         display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
         opacity: generating ? 0.7 : 1, transition: "all 0.2s", marginBottom: 16,
       }}>
         {generating ? (
           <>
-            <Spinner size={14} color="#FFF" />
+            <Spinner size={14} color="var(--color-text)" />
             מייצר דוח...
           </>
         ) : (
@@ -2371,7 +2371,7 @@ function ReportPanel({ board, items, pc = "#0035FF", ac = "#FFEF00", orgName = "
               <button onClick={exportReportPDF} style={{
                 flex: 1, padding: "8px", borderRadius: 8, border: "none",
                 background: `linear-gradient(135deg, ${pc}, ${ac})`,
-                color: "#FFF", fontSize: 12, fontWeight: 600, cursor: "pointer",
+                color: "var(--color-bg)", fontSize: 12, fontWeight: 600, cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
               }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -2384,7 +2384,7 @@ function ReportPanel({ board, items, pc = "#0035FF", ac = "#FFEF00", orgName = "
               <button onClick={() => { navigator.clipboard.writeText(report); }} style={{
                 flex: 1, padding: "8px", borderRadius: 8,
                 border: `1.5px solid ${hexToRgba(pc, 0.2)}`,
-                background: "#FFF", color: pc, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                background: "var(--color-surf)", color: pc, fontSize: 12, fontWeight: 600, cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
               }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -2397,7 +2397,7 @@ function ReportPanel({ board, items, pc = "#0035FF", ac = "#FFEF00", orgName = "
           <div style={{
             background: hexToRgba(pc, 0.02), borderRadius: 14,
             padding: "16px", border: `1px solid ${hexToRgba(pc, 0.08)}`,
-            fontSize: 13, lineHeight: 1.7, color: "#0035FF",
+            fontSize: 13, lineHeight: 1.7, color: "var(--color-text)",
             maxHeight: 500, overflowY: "auto",
           }}>
             <FormattedText text={report} />
@@ -2420,7 +2420,7 @@ interface Alert {
   items: string[];
 }
 
-function AlertsPanel({ board, items, pc = "#0035FF", ac = "#FFEF00", onAskAI }: {
+function AlertsPanel({ board, items, pc = "#D4FF2B", ac = "var(--color-accent)", onAskAI }: {
   board: MondayBoard; items: MondayItem[]; pc?: string; ac?: string; onAskAI?: (question: string) => void;
 }) {
   // Analyze board for alerts
@@ -2531,7 +2531,7 @@ function AlertsPanel({ board, items, pc = "#0035FF", ac = "#FFEF00", onAskAI }: 
 
   return (
     <div>
-      <h3 style={{ fontSize: 17, fontWeight: 700, color: "#0035FF", marginBottom: 4 }}>
+      <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--color-text)", marginBottom: 4 }}>
         התראות
       </h3>
       <p style={{ fontSize: 12, color: ac, marginBottom: 18, lineHeight: 1.5 }}>
@@ -2660,7 +2660,7 @@ function AlertsPanel({ board, items, pc = "#0035FF", ac = "#FFEF00", onAskAI }: 
   );
 }
 
-function InlineDataEditPanel({ board, items, apiToken, boardId, pc = "#0035FF", ac = "#FFEF00" }: {
+function InlineDataEditPanel({ board, items, apiToken, boardId, pc = "#D4FF2B", ac = "var(--color-accent)" }: {
   board: MondayBoard; items: MondayItem[]; apiToken: string; boardId: string; pc?: string; ac?: string;
 }) {
   const [editingCell, setEditingCell] = useState<{ itemId: string; colId: string } | null>(null);
@@ -2744,42 +2744,42 @@ function InlineDataEditPanel({ board, items, apiToken, boardId, pc = "#0035FF", 
 
   return (
     <div>
-      <h3 style={{ fontSize: 17, fontWeight: 700, color: "#0035FF", marginBottom: 4 }}>עריכת הבורד</h3>
+      <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--color-text)", marginBottom: 4 }}>עריכת הבורד</h3>
       <p style={{ fontSize: 12, color: ac, marginBottom: 14, lineHeight: 1.5 }}>הטבלה המלאה. לחצו על תא לעריכה, פח לארכיון.</p>
-      {toast && (<div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", zIndex: 999, background: "#0035FF", color: "#FFF", padding: "10px 24px", borderRadius: 12, fontSize: 13, fontWeight: 600, boxShadow: "0 8px 30px rgba(0,0,0,0.2)" }}>{toast}</div>)}
+      {toast && (<div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", zIndex: 999, background: "var(--color-accent)", color: "var(--color-bg)", padding: "10px 24px", borderRadius: 12, fontSize: 13, fontWeight: 600, boxShadow: "0 8px 30px rgba(0,0,0,0.2)" }}>{toast}</div>)}
       <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-        <input value={newItemName} onChange={e => setNewItemName(e.target.value)} onKeyDown={e => e.key === "Enter" && handleAddItem()} placeholder="+ פריט חדש..." style={{ flex: 1, background: "#FFF", border: "1.5px solid rgba(0,53,255,0.15)", borderRadius: 8, padding: "7px 12px", fontSize: 13, outline: "none", color: "#0035FF" }} />
-        <button onClick={handleAddItem} disabled={!newItemName.trim() || addingItem} style={{ background: pc, color: "#FFF", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: newItemName.trim() ? "pointer" : "not-allowed", opacity: newItemName.trim() ? 1 : 0.5 }}>{addingItem ? "..." : "הוסף"}</button>
+        <input value={newItemName} onChange={e => setNewItemName(e.target.value)} onKeyDown={e => e.key === "Enter" && handleAddItem()} placeholder="+ פריט חדש..." style={{ flex: 1, background: "var(--color-surf)", border: "1.5px solid rgba(255,255,255,0.07)", borderRadius: 8, padding: "7px 12px", fontSize: 13, outline: "none", color: "var(--color-text)" }} />
+        <button onClick={handleAddItem} disabled={!newItemName.trim() || addingItem} style={{ background: pc, color: "var(--color-bg)", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: newItemName.trim() ? "pointer" : "not-allowed", opacity: newItemName.trim() ? 1 : 0.5 }}>{addingItem ? "..." : "הוסף"}</button>
       </div>
-      <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="חיפוש..." style={{ width: "100%", background: "#F8F9FF", border: "1px solid rgba(0,53,255,0.1)", borderRadius: 8, padding: "7px 12px", fontSize: 12, outline: "none", marginBottom: 8, color: "#0035FF" }} />
+      <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="חיפוש..." style={{ width: "100%", background: "var(--color-surf)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 8, padding: "7px 12px", fontSize: 12, outline: "none", marginBottom: 8, color: "var(--color-text)" }} />
       <div style={{ fontSize: 11, color: ac, marginBottom: 6 }}>{filteredItems.length} / {items.length} פריטים · {editableCols.length} עמודות</div>
       <div style={{ overflowX: "auto", maxHeight: "calc(100vh - 300px)", overflowY: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 12 }}>
           <thead><tr>
-            <th style={{ position: "sticky", top: 0, zIndex: 2, background: "rgba(0,53,255,0.06)", padding: "8px 10px", textAlign: "right", fontWeight: 700, color: "#0035FF", fontSize: 11, borderBottom: "2px solid " + pc, whiteSpace: "nowrap", minWidth: 120 }}>שם</th>
-            {editableCols.map(col => (<th key={col.id} style={{ position: "sticky", top: 0, zIndex: 2, background: "rgba(0,53,255,0.06)", padding: "8px 6px", textAlign: "right", fontWeight: 700, color: "#0035FF", fontSize: 11, borderBottom: "2px solid " + pc, whiteSpace: "nowrap", minWidth: 80 }}>{col.title}</th>))}
+            <th style={{ position: "sticky", top: 0, zIndex: 2, background: "rgba(212,255,43,0.04)", padding: "8px 10px", textAlign: "right", fontWeight: 700, color: "var(--color-text)", fontSize: 11, borderBottom: "2px solid " + pc, whiteSpace: "nowrap", minWidth: 120 }}>שם</th>
+            {editableCols.map(col => (<th key={col.id} style={{ position: "sticky", top: 0, zIndex: 2, background: "rgba(212,255,43,0.04)", padding: "8px 6px", textAlign: "right", fontWeight: 700, color: "var(--color-text)", fontSize: 11, borderBottom: "2px solid " + pc, whiteSpace: "nowrap", minWidth: 80 }}>{col.title}</th>))}
           </tr></thead>
           <tbody>
-            {filteredItems.slice(0, 100).map((item, idx) => (<tr key={item.id} style={{ background: idx % 2 === 0 ? "#FFF" : "rgba(0,53,255,0.02)" }}>
-              <td style={{ padding: "8px 10px", fontWeight: 600, color: "#0035FF", borderBottom: "1px solid rgba(0,53,255,0.06)", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", borderRight: "3px solid " + pc }}>{item.name}</td>
+            {filteredItems.slice(0, 100).map((item, idx) => (<tr key={item.id} style={{ background: idx % 2 === 0 ? "var(--color-surf)" : "rgba(255,255,255,0.02)" }}>
+              <td style={{ padding: "8px 10px", fontWeight: 600, color: "var(--color-text)", borderBottom: "1px solid rgba(212,255,43,0.04)", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", borderRight: "3px solid " + pc }}>{item.name}</td>
               {editableCols.map(col => {
                 const cv = (item.column_values || []).find(v => v.id === col.id);
                 const value = cv?.text || "";
                 const isEditing = editingCell?.itemId === item.id && editingCell?.colId === col.id;
                 const wasSaved = savedCells.has(item.id + "-" + col.id);
                 const isStatus = col.type === "color";
-                return (<td key={col.id} style={{ padding: "4px 6px", borderBottom: "1px solid rgba(0,53,255,0.06)", position: "relative" }}>
+                return (<td key={col.id} style={{ padding: "4px 6px", borderBottom: "1px solid rgba(212,255,43,0.04)", position: "relative" }}>
                   {isEditing ? (
                     isStatus ? (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 2, position: "absolute", top: 0, right: 0, zIndex: 10, background: "#FFF", border: "1.5px solid " + pc, borderRadius: 8, padding: 6, minWidth: 120, boxShadow: "0 4px 16px rgba(0,0,0,0.12)" }}>
-                        {(statusOptions[col.id] || []).map(opt => (<button key={opt} onClick={() => handleSave(item.id, col.id, opt)} disabled={saving} style={{ background: opt === value ? pc : "transparent", color: opt === value ? "#FFF" : "#0035FF", border: "none", borderRadius: 4, padding: "4px 8px", fontSize: 11, fontWeight: 600, cursor: saving ? "wait" : "pointer", textAlign: "right" }}>{opt}</button>))}
+                      <div style={{ display: "flex", flexDirection: "column", gap: 2, position: "absolute", top: 0, right: 0, zIndex: 10, background: "var(--color-surf)", border: "1.5px solid " + pc, borderRadius: 8, padding: 6, minWidth: 120, boxShadow: "0 4px 16px rgba(0,0,0,0.12)" }}>
+                        {(statusOptions[col.id] || []).map(opt => (<button key={opt} onClick={() => handleSave(item.id, col.id, opt)} disabled={saving} style={{ background: opt === value ? pc : "transparent", color: opt === value ? "var(--color-bg)" : "var(--color-text)", border: "none", borderRadius: 4, padding: "4px 8px", fontSize: 11, fontWeight: 600, cursor: saving ? "wait" : "pointer", textAlign: "right" }}>{opt}</button>))}
                         <button onClick={() => setEditingCell(null)} style={{ background: "none", border: "none", fontSize: 10, color: "#E17055", cursor: "pointer", fontWeight: 600 }}>ביטול</button>
                       </div>
                     ) : (
-                      <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") handleSave(item.id, col.id, editValue); if (e.key === "Escape") setEditingCell(null); }} onBlur={() => { if (editValue !== value) handleSave(item.id, col.id, editValue); else setEditingCell(null); }} style={{ width: "100%", background: "#FFF", border: "1.5px solid " + pc, borderRadius: 4, padding: "4px 6px", fontSize: 12, outline: "none", color: "#0035FF" }} />
+                      <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") handleSave(item.id, col.id, editValue); if (e.key === "Escape") setEditingCell(null); }} onBlur={() => { if (editValue !== value) handleSave(item.id, col.id, editValue); else setEditingCell(null); }} style={{ width: "100%", background: "var(--color-surf)", border: "1.5px solid " + pc, borderRadius: 4, padding: "4px 6px", fontSize: 12, outline: "none", color: "var(--color-text)" }} />
                     )
                   ) : (
-                    <div onClick={() => { setEditingCell({ itemId: item.id, colId: col.id }); setEditValue(value); }} style={{ cursor: "pointer", padding: "4px 6px", borderRadius: 4, background: isStatus && value ? "rgba(0,53,255,0.08)" : "transparent", border: wasSaved ? "1.5px solid #00B894" : "1.5px solid transparent", color: value ? "#0035FF" : "#CCC", fontWeight: isStatus ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 110, fontSize: 12 }}>{value || "\u2014"}</div>
+                    <div onClick={() => { setEditingCell({ itemId: item.id, colId: col.id }); setEditValue(value); }} style={{ cursor: "pointer", padding: "4px 6px", borderRadius: 4, background: isStatus && value ? "rgba(212,255,43,0.06)" : "transparent", border: wasSaved ? "1.5px solid #00B894" : "1.5px solid transparent", color: value ? "var(--color-text)" : "var(--color-muted2)", fontWeight: isStatus ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 110, fontSize: 12 }}>{value || "\u2014"}</div>
                   )}
                 </td>);
               })}

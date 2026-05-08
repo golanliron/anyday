@@ -1,14 +1,14 @@
 import type { MondayBoard, MondayItem, ChartData } from "@/types";
 
 export const PIE_COLORS = [
-  "#0035FF",
-  "#FFEF00",
-  "#0066FF",
-  "#FFD700",
-  "#3366FF",
-  "#99BBFF",
-  "#0044CC",
-  "#FFF066",
+  "#D4FF2B",
+  "#22D3EE",
+  "#2ED573",
+  "#FFA502",
+  "#FF6B35",
+  "#FF4757",
+  "#A78BFA",
+  "#34D399",
 ];
 
 export interface SmartInsight {
