@@ -106,9 +106,9 @@ export function BlueprintView({ blueprint, onReset, mondayToken }: BlueprintView
     <div>
       {/* Blueprint header */}
       <div className="fade-up" style={{
-        background: "linear-gradient(135deg, rgba(108,92,231,0.06), rgba(162,155,254,0.1))",
+        background: "linear-gradient(135deg, rgba(0,53,255,0.06), rgba(0,53,255,0.1))",
         borderRadius: 16,
-        border: "1px solid rgba(108,92,231,0.15)",
+        border: "1px solid rgba(0,53,255,0.15)",
         padding: "24px 28px",
         marginBottom: 20,
       }}>
@@ -204,7 +204,7 @@ export function BlueprintView({ blueprint, onReset, mondayToken }: BlueprintView
                   fontWeight: 700,
                   cursor: "pointer",
                   fontFamily: "var(--font-dm)",
-                  boxShadow: "0 4px 16px rgba(108,92,231,0.25)",
+                  boxShadow: "0 4px 16px rgba(0,53,255,0.25)",
                 }}
               >
                 {"\u05D1\u05E0\u05D5 \u05DC\u05D9 \u05D0\u05EA \u05D6\u05D4 \u05D1-Monday"}
@@ -230,7 +230,7 @@ export function BlueprintView({ blueprint, onReset, mondayToken }: BlueprintView
                     fontWeight: 700,
                     cursor: "pointer",
                     fontFamily: "var(--font-dm)",
-                    boxShadow: "0 4px 16px rgba(108,92,231,0.25)",
+                    boxShadow: "0 4px 16px rgba(0,53,255,0.25)",
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 8,
@@ -589,7 +589,7 @@ function ColumnChip({ column }: { column: BuilderColumn }) {
       alignItems: "center",
       gap: 8,
       fontSize: 13,
-      border: column.required ? "1px solid rgba(108,92,231,0.2)" : "1px solid transparent",
+      border: column.required ? "1px solid rgba(0,53,255,0.2)" : "1px solid transparent",
     }}>
       <span style={{
         width: 24,

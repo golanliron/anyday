@@ -2,7 +2,7 @@
 
 export function Spinner({
   size = 18,
-  color = "#6C5CE7",
+  color = "#0035FF",
 }: {
   size?: number;
   color?: string;

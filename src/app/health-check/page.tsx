@@ -246,7 +246,7 @@ export default function HealthCheckPage() {
                         fontWeight: 700,
                         cursor: "pointer",
                         fontFamily: "var(--font-dm)",
-                        boxShadow: "0 4px 16px rgba(108,92,231,0.25)",
+                        boxShadow: "0 4px 16px rgba(0,53,255,0.25)",
                       }}
                     >
                       {"\u05D4\u05EA\u05D7\u05DC \u05E1\u05E8\u05D9\u05E7\u05D4"}
@@ -294,7 +294,7 @@ export default function HealthCheckPage() {
                         fontWeight: 700,
                         cursor: "pointer",
                         fontFamily: "var(--font-dm)",
-                        boxShadow: "0 4px 16px rgba(108,92,231,0.25)",
+                        boxShadow: "0 4px 16px rgba(0,53,255,0.25)",
                         display: "inline-flex",
                         alignItems: "center",
                         gap: 8,
@@ -506,9 +506,9 @@ export default function HealthCheckPage() {
 
             {/* CTA section */}
             <div className="fade-up-4" style={{
-              background: "linear-gradient(135deg, rgba(108,92,231,0.06), rgba(162,155,254,0.1))",
+              background: "linear-gradient(135deg, rgba(0,53,255,0.06), rgba(0,53,255,0.1))",
               borderRadius: 16,
-              border: "1px solid rgba(108,92,231,0.15)",
+              border: "1px solid rgba(0,53,255,0.15)",
               padding: "28px 24px",
               textAlign: "center",
               marginTop: 24,

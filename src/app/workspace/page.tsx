@@ -282,33 +282,33 @@ export default function WorkspacePage() {
             <div
               onClick={() => setShowBuilder(true)}
               style={{
-                background: "linear-gradient(135deg, #0A0E27, #0E1330)",
+                background: "#0035FF",
                 borderRadius: 16, padding: "24px 28px", marginBottom: 20,
                 cursor: "pointer", transition: "transform 0.2s, box-shadow 0.2s",
-                boxShadow: "0 4px 20px rgba(0,53,255,0.15)",
+                boxShadow: "0 4px 20px rgba(0,53,255,0.25)",
                 display: "flex", alignItems: "center", gap: 16,
-                border: "1px solid rgba(0,53,255,0.2)",
+                border: "none",
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 30px rgba(0,53,255,0.3), 0 0 40px rgba(255,239,0,0.08)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,53,255,0.15)"; }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 30px rgba(0,53,255,0.4), 0 0 40px rgba(255,239,0,0.15)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,53,255,0.25)"; }}
             >
               <div style={{
-                width: 48, height: 48, borderRadius: 12,
-                background: "rgba(255,239,0,0.15)", border: "1px solid rgba(255,239,0,0.3)", display: "flex",
+                width: 48, height: 48, borderRadius: 50,
+                background: "#FFEF00", display: "flex",
                 alignItems: "center", justifyContent: "center",
-                fontSize: 24, flexShrink: 0,
+                fontSize: 22, flexShrink: 0, color: "#0035FF", fontWeight: 900,
               }}>
-                {"🏗️"}
+                A
               </div>
               <div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 4 }}>
-                  {"בנו מערכת חדשה עם AI"}
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#FFEF00", marginBottom: 4 }}>
+                  {"\u05D1\u05E0\u05D5 \u05DE\u05E2\u05E8\u05DB\u05EA \u05D7\u05D3\u05E9\u05D4 \u05E2\u05DD AI"}
                 </div>
-                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.8)", lineHeight: 1.5 }}>
-                  {"ספרו מה אתם צריכים, העלו אקסל — ואני אבנה לכם מערכת שלמה ב-Monday"}
+                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.85)", lineHeight: 1.5 }}>
+                  {"\u05E1\u05E4\u05E8\u05D5 \u05DE\u05D4 \u05D0\u05EA\u05DD \u05E6\u05E8\u05D9\u05DB\u05D9\u05DD, \u05D4\u05E2\u05DC\u05D5 \u05D0\u05E7\u05E1\u05DC \u2014 \u05D5\u05D0\u05E0\u05D9 \u05D0\u05D1\u05E0\u05D4 \u05DC\u05DB\u05DD \u05DE\u05E2\u05E8\u05DB\u05EA \u05E9\u05DC\u05DE\u05D4 \u05D1-Monday"}
                 </div>
               </div>
-              <div style={{ marginRight: "auto", fontSize: 24, color: "rgba(255,255,255,0.6)" }}>{"←"}</div>
+              <div style={{ marginRight: "auto", fontSize: 24, color: "rgba(255,255,255,0.6)" }}>{"\u2190"}</div>
             </div>
 
             {boards.length > 0 && (

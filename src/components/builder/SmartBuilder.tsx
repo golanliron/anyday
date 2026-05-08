@@ -199,10 +199,10 @@ export function SmartBuilder({ apiToken, existingBoards, onBoardCreated }: Props
         display: "flex", alignItems: "center", gap: 10,
       }}>
         <div style={{
-          width: 36, height: 36, borderRadius: 10,
-          background: "linear-gradient(135deg, #0A0E27, #0E1330)",
+          width: 36, height: 36, borderRadius: 50,
+          background: "#0035FF",
           display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 18, color: "#fff", fontWeight: 800,
+          fontSize: 16, color: "#FFEF00", fontWeight: 900,
         }}>A</div>
         <div>
           <div style={{ fontSize: 15, fontWeight: 700 }}>AnyDay Builder</div>

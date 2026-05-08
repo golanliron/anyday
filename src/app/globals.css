@@ -2,17 +2,17 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-bg: #F0F4FF;
+  --color-bg: #FFFFFF;
   --color-bg2: #FFFFFF;
   --color-surf: #FFFFFF;
-  --color-surf2: #E8EEFF;
-  --color-border: #C8D4FF;
-  --color-border2: #A8BAFF;
+  --color-surf2: #F8F9FF;
+  --color-border: rgba(0,53,255,0.12);
+  --color-border2: rgba(0,53,255,0.2);
   --color-accent: #0035FF;
   --color-accent-light: rgba(0,53,255,0.06);
   --color-accent-mid: rgba(0,53,255,0.12);
   --color-yellow: #FFEF00;
-  --color-yellow-light: rgba(255,239,0,0.10);
+  --color-yellow-light: rgba(255,239,0,0.12);
   --color-green: #00D68F;
   --color-green-light: rgba(0,214,143,0.08);
   --color-amber: #FFB800;
@@ -21,12 +21,10 @@
   --color-red-light: rgba(255,59,92,0.08);
   --color-blue: #0035FF;
   --color-blue-light: rgba(0,53,255,0.06);
-  --color-text: #0A0E27;
-  --color-text2: #1A2040;
-  --color-muted: #5B6B8A;
-  --color-muted2: #8B9AB8;
-  --color-dark: #070B1A;
-  --color-dark2: #0E1330;
+  --color-text: #0035FF;
+  --color-text2: #0035FF;
+  --color-muted: rgba(0,53,255,0.5);
+  --color-muted2: rgba(0,53,255,0.35);
   --font-syne: 'Space Grotesk', sans-serif;
   --font-dm: 'Rubik', sans-serif;
 }
@@ -34,8 +32,8 @@
 * { box-sizing: border-box; }
 
 body {
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: #FFFFFF;
+  color: #0035FF;
   font-family: var(--font-dm);
   margin: 0;
   padding: 0;
@@ -43,16 +41,18 @@ body {
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--color-border2); border-radius: 5px; }
-::placeholder { color: var(--color-muted2); }
+::-webkit-scrollbar-thumb { background: rgba(0,53,255,0.2); border-radius: 5px; }
+::placeholder { color: rgba(0,53,255,0.3); }
 
 @keyframes spin { to { transform: rotate(360deg); } }
-@keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+@keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
 @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
-@keyframes glow { 0%,100% { box-shadow: 0 0 20px rgba(0,53,255,0.3); } 50% { box-shadow: 0 0 40px rgba(0,53,255,0.6), 0 0 80px rgba(255,239,0,0.15); } }
+@keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes glow-blue { 0%,100% { box-shadow: 0 0 20px rgba(0,53,255,0.4); } 50% { box-shadow: 0 0 40px rgba(0,53,255,0.7); } }
+@keyframes glow-yellow { 0%,100% { box-shadow: 0 0 20px rgba(255,239,0,0.4); } 50% { box-shadow: 0 0 40px rgba(255,239,0,0.7); } }
 @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 
-.fade-up { animation: fadeUp 0.4s ease forwards; }
-.fade-up-2 { animation: fadeUp 0.4s 0.08s ease both; }
-.fade-up-3 { animation: fadeUp 0.4s 0.16s ease both; }
-.fade-up-4 { animation: fadeUp 0.4s 0.24s ease both; }
+.fade-up { animation: fadeUp 0.5s ease forwards; }
+.fade-up-2 { animation: fadeUp 0.5s 0.1s ease both; }
+.fade-up-3 { animation: fadeUp 0.5s 0.2s ease both; }
+.fade-up-4 { animation: fadeUp 0.5s 0.3s ease both; }

@@ -25,7 +25,7 @@ export function GlassCard({
         borderRadius: 14,
         padding: 22,
         boxShadow: glow
-          ? "0 4px 24px rgba(108,92,231,0.1)"
+          ? "0 4px 24px rgba(0,53,255,0.1)"
           : "0 1px 3px rgba(0,0,0,0.04)",
         cursor: onClick ? "pointer" : "default",
         transition: "border-color 0.2s ease, box-shadow 0.2s ease",
