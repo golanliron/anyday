@@ -126,7 +126,7 @@ export default function Home() {
               דוח, אוטומציה, בורד חדש, תשובה לשאלה — תגידו מה אתם צריכים בעברית, ו-AnyDay עושה. בלי מטמיע. בלי מפתח. בלי לחכות.
             </p>
             <div className="hero__btns reveal-up" style={{animationDelay:".5s"}}>
-              <button onClick={scrollToDemo} className="btn btn--lime">תראו לי מה היא עושה →</button>
+              <button onClick={scrollToDemo} className="btn btn--lime">דקה — ואתם שם →</button>
               <a href="/workspace" className="btn btn--outline">להתחיל בחינם</a>
             </div>
           </div>
@@ -295,9 +295,9 @@ export default function Home() {
 
         <div className="plans">
           {[
-            { name: "סטארטר", price: "250", items: ["צ׳אט AI בעברית","100 שאלות בחודש","בורד אחד"], cta: "7 ימים חינם →", badge: "לנסות" },
-            { name: "צוות", price: "450", items: ["דוחות PDF מוכנים","התראות חכמות","500 שאלות בחודש"], cta: "תראו לי דמו →" },
-            { name: "מנהלים", price: "750", items: ["אוטומציות מלאות","דשבורד אימפקט","2,000 שאלות בחודש","בורדים ללא הגבלה"], cta: "תראו לי דמו →", pop: true },
+            { name: "סטארטר", price: "250", items: ["צ׳אט AI בעברית","100 שאלות בחודש","בורד אחד"], cta: "להתחיל בחינם →", badge: "לנסות" },
+            { name: "צוות", price: "450", items: ["דוחות PDF מוכנים","התראות חכמות","500 שאלות בחודש"], cta: "דקה — ואתם שם →" },
+            { name: "מנהלים", price: "750", items: ["אוטומציות מלאות","דשבורד אימפקט","2,000 שאלות בחודש","בורדים ללא הגבלה"], cta: "דקה — ואתם שם →", pop: true },
             { name: "ארגון", price: "1,200", items: ["White Label","SSO + API","תמיכה ייעודית","SLA מותאם"], cta: "בואו נדבר →" },
           ].map((p, i) => (
             <div key={i} className={`plan ${p.pop ? "plan--pop" : ""}`} data-reveal>
