@@ -119,8 +119,8 @@ export default function Home() {
           <div className="hero__text">
             <p className="hero__over reveal-up">הסוכן האישי שלך ב-Monday</p>
             <h1 className="hero__h1">
-              <span className="reveal-up" style={{animationDelay:".1s"}}>אמרת.</span>
-              <span className="hero__accent reveal-up" style={{animationDelay:".2s"}}>נעשה.</span>
+              <span className="reveal-up" style={{animationDelay:".1s"}}>Monday עובד בשבילך.</span>
+              <span className="hero__accent reveal-up" style={{animationDelay:".2s"}}>סוף סוף.</span>
             </h1>
             <p className="hero__sub reveal-up" style={{animationDelay:".35s"}}>
               דוח, אוטומציה, בורד חדש, תשובה לשאלה — תגידו מה אתם צריכים בעברית, ו-AnyDay עושה. בלי מטמיע. בלי מפתח. בלי לחכות.
