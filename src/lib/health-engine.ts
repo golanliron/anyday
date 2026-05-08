@@ -88,7 +88,7 @@ function checkStuckItems(board: MondayBoard, items: MondayItem[]): HealthFinding
 
   const stuck = items.filter(item =>
     item.column_values.some(cv =>
-      stuckKeywords.some(kw => cv.text.toLowerCase().includes(kw))
+      cv.text && stuckKeywords.some(kw => cv.text.toLowerCase().includes(kw))
     )
   );
 
@@ -201,7 +201,7 @@ function checkOverdueItems(board: MondayBoard, items: MondayItem[]): HealthFindi
 
   const overdue = items.filter(item => {
     const isDone = item.column_values.some(cv =>
-      doneKeywords.some(kw => cv.text.toLowerCase().includes(kw))
+      cv.text && doneKeywords.some(kw => cv.text.toLowerCase().includes(kw))
     );
     if (isDone) return false;
 
