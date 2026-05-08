@@ -8,7 +8,7 @@ async function mondayFetch<T>(apiKey: string, query: string): Promise<T> {
     headers: {
       "Content-Type": "application/json",
       Authorization: apiKey,
-      "API-Version": "2024-01",
+      "API-Version": "2024-10",
     },
     body: JSON.stringify({ query }),
   });

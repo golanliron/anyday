@@ -67,9 +67,11 @@ export async function POST(req: NextRequest) {
       boardNames: boardsToScan.map(b => b.name),
       totalBoardsInAccount: boards.length,
     });
-  } catch {
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("Health check error:", msg);
     return NextResponse.json(
-      { error: "שגיאה פנימית בשרת. נסו שוב." },
+      { error: `שגיאה פנימית בשרת: ${msg}` },
       { status: 500 }
     );
   }
