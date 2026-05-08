@@ -48,7 +48,7 @@ interface BrandConfig {
   colors: [string, string, string, string]; // ראשי, משני, שלישי, רביעי
 }
 
-const BAR_COLORS = ["#D4FF2B", "#22D3EE", "#2ED573", "#FFA502", "#FF6B35", "#FF4757", "#A78BFA", "#34D399"];
+const BAR_COLORS = ["#FF2D87", "#22D3EE", "#2ED573", "#FFA502", "#FF6B35", "#FF4757", "#A78BFA", "#34D399"];
 
 function hexToRgba(hex: string, alpha: number): string {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -67,7 +67,7 @@ function extractColorsFromImage(imgSrc: string): Promise<[string, string, string
       canvas.width = size;
       canvas.height = size;
       const ctx = canvas.getContext("2d");
-      if (!ctx) { resolve(["#D4FF2B", "#22D3EE", "#2ED573", "#FFA502"]); return; }
+      if (!ctx) { resolve(["#FF2D87", "#22D3EE", "#2ED573", "#FFA502"]); return; }
       ctx.drawImage(img, 0, 0, size, size);
       const data = ctx.getImageData(0, 0, size, size).data;
       // Collect non-white, non-black pixels
@@ -79,7 +79,7 @@ function extractColorsFromImage(imgSrc: string): Promise<[string, string, string
         if (brightness > 240 || brightness < 15) continue; // skip near-white/black
         pixels.push([r, g, b]);
       }
-      if (pixels.length < 10) { resolve(["#D4FF2B", "#22D3EE", "#2ED573", "#FFA502"]); return; }
+      if (pixels.length < 10) { resolve(["#FF2D87", "#22D3EE", "#2ED573", "#FFA502"]); return; }
       // Simple k-means with 4 clusters
       const clusters: [number, number, number][] = [
         pixels[0],
@@ -116,7 +116,7 @@ function extractColorsFromImage(imgSrc: string): Promise<[string, string, string
         "#" + c.map(v => v.toString(16).padStart(2, "0")).join("");
       resolve([toHex(clusters[0]), toHex(clusters[1]), toHex(clusters[2]), toHex(clusters[3])]);
     };
-    img.onerror = () => resolve(["#D4FF2B", "#22D3EE", "#2ED573", "#FFA502"]);
+    img.onerror = () => resolve(["#FF2D87", "#22D3EE", "#2ED573", "#FFA502"]);
     img.src = imgSrc;
   });
 }
@@ -151,14 +151,14 @@ function FormattedText({ text }: { text: string }) {
 
     // Horizontal rule
     if (/^-{3,}$/.test(trimmed) || /^\*{3,}$/.test(trimmed)) {
-      elements.push(<div key={i} style={{ height: 1, background: "var(--brand-pc, #D4FF2B)", opacity: 0.15, margin: "12px 0" }} />);
+      elements.push(<div key={i} style={{ height: 1, background: "var(--brand-pc, #FF2D87)", opacity: 0.15, margin: "12px 0" }} />);
       i++; continue;
     }
 
     // Headers ## and ###
     if (trimmed.startsWith("### ")) {
       elements.push(
-        <div key={i} style={{ fontSize: 14, fontWeight: 700, color: "var(--brand-pc, #D4FF2B)", marginTop: 14, marginBottom: 6 }}>
+        <div key={i} style={{ fontSize: 14, fontWeight: 700, color: "var(--brand-pc, #FF2D87)", marginTop: 14, marginBottom: 6 }}>
           {renderInline(trimmed.slice(4))}
         </div>
       );
@@ -168,7 +168,7 @@ function FormattedText({ text }: { text: string }) {
       elements.push(
         <div key={i} style={{
           fontSize: 16, fontWeight: 800, color: "var(--color-text)", marginTop: 16, marginBottom: 8,
-          paddingBottom: 6, borderBottom: "2px solid var(--brand-pc, #D4FF2B)", opacity: 0.8,
+          paddingBottom: 6, borderBottom: "2px solid var(--brand-pc, #FF2D87)", opacity: 0.8,
         }}>
           {renderInline(trimmed.slice(3))}
         </div>
@@ -289,7 +289,7 @@ function FormattedText({ text }: { text: string }) {
     if (numMatch) {
       elements.push(
         <div key={i} style={{ display: "flex", gap: 6, marginBottom: 4 }}>
-          <span style={{ color: "var(--brand-pc, #D4FF2B)", fontWeight: 700, minWidth: 18 }}>{numMatch[1]}.</span>
+          <span style={{ color: "var(--brand-pc, #FF2D87)", fontWeight: 700, minWidth: 18 }}>{numMatch[1]}.</span>
           <span>{renderInline(line)}</span>
         </div>
       );
@@ -300,7 +300,7 @@ function FormattedText({ text }: { text: string }) {
     if (trimmed.startsWith("- ") || trimmed.startsWith("• ")) {
       elements.push(
         <div key={i} style={{ display: "flex", gap: 6, marginBottom: 4, paddingRight: 8 }}>
-          <span style={{ color: "var(--brand-pc, #D4FF2B)" }}>•</span>
+          <span style={{ color: "var(--brand-pc, #FF2D87)" }}>•</span>
           <span>{renderInline(trimmed.slice(2))}</span>
         </div>
       );
@@ -397,7 +397,7 @@ export function BoardDashboard({
   const [panelWidth, setPanelWidth] = useState(340);
   const [loadingMsg, setLoadingMsg] = useState("");
   const [brand, setBrand] = useState<BrandConfig>({
-    orgName: "", logoUrl: "", colors: ["#D4FF2B", "#22D3EE", "#2ED573", "#FFA502"],
+    orgName: "", logoUrl: "", colors: ["#FF2D87", "#22D3EE", "#2ED573", "#FFA502"],
   });
   const [chatHistory, setChatHistory] = useState<ChatSession[]>([]);
   const [showHistory, setShowHistory] = useState(false);
@@ -490,7 +490,7 @@ export function BoardDashboard({
     };
   }, []);
 
-  const hasBrand = brand.orgName.trim() !== "" || brand.logoUrl.trim() !== "" || brand.colors[0] !== "#D4FF2B";
+  const hasBrand = brand.orgName.trim() !== "" || brand.logoUrl.trim() !== "" || brand.colors[0] !== "#FF2D87";
   const [pc, ac] = brand.colors;
   // brand.colors[2] and brand.colors[3] available for charts/exports
 
@@ -1165,9 +1165,9 @@ const CHART_TYPES: Record<string, string[]> = {
   text: ["bar"],
 };
 
-const COLORS = ["#D4FF2B", "var(--color-accent)", "#00B894", "#FDCB6E", "#E17055", "#0984E3", "#FD79A8", "#55EFC4"];
+const COLORS = ["#FF2D87", "var(--color-accent)", "#00B894", "#FDCB6E", "#E17055", "#0984E3", "#FD79A8", "#55EFC4"];
 
-function DashboardPanel({ board, items, pc = "#D4FF2B", ac = "var(--color-accent)" }: { board: MondayBoard; items: MondayItem[]; pc?: string; ac?: string }) {
+function DashboardPanel({ board, items, pc = "#FF2D87", ac = "var(--color-accent)" }: { board: MondayBoard; items: MondayItem[]; pc?: string; ac?: string }) {
   const [selectedCols, setSelectedCols] = useState<Set<string>>(new Set());
   const [exporting, setExporting] = useState(false);
 
@@ -1472,7 +1472,7 @@ interface SavedAutomation {
   createdAt: string;
 }
 
-function AutomationsPanel({ board, items, apiToken, boardId, pc = "#D4FF2B", ac = "var(--color-accent)" }: {
+function AutomationsPanel({ board, items, apiToken, boardId, pc = "#FF2D87", ac = "var(--color-accent)" }: {
   board: MondayBoard; items: MondayItem[]; apiToken: string; boardId: string; pc?: string; ac?: string;
 }) {
   const [condCol, setCondCol] = useState("");
@@ -1904,7 +1904,7 @@ function AutomationsPanel({ board, items, apiToken, boardId, pc = "#D4FF2B", ac 
 }
 
 
-function ImpactPanel({ board, items, pc = "#D4FF2B", ac = "var(--color-accent)" }: { board: MondayBoard; items: MondayItem[]; pc?: string; ac?: string }) {
+function ImpactPanel({ board, items, pc = "#FF2D87", ac = "var(--color-accent)" }: { board: MondayBoard; items: MondayItem[]; pc?: string; ac?: string }) {
   const [exporting, setExporting] = useState(false);
   const [selectedCols, setSelectedCols] = useState<Set<string>>(new Set());
 
@@ -2156,7 +2156,7 @@ ${chartsHtml}
 // ReportPanel - One-click management reports
 // ═══════════════════════════════════════════════════════
 
-function ReportPanel({ board, items, pc = "#D4FF2B", ac = "var(--color-accent)", orgName = "" }: {
+function ReportPanel({ board, items, pc = "#FF2D87", ac = "var(--color-accent)", orgName = "" }: {
   board: MondayBoard; items: MondayItem[]; pc?: string; ac?: string; orgName?: string;
 }) {
   const [reportType, setReportType] = useState<string>("management");
@@ -2420,7 +2420,7 @@ interface Alert {
   items: string[];
 }
 
-function AlertsPanel({ board, items, pc = "#D4FF2B", ac = "var(--color-accent)", onAskAI }: {
+function AlertsPanel({ board, items, pc = "#FF2D87", ac = "var(--color-accent)", onAskAI }: {
   board: MondayBoard; items: MondayItem[]; pc?: string; ac?: string; onAskAI?: (question: string) => void;
 }) {
   // Analyze board for alerts
@@ -2660,7 +2660,7 @@ function AlertsPanel({ board, items, pc = "#D4FF2B", ac = "var(--color-accent)",
   );
 }
 
-function InlineDataEditPanel({ board, items, apiToken, boardId, pc = "#D4FF2B", ac = "var(--color-accent)" }: {
+function InlineDataEditPanel({ board, items, apiToken, boardId, pc = "#FF2D87", ac = "var(--color-accent)" }: {
   board: MondayBoard; items: MondayItem[]; apiToken: string; boardId: string; pc?: string; ac?: string;
 }) {
   const [editingCell, setEditingCell] = useState<{ itemId: string; colId: string } | null>(null);

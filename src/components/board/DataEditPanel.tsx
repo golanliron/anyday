@@ -28,7 +28,7 @@ function hexToRgba(hex: string, alpha: number): string {
   return "rgba(" + r + "," + g + "," + b + "," + alpha + ")";
 }
 
-function DataEditPanelInner({ board, items, apiToken, boardId, pc = "#D4FF2B", ac = "var(--color-text2)" }: {
+function DataEditPanelInner({ board, items, apiToken, boardId, pc = "#FF2D87", ac = "var(--color-text2)" }: {
   board: MondayBoard; items: MondayItem[]; apiToken: string; boardId: string; pc?: string; ac?: string;
 }) {
   const [editingCell, setEditingCell] = useState<{ itemId: string; colId: string } | null>(null);

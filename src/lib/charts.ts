@@ -1,7 +1,7 @@
 import type { MondayBoard, MondayItem, ChartData } from "@/types";
 
 export const PIE_COLORS = [
-  "#D4FF2B",
+  "#FF2D87",
   "#22D3EE",
   "#2ED573",
   "#FFA502",
