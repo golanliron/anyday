@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { listBoards, loadBoard } from "@/lib/api-client";
 import { BoardDashboard } from "@/components/board/BoardDashboard";
+import { SmartBuilder } from "@/components/builder/SmartBuilder";
 import type { MondayBoard, MondayItem } from "@/types";
 
 interface BoardSummary {
@@ -24,6 +25,7 @@ export default function WorkspacePage() {
   const [selectedItems, setSelectedItems] = useState<MondayItem[]>([]);
   const [selectedBoardId, setSelectedBoardId] = useState("");
   const [loadingBoard, setLoadingBoard] = useState(false);
+  const [showBuilder, setShowBuilder] = useState(false);
 
   // Pick up token from OAuth redirect or localStorage
   useEffect(() => {
@@ -248,85 +250,125 @@ export default function WorkspacePage() {
           </div>
         )}
 
-        {/* Board list */}
-        {mondayToken && !loadingBoards && !loadingBoard && boards.length > 0 && (
-          <>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-              <h2 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>
-                {"\u05D4\u05D1\u05D5\u05E8\u05D3\u05D9\u05DD \u05E9\u05DC\u05DB\u05DD"}
-              </h2>
-              <Link href="/builder" style={{
-                padding: "10px 20px", borderRadius: 10, border: "1px solid var(--color-accent)",
-                background: "transparent", color: "var(--color-accent)",
-                fontSize: 14, fontWeight: 600, textDecoration: "none",
-                fontFamily: "var(--font-dm)", display: "inline-flex", alignItems: "center", gap: 6,
-              }}>
-                {"+ \u05D1\u05E0\u05D5 \u05DE\u05E2\u05E8\u05DB\u05EA \u05D7\u05D3\u05E9\u05D4"}
-              </Link>
-            </div>
-
-            <div className="ws-board-grid" style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-              gap: 14,
-            }}>
-              {boards.map(b => (
-                <div
-                  key={b.id}
-                  className="ws-board-card"
-                  onClick={() => handleSelectBoard(b.id)}
-                  style={{
-                    background: "var(--color-surf)",
-                    borderRadius: 14,
-                    border: "1px solid var(--color-border)",
-                    padding: "20px 18px",
-                  }}
-                >
-                  <h3 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 6px", lineHeight: 1.3 }}>
-                    {b.name}
-                  </h3>
-                  {b.description && (
-                    <p style={{
-                      fontSize: 13, color: "var(--color-muted)", margin: "0 0 10px",
-                      lineHeight: 1.5, overflow: "hidden",
-                      display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
-                    }}>
-                      {b.description}
-                    </p>
-                  )}
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{
-                      fontSize: 12, fontWeight: 600, color: "var(--color-accent)",
-                      background: "var(--color-accent-light)", padding: "3px 8px", borderRadius: 6,
-                    }}>
-                      {b.items_count} {"\u05E4\u05E8\u05D9\u05D8\u05D9\u05DD"}
-                    </span>
-                    <span style={{ fontSize: 12, color: "var(--color-muted2)" }}>
-                      {"ID: "}{b.id}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
+        {/* Smart Builder */}
+        {mondayToken && !loadingBoards && !loadingBoard && showBuilder && (
+          <div style={{ marginBottom: 24 }}>
+            <button
+              onClick={() => setShowBuilder(false)}
+              style={{
+                fontSize: 13, color: "var(--color-accent)", background: "none",
+                border: "none", cursor: "pointer", fontWeight: 600,
+                fontFamily: "var(--font-dm)", marginBottom: 12,
+                display: "flex", alignItems: "center", gap: 4,
+              }}
+            >
+              {"\u2190 \u05D7\u05D6\u05E8\u05D4 \u05DC\u05D1\u05D5\u05E8\u05D3\u05D9\u05DD"}
+            </button>
+            <SmartBuilder
+              apiToken={mondayToken}
+              existingBoards={boards.map(b => b.name)}
+              onBoardCreated={() => {
+                setShowBuilder(false);
+                fetchBoards(mondayToken!);
+              }}
+            />
+          </div>
         )}
 
-        {/* No boards */}
-        {mondayToken && !loadingBoards && !loadingBoard && boards.length === 0 && !error && (
-          <div style={{ textAlign: "center", padding: 48 }}>
-            <p style={{ fontSize: 18, fontWeight: 600 }}>{"\u05DC\u05D0 \u05E0\u05DE\u05E6\u05D0\u05D5 \u05D1\u05D5\u05E8\u05D3\u05D9\u05DD"}</p>
-            <p style={{ fontSize: 14, color: "var(--color-muted)", marginBottom: 20 }}>
-              {"\u05D0\u05D9\u05DF \u05D1\u05D5\u05E8\u05D3\u05D9\u05DD \u05D1\u05D7\u05E9\u05D1\u05D5\u05DF \u05D4-Monday \u05E9\u05DC\u05DB\u05DD, \u05D0\u05D5 \u05E9\u05D4\u05D8\u05D5\u05E7\u05DF \u05DC\u05D0 \u05EA\u05E7\u05D9\u05DF."}
-            </p>
-            <Link href="/builder" style={{
-              padding: "12px 28px", borderRadius: 10, border: "none",
-              background: "var(--color-accent)", color: "#fff",
-              fontSize: 15, fontWeight: 600, textDecoration: "none",
-              fontFamily: "var(--font-dm)",
-            }}>
-              {"\u05D1\u05E0\u05D5 \u05DE\u05E2\u05E8\u05DB\u05EA \u05D7\u05D3\u05E9\u05D4"}
-            </Link>
-          </div>
+        {/* Board list */}
+        {mondayToken && !loadingBoards && !loadingBoard && !showBuilder && (
+          <>
+            {/* Build new system — prominent CTA */}
+            <div
+              onClick={() => setShowBuilder(true)}
+              style={{
+                background: "linear-gradient(135deg, var(--color-accent), #8b5cf6)",
+                borderRadius: 16, padding: "24px 28px", marginBottom: 20,
+                cursor: "pointer", transition: "transform 0.2s, box-shadow 0.2s",
+                boxShadow: "0 4px 20px rgba(108,92,231,0.2)",
+                display: "flex", alignItems: "center", gap: 16,
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 30px rgba(108,92,231,0.3)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 20px rgba(108,92,231,0.2)"; }}
+            >
+              <div style={{
+                width: 48, height: 48, borderRadius: 12,
+                background: "rgba(255,255,255,0.2)", display: "flex",
+                alignItems: "center", justifyContent: "center",
+                fontSize: 24, flexShrink: 0,
+              }}>
+                {"🏗️"}
+              </div>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 4 }}>
+                  {"בנו מערכת חדשה עם AI"}
+                </div>
+                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.8)", lineHeight: 1.5 }}>
+                  {"ספרו מה אתם צריכים, העלו אקסל — ואני אבנה לכם מערכת שלמה ב-Monday"}
+                </div>
+              </div>
+              <div style={{ marginRight: "auto", fontSize: 24, color: "rgba(255,255,255,0.6)" }}>{"←"}</div>
+            </div>
+
+            {boards.length > 0 && (
+              <>
+                <h2 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 14px" }}>
+                  {"הבורדים שלכם"}
+                </h2>
+                <div className="ws-board-grid" style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+                  gap: 14,
+                }}>
+                  {boards.map(b => (
+                    <div
+                      key={b.id}
+                      className="ws-board-card"
+                      onClick={() => handleSelectBoard(b.id)}
+                      style={{
+                        background: "var(--color-surf)",
+                        borderRadius: 14,
+                        border: "1px solid var(--color-border)",
+                        padding: "20px 18px",
+                      }}
+                    >
+                      <h3 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 6px", lineHeight: 1.3 }}>
+                        {b.name}
+                      </h3>
+                      {b.description && (
+                        <p style={{
+                          fontSize: 13, color: "var(--color-muted)", margin: "0 0 10px",
+                          lineHeight: 1.5, overflow: "hidden",
+                          display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+                        }}>
+                          {b.description}
+                        </p>
+                      )}
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{
+                          fontSize: 12, fontWeight: 600, color: "var(--color-accent)",
+                          background: "var(--color-accent-light)", padding: "3px 8px", borderRadius: 6,
+                        }}>
+                          {b.items_count} {"פריטים"}
+                        </span>
+                        <span style={{ fontSize: 12, color: "var(--color-muted2)" }}>
+                          {"ID: "}{b.id}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {boards.length === 0 && !error && (
+              <div style={{ textAlign: "center", padding: "20px 0" }}>
+                <p style={{ fontSize: 15, color: "var(--color-muted)" }}>
+                  {"אין עדיין בורדים — לחצו למעלה כדי לבנות את המערכת הראשונה שלכם"}
+                </p>
+              </div>
+            )}
+          </>
         )}
       </main>
 
