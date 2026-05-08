@@ -117,18 +117,19 @@ export default function Home() {
 
         <div className="hero__inner">
           <div className="hero__text">
-            <p className="hero__over reveal-up">הסוכן האישי שלך ב-Monday</p>
+            <p className="hero__over reveal-up">בונים ומסדרים Monday — במקום אחד</p>
             <h1 className="hero__h1">
-              <span className="reveal-up" style={{animationDelay:".1s"}}>Monday עובד בשבילך.</span>
-              <span className="hero__accent reveal-up" style={{animationDelay:".2s"}}>סוף סוף.</span>
+              <span className="reveal-up" style={{animationDelay:".1s"}}>ה-Monday שלכם</span>
+              <span className="hero__accent reveal-up" style={{animationDelay:".2s"}}>יכול לעבוד הרבה יותר טוב.</span>
             </h1>
             <p className="hero__sub reveal-up" style={{animationDelay:".35s"}}>
-              תתחילו לדבר עם ה-Monday שלכם. בעברית. בניית מערכות, אוטומציות, דשבורדים להנהלה — כל יום, לא רק כשהמטמיע פנוי.
+              בניית מערכת חדשה, סידור בורדים קיימים, אוטומציות ודוחות — הכל במקום אחד, בלי מטמיע ובלי לחכות.
             </p>
             <div className="hero__btns reveal-up" style={{animationDelay:".5s"}}>
-              <button onClick={scrollToDemo} className="btn btn--lime">דקה — ואתם שם →</button>
-              <a href="/workspace" className="btn btn--outline">להתחיל בחינם</a>
+              <a href="/workspace" className="btn btn--lime">בנו מערכת Monday חדשה →</a>
+              <a href="/workspace" className="btn btn--outline">בדקו את ה-Monday שלכם</a>
             </div>
+            <p className="hero__audience reveal-up" style={{animationDelay:".6s"}}>למנכ״לים, סמנכ״לים, מנהלי תפעול וצוותים שעובדים עם Monday כל יום</p>
           </div>
 
           {/* Floating Dashboard */}
@@ -140,10 +141,10 @@ export default function Home() {
               </div>
               <div className="dash__body">
                 <div className="dash__chat">
-                  <div className="chat-q">מה המצב עם הרבעון?</div>
+                  <div className="chat-q">תבנה לי CRM לניהול לקוחות</div>
                   <div className="chat-a">
                     <span className="chat-a__tag">AnyDay</span>
-                    סגרתם <strong>47 עסקאות חדשות</strong> — 23% יותר מרבעון קודם. 3 עסקאות תקועות מעל שבועיים.
+                    בניתי בורד עם <strong>5 עמודות, 3 קבוצות ו-2 אוטומציות</strong>. הכל מוכן — תרצו לשנות משהו?
                     <div className="chat-a__bar">
                       <div className="chat-a__fill" />
                     </div>
@@ -151,16 +152,16 @@ export default function Home() {
                 </div>
                 <div className="dash__cards">
                   <div className="dash__card">
-                    <span className="dash__card-label">ביצוע</span>
-                    <span className="dash__card-val dash__card-val--green">89%</span>
+                    <span className="dash__card-label">בורדים</span>
+                    <span className="dash__card-val dash__card-val--green">3 נוצרו</span>
                   </div>
                   <div className="dash__card">
-                    <span className="dash__card-label">פרויקטים</span>
-                    <span className="dash__card-val">12</span>
+                    <span className="dash__card-label">עמודות</span>
+                    <span className="dash__card-val">15</span>
                   </div>
                   <div className="dash__card dash__card--alert">
-                    <span className="dash__card-label">התראה</span>
-                    <span className="dash__card-val dash__card-val--red">לקוח לא הגיב 14 יום</span>
+                    <span className="dash__card-label">אוטומציה</span>
+                    <span className="dash__card-val dash__card-val--red">2 כללים פעילים</span>
                   </div>
                 </div>
               </div>
@@ -176,8 +177,8 @@ export default function Home() {
       <section className="stats">
         {[
           { num: 0, suffix: "", label: "מטמיעים נדרשים" },
-          { num: 2, suffix: " דק׳", label: "מבקשה לתוצאה" },
-          { num: 24, suffix: "/7", label: "סוכן שלא הולך הביתה" },
+          { num: 2, suffix: " דק׳", label: "לבנות מערכת חדשה" },
+          { num: 24, suffix: "/7", label: "זמין בשבילכם" },
           { num: 100, suffix: "%", label: "עברית טבעית" },
         ].map((s, i) => (
           <div key={i} className="stat" data-reveal>
@@ -189,33 +190,55 @@ export default function Home() {
         ))}
       </section>
 
+      {/* ─── WHAT CAN YOU DO ─── */}
+      <section className="capabilities">
+        <div className="capabilities__header" data-reveal>
+          <span className="tag">מה אפשר לעשות</span>
+          <h2 className="big-title">ארבעה דברים.<br/>מקום אחד.</h2>
+        </div>
+        <div className="capabilities__grid">
+          {[
+            { icon: "🏗️", title: "בנו מערכת חדשה", desc: "תארו מה אתם צריכים — AnyDay בונה בורדים, עמודות, קבוצות ואוטומציות. בלי מטמיע." },
+            { icon: "🔧", title: "סדרו מערכת קיימת", desc: "חיברו את Monday שלכם. AnyDay סורקת, מזהה בעיות ומציעה שיפורים מיידיים." },
+            { icon: "⚡", title: "אוטומציות בקליק", desc: "הגדירו כללים בעברית: ״כשסטטוס משתנה — העבירו לקבוצה.״ בלי נוסחאות." },
+            { icon: "📊", title: "דוחות ודשבורדים", desc: "דוח להנהלה, סיכום רבעוני, גרף ביצועים — מוכן תוך שניות, לא שעות." },
+          ].map((cap, i) => (
+            <div key={i} className="cap-card" data-reveal style={{animationDelay: `${i * .1}s`}}>
+              <span className="cap-card__icon">{cap.icon}</span>
+              <h3 className="cap-card__title">{cap.title}</h3>
+              <p className="cap-card__desc">{cap.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* ─── FEATURES ─── */}
       <section id="features" className="features">
         <div className="features__header" data-reveal>
-          <span className="tag">מה זה עושה</span>
-          <h2 className="big-title">לא עוד<br/>דשבורד.</h2>
+          <span className="tag">איך זה נראה בפועל</span>
+          <h2 className="big-title">לא סתם<br/>עוד כלי.</h2>
         </div>
 
         {[
           {
-            title: "שאלת בעברית.\nקיבלת תשובה.",
-            desc: "\"כמה עסקאות נסגרו ברבעון?\" — תשובה תוך שנייה, עם המקור, עם הגרף. בלי לפתוח בורד אחד.",
-            visual: "chat",
+            title: "אמרתם \"תבנו לנו CRM\".\nהוא נבנה.",
+            desc: "תארו מה אתם צריכים — AnyDay בונה בורדים, עמודות, קבוצות ופריטים. מערכת מוכנה בדקות, לא בשבועות.",
+            visual: "build",
           },
           {
-            title: "דוח לישיבה?\nדקה.",
-            desc: "PDF לדירקטוריון, דשבורד עם גרפים, סיכום רבעוני. מה שלקח לצוות שלך חצי יום — מוכן לפני הקפה.",
-            visual: "report",
-          },
-          {
-            title: "יודעת שיש בעיה\nלפני שאתם.",
-            desc: "לקוח לא הגיב 14 יום? פרויקט נדחה שלוש פעמים? AnyDay שולחת התראה לפני שמישהו שואל \"מה קרה שם?\"",
+            title: "30 בורדים?\nסדר תוך דקה.",
+            desc: "AnyDay סורקת את כל המבנה, מזהה עמודות כפולות, קבוצות ריקות ובעיות מבניות — ומציעה תיקון מיידי.",
             visual: "alert",
           },
           {
-            title: "אמרת \"תבני לי CRM\".\nהיא בנתה.",
-            desc: "העלאת אקסל, מיפוי לבורד, בניית מערכת — בשיחה אחת. בלי מפתח, בלי IT, בלי \"נחזור אליך\".",
-            visual: "build",
+            title: "אוטומציות\nבלי לכתוב שורה.",
+            desc: "\"כשסטטוס משתנה — שלחו התראה.\" הגדרתם כלל בעברית, AnyDay מפעילה אותו. בלי פורמולות ובלי מטמיע.",
+            visual: "chat",
+          },
+          {
+            title: "דוח להנהלה?\nשניות.",
+            desc: "סיכום רבעוני, דשבורד ביצועים, גרפים — מוכן לפני הישיבה. מה שלקח חצי יום עבודה קורה בלחיצה.",
+            visual: "report",
           },
         ].map((f, i) => (
           <div key={i} className={`feat ${i % 2 === 1 ? "feat--flip" : ""}`} data-reveal>
@@ -266,15 +289,15 @@ export default function Home() {
       <section id="how" className="how">
         <div className="how__header" data-reveal>
           <span className="tag tag--dark">איך זה עובד</span>
-          <h2 className="big-title big-title--light">שתי דקות.<br/>אפס IT.<br/>ואתם בפנים.</h2>
+          <h2 className="big-title big-title--light">שתי דקות.<br/>אפס מטמיעים.<br/>Monday שעובד.</h2>
         </div>
 
         <div className="timeline">
           <div className="timeline__line" />
           {[
-            { num: "01", title: "חברו את Monday", desc: "לחיצה אחת. אין מה להתקין, אין מה להגדיר.", color: "var(--lime)" },
-            { num: "02", title: "AnyDay לומדת את המבנה", desc: "בורדים, עמודות, קשרים — הכל נקרא אוטומטית.", color: "var(--orange)" },
-            { num: "03", title: "שאלו מה שבא לכם", desc: "בעברית פשוטה. כאילו שלחתם הודעה לאנליסט שזמין תמיד.", color: "var(--cyan)" },
+            { num: "01", title: "חברו את Monday שלכם", desc: "הכניסו API Token — וזהו. בלי התקנות, בלי הגדרות, בלי IT.", color: "var(--lime)" },
+            { num: "02", title: "בנו או סדרו", desc: "צריכים מערכת חדשה? תארו אותה. יש מערכת קיימת? AnyDay תסרוק ותציע שיפורים.", color: "var(--orange)" },
+            { num: "03", title: "הפעילו ותנהלו", desc: "אוטומציות, דוחות, שינויים — הכל בעברית, הכל במקום אחד, הכל עכשיו.", color: "var(--cyan)" },
           ].map((s, i) => (
             <div key={i} className="tl-step" data-reveal>
               <div className="tl-step__dot" style={{background: s.color}} />
@@ -361,11 +384,11 @@ export default function Home() {
         <div className="final__bg" />
         <div className="final__content" data-reveal>
           <h2 className="final__title">
-            הצוות שלכם<br/>עובד קשה מדי<br/>על הדבר הלא נכון.
+            ה-Monday שלכם<br/>יכול לעבוד<br/>הרבה יותר טוב.
           </h2>
-          <p className="final__accent">תנו ל-AnyDay לעשות את העבודה. אתם תעשו את ההחלטות.</p>
-          <p className="final__sub">ללא כרטיס אשראי · ללא חוזה · ביטול בלחיצה</p>
-          <button onClick={scrollToDemo} className="btn btn--lime btn--xl">דקה — ואתם שם →</button>
+          <p className="final__accent">בנו מערכת חדשה או שפרו את הקיימת — בדקות, לא בשבועות.</p>
+          <p className="final__sub">ללא כרטיס אשראי · ללא מטמיע · ביטול בלחיצה</p>
+          <a href="/workspace" className="btn btn--lime btn--xl">בנו מערכת Monday חדשה →</a>
         </div>
       </section>
 
