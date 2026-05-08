@@ -362,9 +362,9 @@ export default function Home() {
           <h2 className="final__title">
             הצוות שלכם<br/>עובד קשה מדי<br/>על הדבר הלא נכון.
           </h2>
-          <p className="final__accent">תנו ל-AnyDay לעשות את האיסוף. אתם תעשו את ההחלטות.</p>
+          <p className="final__accent">תנו ל-AnyDay לעשות את העבודה. אתם תעשו את ההחלטות.</p>
           <p className="final__sub">ללא כרטיס אשראי · ללא חוזה · ביטול בלחיצה</p>
-          <button onClick={scrollToDemo} className="btn btn--lime btn--xl">רוצים לראות? תזמינו דמו →</button>
+          <button onClick={scrollToDemo} className="btn btn--lime btn--xl">דקה — ואתם שם →</button>
         </div>
       </section>
 
