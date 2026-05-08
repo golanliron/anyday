@@ -117,13 +117,13 @@ export default function Home() {
 
         <div className="hero__inner">
           <div className="hero__text">
-            <p className="hero__over reveal-up">הסוכן האישי שלך ב-Monday.com</p>
+            <p className="hero__over reveal-up">הסוכן האישי שלך ב-Monday</p>
             <h1 className="hero__h1">
-              <span className="reveal-up" style={{animationDelay:".1s"}}>צריך משהו במאנדיי?</span>
-              <span className="hero__accent reveal-up" style={{animationDelay:".2s"}}>תבקש. AnyDay תעשה.</span>
+              <span className="reveal-up" style={{animationDelay:".1s"}}>אמרת.</span>
+              <span className="hero__accent reveal-up" style={{animationDelay:".2s"}}>נעשה.</span>
             </h1>
             <p className="hero__sub reveal-up" style={{animationDelay:".35s"}}>
-              דוח? שאלה? בנייה של בורד? התראה כשמשהו תקוע? פשוט תגידו מה אתם צריכים — בעברית, בשאלה אחת — ו-AnyDay עושה. בלי מטמיע. בלי מפתח. בלי לחכות לאף אחד.
+              דוח, אוטומציה, בורד חדש, תשובה לשאלה — תגידו מה אתם צריכים בעברית, ו-AnyDay עושה. בלי מטמיע. בלי מפתח. בלי לחכות.
             </p>
             <div className="hero__btns reveal-up" style={{animationDelay:".5s"}}>
               <button onClick={scrollToDemo} className="btn btn--lime">תראו לי מה היא עושה →</button>
