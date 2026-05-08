@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { BoardDashboard } from "@/components/board/BoardDashboard";
 import { loadBoard } from "@/lib/api-client";
 import type { MondayBoard, MondayItem } from "@/types";
@@ -32,19 +32,40 @@ export default function Home() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Scroll reveal observer
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            entry.target.classList.add("visible");
+            entry.target.classList.add("in-view");
           }
         });
       },
-      { threshold: 0.1, rootMargin: "0px 0px -40px 0px" }
+      { threshold: 0.15, rootMargin: "0px 0px -60px 0px" }
     );
-    document.querySelectorAll(".scroll-reveal").forEach((el) => observer.observe(el));
+    document.querySelectorAll("[data-reveal]").forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+
+  // Counter animation
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const el = entry.target as HTMLElement;
+          const target = parseInt(el.dataset.count || "0");
+          let current = 0;
+          const step = Math.ceil(target / 40);
+          const timer = setInterval(() => {
+            current += step;
+            if (current >= target) { current = target; clearInterval(timer); }
+            el.textContent = current.toString();
+          }, 30);
+          observer.unobserve(el);
+        }
+      });
+    }, { threshold: 0.5 });
+    document.querySelectorAll("[data-count]").forEach((el) => observer.observe(el));
     return () => observer.disconnect();
   }, []);
 
@@ -57,291 +78,299 @@ export default function Home() {
   }
 
   return (
-    <div dir="rtl" className="page-root">
+    <div dir="rtl" className="root">
 
-      {/* ── Navbar ── */}
-      <nav className={`nav-bar ${scrolled ? "nav-scrolled" : ""}`}>
-        <div className="nav-inner">
-          <a href="/" className="nav-logo">
-            <div className="logo-mark">A</div>
-            <span className="logo-text">AnyDay</span>
-          </a>
-          <div className="nav-links desktop-nav">
-            {[["#features","יתרונות"],["#how","איך זה עובד"],["#pricing","מחירים"]].map(([href, label]) => (
-              <a key={href} href={href} className="nav-link">{label}</a>
-            ))}
-            <a href="/workspace" className="nav-cta">כניסה למערכת</a>
-          </div>
-          <button className="mobile-burger" onClick={() => setMobileMenu(!mobileMenu)} aria-label="תפריט">
-            <span className={`burger-line ${mobileMenu ? "open" : ""}`} />
-            <span className={`burger-line ${mobileMenu ? "open" : ""}`} />
-            <span className={`burger-line ${mobileMenu ? "open" : ""}`} />
-          </button>
+      {/* ─── NAV ─── */}
+      <nav className={`nav ${scrolled ? "nav--solid" : ""}`}>
+        <a href="/" className="nav__logo">
+          <span className="nav__mark">A</span>
+          <span className="nav__name">AnyDay</span>
+        </a>
+        <div className="nav__links">
+          {[["#features","יתרונות"],["#how","תהליך"],["#pricing","מחירים"]].map(([h,l]) => (
+            <a key={h} href={h} className="nav__link">{l}</a>
+          ))}
+          <a href="/workspace" className="nav__enter">כניסה →</a>
         </div>
+        <button className="nav__burger" onClick={() => setMobileMenu(!mobileMenu)} aria-label="תפריט">
+          <span className={mobileMenu ? "x" : ""} />
+          <span className={mobileMenu ? "x" : ""} />
+        </button>
       </nav>
 
-      {/* Mobile overlay */}
       {mobileMenu && (
-        <div className="mobile-overlay">
-          {[["#features","יתרונות"],["#how","איך זה עובד"],["#pricing","מחירים"]].map(([href, label], i) => (
-            <a key={href} href={href} onClick={() => setMobileMenu(false)}
-              className="mobile-link" style={{ animationDelay: `${i * 0.08}s` }}>{label}</a>
+        <div className="mob">
+          {[["#features","יתרונות"],["#how","תהליך"],["#pricing","מחירים"]].map(([h,l],i) => (
+            <a key={h} href={h} onClick={() => setMobileMenu(false)} className="mob__link" style={{animationDelay:`${i*.08}s`}}>{l}</a>
           ))}
-          <a href="/workspace" className="mobile-cta" style={{ animationDelay: "0.24s" }}>כניסה למערכת</a>
+          <a href="/workspace" className="mob__cta">כניסה למערכת</a>
         </div>
       )}
 
-      {/* ── Hero ── */}
+      {/* ─── HERO ─── */}
       <section className="hero">
-        <div className="hero-mesh" />
-        <div className="hero-glow hero-glow-1" />
-        <div className="hero-glow hero-glow-2" />
-        <div className="hero-glow hero-glow-3" />
-
-        <div className="hero-content reveal">
-          <div className="hero-badge">
-            <span className="badge-dot" />
-            AI-Powered Monday.com OS
-          </div>
-          <h1 className="hero-title">
-            <span className="title-line reveal-text">דוח לדירקטוריון?</span>
-            <span className="title-line title-accent reveal-text" style={{ animationDelay: "0.15s" }}>עוד דקה ויש לך.</span>
-          </h1>
-          <p className="hero-desc reveal-text" style={{ animationDelay: "0.3s" }}>
-            AnyDay מחבר את הבורדים, הגיליונות והאקסלים שלכם — והופך אותם לדוחות, תובנות והתראות חכמות. בעברית. בלי טכנולוג.
-          </p>
-          <div className="hero-actions reveal-text" style={{ animationDelay: "0.45s" }}>
-            <button onClick={scrollToDemo} className="btn-primary">
-              <span>הזמינו דמו</span>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </button>
-            <a href="/workspace" className="btn-ghost">התחילו בחינם</a>
-          </div>
+        <div className="hero__bg">
+          <div className="hero__orb hero__orb--1" />
+          <div className="hero__orb hero__orb--2" />
+          <div className="hero__grain" />
         </div>
 
-        {/* Dashboard mockup */}
-        <div className="hero-mockup reveal-text" style={{ animationDelay: "0.6s" }}>
-          <div className="mockup-window">
-            <div className="mockup-dots">
-              <span /><span /><span />
-            </div>
-            <div className="mockup-content">
-              <div className="mock-row">
-                <div className="mock-card mock-card-wide">
-                  <div className="mock-label">לקוחות חדשים ברבעון</div>
-                  <div className="mock-number">+47</div>
-                  <div className="mock-bar">
-                    <div className="mock-bar-fill" style={{ width: "78%" }} />
-                  </div>
-                </div>
-                <div className="mock-card">
-                  <div className="mock-label">פרויקטים פעילים</div>
-                  <div className="mock-number">12</div>
-                </div>
-              </div>
-              <div className="mock-row">
-                <div className="mock-card">
-                  <div className="mock-label">אחוז ביצוע</div>
-                  <div className="mock-number mock-green">89%</div>
-                </div>
-                <div className="mock-card mock-card-wide">
-                  <div className="mock-label">התראות השבוע</div>
-                  <div className="mock-alerts">
-                    <div className="mock-alert mock-alert-red">לקוח לא הגיב 14 יום</div>
-                    <div className="mock-alert mock-alert-amber">פרויקט בעיכוב</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Marquee */}
-        <div className="marquee-wrap">
-          <div className="marquee-fade marquee-fade-r" />
-          <div className="marquee-fade marquee-fade-l" />
-          <div className="marquee-track">
-            {["Monday.com","Google Sheets","Excel","CSV","REST API","Webhooks","Monday.com","Google Sheets","Excel","CSV","REST API","Webhooks"].map((t,i) => (
-              <span key={i} className="marquee-item">{t}</span>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Problem ── */}
-      <section className="section-problem scroll-reveal">
-        <div className="container-sm">
-          <div className="problem-card">
-            <div className="problem-icon">⚡</div>
-            <h2 className="section-title">כל שבוע, אותו טקס.</h2>
-            <p className="problem-text">
-              הוועד מבקש עדכון. אתם שולחים מייל, היא מסננת בורדים, בונה גרפים — ומחזירה אחרי יומיים.
-              <br /><strong>יש לכם 14 בורדים, 6 גיליונות וארבעה אקסלים. הנתונים נמצאים. התשובות לא.</strong>
+        <div className="hero__inner">
+          <div className="hero__text">
+            <p className="hero__over reveal-up">The Monday.com AI Layer</p>
+            <h1 className="hero__h1">
+              <span className="reveal-up" style={{animationDelay:".1s"}}>דוח לדירקטוריון?</span>
+              <span className="hero__accent reveal-up" style={{animationDelay:".2s"}}>עוד דקה ויש לך.</span>
+            </h1>
+            <p className="hero__sub reveal-up" style={{animationDelay:".35s"}}>
+              AnyDay מחבר בורדים, גיליונות ואקסלים — ומחזיר דוחות, תובנות והתראות חכמות. בעברית. בלי טכנולוג.
             </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Features — Bento Grid ── */}
-      <section id="features" className="section-features">
-        <div className="container">
-          <div className="section-header scroll-reveal">
-            <span className="section-tag">יכולות</span>
-            <h2 className="section-title">עכשיו תקבלו גם את התשובות.</h2>
-            <p className="section-sub">AnyDay לא מחליף את Monday. הוא יושב מעליו וגורם לו סוף סוף לדבר.</p>
+            <div className="hero__btns reveal-up" style={{animationDelay:".5s"}}>
+              <button onClick={scrollToDemo} className="btn btn--lime">הזמינו דמו</button>
+              <a href="/workspace" className="btn btn--outline">התחילו בחינם</a>
+            </div>
           </div>
 
-          <div className="bento-grid">
-            {[
-              { icon: "💬", title: "שואלים בעברית.\nמקבלים תשובה.", desc: "\"כמה לקוחות חתמו ברבעון?\" — תשובה מיידית, עם הנתונים, עם המקור.", size: "large" },
-              { icon: "📊", title: "דוחות ודשבורד\nבלחיצה.", desc: "דוח PDF לדירקטוריון, דשבורד אימפקט עם גרפים — מוכן לישיבה.", size: "normal" },
-              { icon: "🚨", title: "מתריעה לפני\nשמאוחר.", desc: "לקוחה שלא הגיבה 14 יום. פרויקט שזז 3 פעמים. AnyDay מזהה ושולח.", size: "normal" },
-              { icon: "🏗️", title: "בונה מערכות\nשלמות.", desc: "\"תבני לי CRM\" — נבנה. \"תעלי אקסל\" — מועלה ומתמפה. שיחה אחת.", size: "large" },
-            ].map((f, i) => (
-              <div key={i} className={`bento-card bento-${f.size} scroll-reveal`} style={{ animationDelay: `${i * 0.1}s` }}>
-                <div className="bento-icon">{f.icon}</div>
-                <h3 className="bento-title">{f.title}</h3>
-                <p className="bento-desc">{f.desc}</p>
-                <div className="bento-glow" />
+          {/* Floating Dashboard */}
+          <div className="hero__visual reveal-up" style={{animationDelay:".4s"}}>
+            <div className="dash">
+              <div className="dash__bar">
+                <div className="dash__dots"><i/><i/><i/></div>
+                <span className="dash__url">app.anyday.co.il</span>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── How it works ── */}
-      <section id="how" className="section-how">
-        <div className="container">
-          <div className="section-header scroll-reveal">
-            <span className="section-tag">תהליך</span>
-            <h2 className="section-title">שלושה צעדים. שתי דקות. בלי IT.</h2>
-          </div>
-
-          <div className="steps">
-            {[
-              { num: "01", title: "חברו את המקור", desc: "Monday, Google Sheets או Excel. OAuth של לחיצה אחת.", color: "var(--purple)" },
-              { num: "02", title: "AnyDay קורא", desc: "המערכת מבינה מבנה, מזהה עמודות, מחברת בורדים.", color: "var(--cyan)" },
-              { num: "03", title: "שאלו. קבלו. תפעלו.", desc: "בעברית. כמו אנליסט — רק מהיר יותר וזמין 24/7.", color: "var(--amber)" },
-            ].map((s, i) => (
-              <div key={i} className="step-card scroll-reveal" style={{ animationDelay: `${i * 0.15}s` }}>
-                <div className="step-num" style={{ color: s.color }}>{s.num}</div>
-                <div className="step-line" style={{ background: s.color }} />
-                <h3 className="step-title">{s.title}</h3>
-                <p className="step-desc">{s.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Pricing ── */}
-      <section id="pricing" className="section-pricing">
-        <div className="container">
-          <div className="section-header scroll-reveal">
-            <span className="section-tag">מחירים</span>
-            <h2 className="section-title">תוכנית לכל שלב.</h2>
-            <p className="section-sub">חיבור מלא לכל הבורדים והגיליונות, בכל החבילות.</p>
-          </div>
-
-          <div className="pricing-grid">
-            {[
-              { name: "בודקים", price: "250", desc: "צ'אט + 100 שאלות", cta: "7 ימים חינם", badge: "חינם 7 ימים" },
-              { name: "לידרים", price: "450", desc: "דוחות + התראות + 500 שאלות", cta: "הזמינו דמו" },
-              { name: "דירקטורים", price: "750", desc: "אוטומציות + אימפקט + 2,000 שאלות", cta: "הזמינו דמו", popular: true },
-              { name: "ארגון", price: "1,200", desc: "White Label + SSO + API", cta: "דברו איתנו" },
-            ].map((plan, i) => (
-              <div key={i} className={`price-card scroll-reveal ${plan.popular ? "price-popular" : ""}`} style={{ animationDelay: `${i * 0.1}s` }}>
-                {(plan.popular || plan.badge) && (
-                  <div className="price-badge">{plan.popular ? "הכי פופולרי" : plan.badge}</div>
-                )}
-                <h3 className="price-name">{plan.name}</h3>
-                <p className="price-desc">{plan.desc}</p>
-                <div className="price-amount">
-                  <span className="price-num">{plan.price}</span>
-                  <span className="price-period">₪/חודש</span>
+              <div className="dash__body">
+                <div className="dash__chat">
+                  <div className="chat-q">כמה לקוחות חתמו ברבעון?</div>
+                  <div className="chat-a">
+                    <span className="chat-a__tag">AnyDay</span>
+                    ברבעון הנוכחי נחתמו <strong>47 לקוחות חדשים</strong> — עלייה של 23% לעומת הרבעון הקודם.
+                    <div className="chat-a__bar">
+                      <div className="chat-a__fill" />
+                    </div>
+                  </div>
                 </div>
-                <button onClick={scrollToDemo} className={`price-cta ${plan.popular ? "price-cta-pop" : ""}`}>{plan.cta}</button>
+                <div className="dash__cards">
+                  <div className="dash__card">
+                    <span className="dash__card-label">ביצוע</span>
+                    <span className="dash__card-val dash__card-val--green">89%</span>
+                  </div>
+                  <div className="dash__card">
+                    <span className="dash__card-label">פרויקטים</span>
+                    <span className="dash__card-val">12</span>
+                  </div>
+                  <div className="dash__card dash__card--alert">
+                    <span className="dash__card-label">התראה</span>
+                    <span className="dash__card-val dash__card-val--red">לקוח לא הגיב 14 יום</span>
+                  </div>
+                </div>
               </div>
-            ))}
+            </div>
           </div>
         </div>
+
+        {/* Diagonal cut */}
+        <div className="hero__cut" />
       </section>
 
-      {/* ── Security strip ── */}
-      <section className="section-security scroll-reveal">
-        <div className="security-inner">
+      {/* ─── STATS RIBBON ─── */}
+      <section className="stats">
+        {[
+          { num: 47, suffix: "+", label: "לקוחות ברבעון" },
+          { num: 89, suffix: "%", label: "אחוז ביצוע" },
+          { num: 2, suffix: " דק'", label: "זמן הטמעה" },
+          { num: 14, suffix: "+", label: "בורדים מחוברים" },
+        ].map((s, i) => (
+          <div key={i} className="stat" data-reveal>
+            <div className="stat__num">
+              <span data-count={s.num}>0</span>{s.suffix}
+            </div>
+            <div className="stat__label">{s.label}</div>
+          </div>
+        ))}
+      </section>
+
+      {/* ─── FEATURES ─── */}
+      <section id="features" className="features">
+        <div className="features__header" data-reveal>
+          <span className="tag">יכולות</span>
+          <h2 className="big-title">לא עוד<br/>דשבורד.</h2>
+        </div>
+
+        {[
+          {
+            title: "שואלים בעברית.\nמקבלים תשובה.",
+            desc: "\"כמה לקוחות חתמו ברבעון?\" תשובה מיידית, עם הנתונים, עם המקור. כמו אנליסט שזמין 24/7.",
+            visual: "chat",
+          },
+          {
+            title: "דוחות ודשבורד\nבלחיצה.",
+            desc: "דוח PDF לדירקטוריון, דשבורד אימפקט עם גרפים, סיכום רבעוני — מוכן לישיבה תוך דקה.",
+            visual: "report",
+          },
+          {
+            title: "מתריעה לפני\nשמאוחר.",
+            desc: "לקוחה שלא הגיבה 14 יום. פרויקט שזז 3 פעמים. AnyDay מזהה ושולח לפני שהבעיה מתפוצצת.",
+            visual: "alert",
+          },
+          {
+            title: "בונה מערכות\nשלמות.",
+            desc: "\"תבני לי CRM\" — נבנה. \"תעלי אקסל\" — מועלה ומתמפה לבורד חדש. שיחה אחת.",
+            visual: "build",
+          },
+        ].map((f, i) => (
+          <div key={i} className={`feat ${i % 2 === 1 ? "feat--flip" : ""}`} data-reveal>
+            <div className="feat__text">
+              <span className="feat__num">{String(i + 1).padStart(2, "0")}</span>
+              <h3 className="feat__title">{f.title}</h3>
+              <p className="feat__desc">{f.desc}</p>
+            </div>
+            <div className="feat__visual">
+              <div className={`feat__box feat__box--${f.visual}`}>
+                {f.visual === "chat" && (
+                  <>
+                    <div className="fv-bubble fv-bubble--q">כמה פרויקטים נסגרו?</div>
+                    <div className="fv-bubble fv-bubble--a">12 פרויקטים נסגרו ברבעון. 3 בהמתנה.</div>
+                  </>
+                )}
+                {f.visual === "report" && (
+                  <div className="fv-report">
+                    <div className="fv-report__title">דוח רבעוני Q1</div>
+                    <div className="fv-bars">
+                      <div className="fv-bar" style={{height: "60%"}} /><div className="fv-bar" style={{height: "80%"}} />
+                      <div className="fv-bar" style={{height: "45%"}} /><div className="fv-bar fv-bar--accent" style={{height: "90%"}} />
+                    </div>
+                  </div>
+                )}
+                {f.visual === "alert" && (
+                  <div className="fv-alerts">
+                    <div className="fv-alert fv-alert--red"><span className="fv-dot fv-dot--red" />לקוח לא הגיב 14 יום</div>
+                    <div className="fv-alert fv-alert--amber"><span className="fv-dot fv-dot--amber" />פרויקט בעיכוב</div>
+                    <div className="fv-alert fv-alert--green"><span className="fv-dot fv-dot--green" />משימה הושלמה</div>
+                  </div>
+                )}
+                {f.visual === "build" && (
+                  <div className="fv-build">
+                    <div className="fv-build__block fv-build__block--1" />
+                    <div className="fv-build__block fv-build__block--2" />
+                    <div className="fv-build__block fv-build__block--3" />
+                    <div className="fv-build__label">CRM חדש</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </section>
+
+      {/* ─── HOW ─── */}
+      <section id="how" className="how">
+        <div className="how__header" data-reveal>
+          <span className="tag tag--dark">תהליך</span>
+          <h2 className="big-title big-title--light">שלושה צעדים.<br/>שתי דקות.<br/>בלי IT.</h2>
+        </div>
+
+        <div className="timeline">
+          <div className="timeline__line" />
           {[
-            { icon: "🔐", label: "הצפנה AES-256" },
-            { icon: "🇮🇱", label: "שרתים בארץ" },
-            { icon: "🚫", label: "בלי אימון מודלים" },
-            { icon: "🗑️", label: "מחיקה בלחיצה" },
-          ].map((item, i) => (
-            <div key={i} className="security-item">
-              <span className="security-icon">{item.icon}</span>
-              <span className="security-label">{item.label}</span>
+            { num: "01", title: "חברו את המקור", desc: "Monday, Google Sheets או Excel. OAuth בלחיצה אחת.", color: "var(--lime)" },
+            { num: "02", title: "AnyDay קורא", desc: "מבין מבנה, מזהה עמודות, מחבר בורדים.", color: "var(--orange)" },
+            { num: "03", title: "שאלו. קבלו. תפעלו.", desc: "בעברית. כמו אנליסט — רק מהיר יותר.", color: "var(--cyan)" },
+          ].map((s, i) => (
+            <div key={i} className="tl-step" data-reveal>
+              <div className="tl-step__dot" style={{background: s.color}} />
+              <div className="tl-step__num" style={{color: s.color}}>{s.num}</div>
+              <h3 className="tl-step__title">{s.title}</h3>
+              <p className="tl-step__desc">{s.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* ── FAQ ── */}
-      <section className="section-faq">
-        <div className="container-sm">
-          <div className="section-header scroll-reveal">
-            <span className="section-tag">שאלות נפוצות</span>
-            <h2 className="section-title">יש שאלות? יש תשובות.</h2>
-          </div>
+      {/* ─── PRICING ─── */}
+      <section id="pricing" className="pricing">
+        <div className="pricing__header" data-reveal>
+          <span className="tag">מחירים</span>
+          <h2 className="big-title">תוכנית לכל שלב.</h2>
+        </div>
 
-          <div className="faq-list">
-            {[
-              { q: "למה לא Monday AI או ChatGPT?", a: "Monday AI מוגבל לבורד אחד. ChatGPT לא מחובר לנתונים. AnyDay מחבר הכל, מבין עברית, ומבצע פעולות אמיתיות." },
-              { q: "האם זה מחליף את הצוות?", a: "לא. זה משחרר את הצוות מאיסוף נתונים והכנת דוחות — לעבודה אסטרטגית." },
-              { q: "כמה זמן לוקחת ההטמעה?", a: "שתי דקות לחיבור. שעה לראיית ערך. שבוע לשינוי שיגרת עבודה." },
-              { q: "מה אם אני לא מרוצה?", a: "7 ימי ניסיון חינם. ביטול בלחיצה. ללא חוזים." },
-            ].map((faq, i) => (
-              <div key={i} className={`faq-item scroll-reveal ${openFaq === i ? "faq-open" : ""}`}
-                style={{ animationDelay: `${i * 0.08}s` }}
-                onClick={() => setOpenFaq(openFaq === i ? null : i)}>
-                <div className="faq-q">
-                  <h4>{faq.q}</h4>
-                  <span className="faq-toggle">{openFaq === i ? "−" : "+"}</span>
-                </div>
-                <div className="faq-a">
-                  <p>{faq.a}</p>
-                </div>
+        <div className="plans">
+          {[
+            { name: "בודקים", price: "250", items: ["צ'אט AI בעברית","100 שאלות/חודש","חיבור בורד אחד"], cta: "7 ימים חינם", badge: "FREE TRIAL" },
+            { name: "לידרים", price: "450", items: ["דוחות PDF","התראות חכמות","500 שאלות/חודש"], cta: "הזמינו דמו" },
+            { name: "דירקטורים", price: "750", items: ["אוטומציות","דשבורד אימפקט","2,000 שאלות/חודש","בורדים ללא הגבלה"], cta: "הזמינו דמו", pop: true },
+            { name: "ארגון", price: "1,200", items: ["White Label","SSO + API","תמיכה ייעודית"], cta: "דברו איתנו" },
+          ].map((p, i) => (
+            <div key={i} className={`plan ${p.pop ? "plan--pop" : ""}`} data-reveal>
+              {(p.pop || p.badge) && <div className="plan__badge">{p.pop ? "פופולרי" : p.badge}</div>}
+              <h3 className="plan__name">{p.name}</h3>
+              <div className="plan__price">
+                <span className="plan__amount">{p.price}</span>
+                <span className="plan__period">₪/חו׳</span>
               </div>
-            ))}
-          </div>
+              <ul className="plan__list">
+                {p.items.map((item, j) => <li key={j}>{item}</li>)}
+              </ul>
+              <button onClick={scrollToDemo} className={`btn ${p.pop ? "btn--lime" : "btn--outline btn--outline-dark"}`}>{p.cta}</button>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* ── Final CTA ── */}
-      <section className="section-cta">
-        <div className="cta-glow" />
-        <div className="container-sm scroll-reveal">
-          <h2 className="cta-title">
-            הישיבה הבאה בעוד שבוע.
-            <br />
-            <span className="cta-accent">הדוח מוכן בעוד דקה.</span>
+      {/* ─── TRUST ─── */}
+      <section className="trust" data-reveal>
+        <div className="trust__inner">
+          {[
+            ["🔐","הצפנה AES-256"],["🇮🇱","שרתים בארץ"],["🚫","בלי אימון מודלים"],["🗑️","מחיקה בלחיצה"],
+          ].map(([icon,label],i) => (
+            <div key={i} className="trust__item">
+              <span>{icon}</span><span>{label}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ─── FAQ ─── */}
+      <section className="faq-section">
+        <div className="faq-section__header" data-reveal>
+          <span className="tag">שאלות</span>
+          <h2 className="big-title">שאלתם? ענינו.</h2>
+        </div>
+        <div className="faq-list">
+          {[
+            { q: "למה לא Monday AI או ChatGPT?", a: "Monday AI מוגבל לבורד אחד. ChatGPT לא מחובר לנתונים. AnyDay מחבר הכל, מבין עברית, ומבצע פעולות אמיתיות." },
+            { q: "האם זה מחליף את הצוות?", a: "לא. זה משחרר את הצוות מאיסוף נתונים — לעבודה אסטרטגית." },
+            { q: "כמה זמן לוקחת ההטמעה?", a: "שתי דקות לחיבור. שעה לראיית ערך. שבוע לשינוי שיגרת עבודה." },
+            { q: "מה אם אני לא מרוצה?", a: "7 ימי ניסיון חינם. ביטול בלחיצה. ללא חוזים." },
+          ].map((faq, i) => (
+            <div key={i} className={`faq ${openFaq === i ? "faq--open" : ""}`} data-reveal
+              onClick={() => setOpenFaq(openFaq === i ? null : i)}>
+              <div className="faq__q">
+                <span>{faq.q}</span>
+                <span className="faq__icon">{openFaq === i ? "−" : "+"}</span>
+              </div>
+              <div className="faq__a"><p>{faq.a}</p></div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ─── FINAL CTA ─── */}
+      <section className="final">
+        <div className="final__bg" />
+        <div className="final__content" data-reveal>
+          <h2 className="final__title">
+            הישיבה הבאה<br/>בעוד שבוע.
           </h2>
-          <p className="cta-sub">ללא כרטיס אשראי. ללא חוזה. ביטול בלחיצה.</p>
-          <div className="cta-actions">
-            <button onClick={scrollToDemo} className="btn-primary btn-lg">
-              <span>הזמינו דמו</span>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </button>
-            <a href="/workspace" className="btn-ghost">התחילו בחינם</a>
-          </div>
+          <p className="final__accent">הדוח מוכן בעוד דקה.</p>
+          <p className="final__sub">ללא כרטיס אשראי · ללא חוזה · ביטול בלחיצה</p>
+          <button onClick={scrollToDemo} className="btn btn--lime btn--xl">הזמינו דמו →</button>
         </div>
       </section>
 
-      {/* ── Footer ── */}
-      <footer className="footer">
-        <a href="/" className="nav-logo">
-          <div className="logo-mark logo-mark-sm">A</div>
-          <span className="logo-text logo-text-sm">AnyDay</span>
-        </a>
-        <p className="footer-copy">&copy; {new Date().getFullYear()} AnyDay. כל הזכויות שמורות.</p>
+      {/* ─── FOOTER ─── */}
+      <footer className="foot">
+        <a href="/" className="nav__logo"><span className="nav__mark nav__mark--sm">A</span><span className="nav__name">AnyDay</span></a>
+        <p>&copy; {new Date().getFullYear()} AnyDay</p>
       </footer>
     </div>
   );
