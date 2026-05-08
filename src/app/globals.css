@@ -494,22 +494,87 @@ body {
 }
 .foot p { font: 400 12px/1 var(--font); color: var(--text3); }
 
-/* ═══ RESPONSIVE ═══ */
+/* ═══ RESPONSIVE — TABLET ═══ */
 @media (max-width: 900px) {
   .nav__links { display: none; }
   .nav__burger { display: block; }
-  .hero__inner { grid-template-columns: 1fr; text-align: center; }
+
+  .hero { padding: 90px 20px 60px; min-height: auto; }
+  .hero__inner { grid-template-columns: 1fr; text-align: center; gap: 32px; }
   .hero__sub { margin: 0 auto 32px; }
   .hero__btns { justify-content: center; }
-  .hero__visual { margin-top: 32px; }
-  .feat { grid-template-columns: 1fr; }
+  .hero__visual { margin-top: 8px; }
+
+  .feat { grid-template-columns: 1fr; gap: 24px; }
   .feat--flip .feat__text, .feat--flip .feat__visual { order: unset; }
+  .feat__num { font-size: 60px; }
+  .feat__box { max-width: 300px; }
+
   .stats { grid-template-columns: 1fr 1fr; }
-  .stat { border-bottom: 1px solid var(--border); }
-  .plans { grid-template-columns: 1fr 1fr; }
+  .stat { border-bottom: 1px solid var(--border); padding: 32px 16px; }
+
+  .plans { grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .how { padding: 60px 20px; }
+  .how__header { margin-bottom: 40px; }
+
+  .final { padding: 80px 20px; }
+
+  .trust__inner { gap: 20px; }
+  .trust__item { font-size: 11px; }
 }
+
+/* ═══ RESPONSIVE — MOBILE ═══ */
 @media (max-width: 550px) {
-  .stats { grid-template-columns: 1fr; }
-  .plans { grid-template-columns: 1fr; }
+  .hero { padding: 80px 16px 48px; }
+  .hero__h1 span { font-size: 36px; letter-spacing: -1px; }
+  .hero__over { font-size: 10px; letter-spacing: 2px; }
+  .hero__sub { font-size: 14px; }
+
+  .btn { padding: 13px 24px; font-size: 13px; }
+  .btn--xl { padding: 16px 32px; font-size: 15px; }
+
+  .stats { grid-template-columns: 1fr 1fr; }
+  .stat { padding: 28px 12px; }
+  .stat__num { font-size: 36px; }
+  .stat__label { font-size: 11px; }
+
+  .features { padding: 48px 16px; }
+  .features__header { margin-bottom: 32px; }
+  .big-title { font-size: 32px; }
+  .feat { padding: 32px 0; }
+  .feat__title { font-size: 22px; }
+  .feat__desc { font-size: 13px; }
+  .feat__box { max-width: 100%; padding: 18px; }
+
+  .plans { grid-template-columns: 1fr; gap: 12px; }
+  .plan { padding: 24px 18px; }
+  .plan__amount { font-size: 40px; }
+
   .dash__cards { grid-template-columns: 1fr 1fr; }
+  .dash__card-val { font-size: 18px; }
+
+  .how { padding: 48px 16px; }
+  .tl-step__title { font-size: 18px; }
+  .tl-step__num { font-size: 28px; }
+
+  .faq-section { padding: 48px 16px; }
+  .faq-list { gap: 4px; }
+  .faq { padding: 14px 16px; }
+  .faq__q span:first-child { font-size: 13px; }
+
+  .final { padding: 60px 16px; }
+  .final__title { font-size: 30px; }
+  .final__accent { font-size: 15px; }
+
+  .trust { padding: 24px 16px; }
+  .trust__inner { gap: 14px; justify-content: flex-start; }
+  .trust__item { font-size: 11px; gap: 5px; }
+  .trust__check { width: 16px; height: 16px; font-size: 9px; }
+
+  .mob { padding-top: 60px; gap: 20px; }
+  .mob__link { font-size: 26px; }
+  .mob__cta { padding: 14px 36px; font-size: 14px; }
+
+  .foot { padding: 20px 16px; }
 }
