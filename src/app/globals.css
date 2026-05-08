@@ -113,13 +113,13 @@ body {
 .mob__cta { font: 800 16px/1 var(--font); background: var(--lime); color: var(--white); padding: 16px 44px; border-radius: 50px; text-decoration: none; border: none; animation: up .4s .2s var(--ease) both; }
 
 /* ══════════════════════════════════════
-   HERO — PINK BACKGROUND
+   HERO
    ══════════════════════════════════════ */
 .hero {
   min-height: 100vh; display: flex; align-items: center;
   padding: 100px clamp(20px,4vw,48px) 80px;
   position: relative; overflow: hidden;
-  background: var(--lime);
+  background: var(--bg);
   color: var(--white);
 }
 .hero__bg, .hero__orb, .hero__grain, .hero__cut { display: none; }

@@ -123,7 +123,7 @@ export default function Home() {
               <span className="hero__accent reveal-up" style={{animationDelay:".2s"}}>סוף סוף.</span>
             </h1>
             <p className="hero__sub reveal-up" style={{animationDelay:".35s"}}>
-              דוח, אוטומציה, בורד חדש, תשובה לשאלה — תגידו מה אתם צריכים בעברית, ו-AnyDay עושה. בלי מטמיע. בלי מפתח. בלי לחכות.
+              המטמיעה האישית שלכם ב-Monday. בונה מערכות בלי מתכנת, מריצה אוטומציות, ומכינה דשבורדים מוכנים לשליחה להנהלה ולצוות. בעברית. בשאלה אחת.
             </p>
             <div className="hero__btns reveal-up" style={{animationDelay:".5s"}}>
               <button onClick={scrollToDemo} className="btn btn--lime">דקה — ואתם שם →</button>
