@@ -123,7 +123,7 @@ export default function WorkspacePage() {
         }
         .ws-board-card:hover {
           border-color: var(--color-accent) !important;
-          box-shadow: 0 4px 20px rgba(108,92,231,0.12) !important;
+          box-shadow: 0 4px 20px rgba(0,53,255,0.12) !important;
           transform: translateY(-2px);
         }
         .ws-board-card { transition: all 0.2s ease; cursor: pointer; }
@@ -195,7 +195,7 @@ export default function WorkspacePage() {
                 background: "var(--color-accent)", color: "#fff",
                 fontSize: 17, fontWeight: 700, cursor: "pointer",
                 fontFamily: "var(--font-dm)",
-                boxShadow: "0 4px 16px rgba(108,92,231,0.25)",
+                boxShadow: "0 4px 16px rgba(0,53,255,0.25)",
                 display: "inline-flex", alignItems: "center", gap: 10,
               }}
             >
@@ -282,18 +282,19 @@ export default function WorkspacePage() {
             <div
               onClick={() => setShowBuilder(true)}
               style={{
-                background: "linear-gradient(135deg, var(--color-accent), #8b5cf6)",
+                background: "linear-gradient(135deg, #0A0E27, #0E1330)",
                 borderRadius: 16, padding: "24px 28px", marginBottom: 20,
                 cursor: "pointer", transition: "transform 0.2s, box-shadow 0.2s",
-                boxShadow: "0 4px 20px rgba(108,92,231,0.2)",
+                boxShadow: "0 4px 20px rgba(0,53,255,0.15)",
                 display: "flex", alignItems: "center", gap: 16,
+                border: "1px solid rgba(0,53,255,0.2)",
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 30px rgba(108,92,231,0.3)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 20px rgba(108,92,231,0.2)"; }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 30px rgba(0,53,255,0.3), 0 0 40px rgba(255,239,0,0.08)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,53,255,0.15)"; }}
             >
               <div style={{
                 width: 48, height: 48, borderRadius: 12,
-                background: "rgba(255,255,255,0.2)", display: "flex",
+                background: "rgba(255,239,0,0.15)", border: "1px solid rgba(255,239,0,0.3)", display: "flex",
                 alignItems: "center", justifyContent: "center",
                 fontSize: 24, flexShrink: 0,
               }}>

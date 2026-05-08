@@ -1,29 +1,33 @@
-@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700;800;900&family=Syne:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme inline {
-  --color-bg: #F8F9FC;
+  --color-bg: #F0F4FF;
   --color-bg2: #FFFFFF;
   --color-surf: #FFFFFF;
-  --color-surf2: #F1F3F8;
-  --color-border: #E4E7EE;
-  --color-border2: #D0D5DF;
-  --color-accent: #6C5CE7;
-  --color-accent-light: rgba(108,92,231,0.08);
-  --color-accent-mid: rgba(108,92,231,0.15);
-  --color-green: #00B894;
-  --color-green-light: rgba(0,184,148,0.08);
-  --color-amber: #FDCB6E;
-  --color-amber-light: rgba(253,203,110,0.12);
-  --color-red: #E17055;
-  --color-red-light: rgba(225,112,85,0.08);
-  --color-blue: #0984E3;
-  --color-blue-light: rgba(9,132,227,0.08);
-  --color-text: #1A1D26;
-  --color-text2: #2D3142;
-  --color-muted: #6B7280;
-  --color-muted2: #9CA3AF;
-  --font-syne: 'Syne', sans-serif;
+  --color-surf2: #E8EEFF;
+  --color-border: #C8D4FF;
+  --color-border2: #A8BAFF;
+  --color-accent: #0035FF;
+  --color-accent-light: rgba(0,53,255,0.06);
+  --color-accent-mid: rgba(0,53,255,0.12);
+  --color-yellow: #FFEF00;
+  --color-yellow-light: rgba(255,239,0,0.10);
+  --color-green: #00D68F;
+  --color-green-light: rgba(0,214,143,0.08);
+  --color-amber: #FFB800;
+  --color-amber-light: rgba(255,184,0,0.10);
+  --color-red: #FF3B5C;
+  --color-red-light: rgba(255,59,92,0.08);
+  --color-blue: #0035FF;
+  --color-blue-light: rgba(0,53,255,0.06);
+  --color-text: #0A0E27;
+  --color-text2: #1A2040;
+  --color-muted: #5B6B8A;
+  --color-muted2: #8B9AB8;
+  --color-dark: #070B1A;
+  --color-dark2: #0E1330;
+  --font-syne: 'Space Grotesk', sans-serif;
   --font-dm: 'Rubik', sans-serif;
 }
 
@@ -45,6 +49,8 @@ body {
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
 @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+@keyframes glow { 0%,100% { box-shadow: 0 0 20px rgba(0,53,255,0.3); } 50% { box-shadow: 0 0 40px rgba(0,53,255,0.6), 0 0 80px rgba(255,239,0,0.15); } }
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 
 .fade-up { animation: fadeUp 0.4s ease forwards; }
 .fade-up-2 { animation: fadeUp 0.4s 0.08s ease both; }

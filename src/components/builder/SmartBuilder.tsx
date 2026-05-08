@@ -200,7 +200,7 @@ export function SmartBuilder({ apiToken, existingBoards, onBoardCreated }: Props
       }}>
         <div style={{
           width: 36, height: 36, borderRadius: 10,
-          background: "linear-gradient(135deg, var(--color-accent), #8b5cf6)",
+          background: "linear-gradient(135deg, #0A0E27, #0E1330)",
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 18, color: "#fff", fontWeight: 800,
         }}>A</div>
