@@ -117,19 +117,19 @@ export default function Home() {
 
         <div className="hero__inner">
           <div className="hero__text">
-            <p className="hero__over reveal-up">בונים ומסדרים Monday — במקום אחד</p>
+            <p className="hero__over reveal-up">ניהול Monday לעמותות וארגונים חברתיים</p>
             <h1 className="hero__h1">
-              <span className="reveal-up" style={{animationDelay:".1s"}}>ה-Monday שלכם</span>
-              <span className="hero__accent reveal-up" style={{animationDelay:".2s"}}>יכול לעבוד הרבה יותר טוב.</span>
+              <span className="reveal-up" style={{animationDelay:".1s"}}>הארגון שלכם גדל.</span>
+              <span className="hero__accent reveal-up" style={{animationDelay:".2s"}}>ה-Monday צריך לגדול איתו.</span>
             </h1>
             <p className="hero__sub reveal-up" style={{animationDelay:".35s"}}>
-              בניית מערכת חדשה, סידור בורדים קיימים, אוטומציות ודוחות — הכל במקום אחד, בלי מטמיע ובלי לחכות.
+              בניית מערכת ניהול חדשה, סידור בורדים קיימים, אוטומציות ודוחות לדירקטוריון — הכל במקום אחד, בלי מטמיע ובלי לחכות.
             </p>
             <div className="hero__btns reveal-up" style={{animationDelay:".5s"}}>
-              <a href="/workspace" className="btn btn--lime">בנו מערכת Monday חדשה →</a>
+              <a href="/workspace" className="btn btn--lime">בנו מערכת Monday לארגון →</a>
               <a href="/workspace" className="btn btn--outline">בדקו את ה-Monday שלכם</a>
             </div>
-            <p className="hero__audience reveal-up" style={{animationDelay:".6s"}}>למנכ״לים, סמנכ״לים, מנהלי תפעול וצוותים שעובדים עם Monday כל יום</p>
+            <p className="hero__audience reveal-up" style={{animationDelay:".6s"}}>למנכ״לים, מנהלי תוכניות, רכזי פרויקטים וצוותי עמותות שעובדים עם Monday</p>
           </div>
 
           {/* Floating Dashboard */}
@@ -141,10 +141,10 @@ export default function Home() {
               </div>
               <div className="dash__body">
                 <div className="dash__chat">
-                  <div className="chat-q">תבנה לי CRM לניהול לקוחות</div>
+                  <div className="chat-q">תבנה לי מערכת ניהול מוטבים</div>
                   <div className="chat-a">
                     <span className="chat-a__tag">AnyDay</span>
-                    בניתי בורד עם <strong>5 עמודות, 3 קבוצות ו-2 אוטומציות</strong>. הכל מוכן — תרצו לשנות משהו?
+                    בניתי בורד עם <strong>5 עמודות, 3 קבוצות ו-2 אוטומציות</strong>. מוכן — רוצים להוסיף מעקב התערבויות?
                     <div className="chat-a__bar">
                       <div className="chat-a__fill" />
                     </div>
@@ -152,16 +152,16 @@ export default function Home() {
                 </div>
                 <div className="dash__cards">
                   <div className="dash__card">
-                    <span className="dash__card-label">בורדים</span>
-                    <span className="dash__card-val dash__card-val--green">3 נוצרו</span>
+                    <span className="dash__card-label">מוטבים</span>
+                    <span className="dash__card-val dash__card-val--green">148 פעילים</span>
                   </div>
                   <div className="dash__card">
-                    <span className="dash__card-label">עמודות</span>
-                    <span className="dash__card-val">15</span>
+                    <span className="dash__card-label">תוכניות</span>
+                    <span className="dash__card-val">6</span>
                   </div>
                   <div className="dash__card dash__card--alert">
-                    <span className="dash__card-label">אוטומציה</span>
-                    <span className="dash__card-val dash__card-val--red">2 כללים פעילים</span>
+                    <span className="dash__card-label">דוח</span>
+                    <span className="dash__card-val dash__card-val--red">רבעוני מוכן</span>
                   </div>
                 </div>
               </div>
@@ -177,8 +177,8 @@ export default function Home() {
       <section className="stats">
         {[
           { num: 0, suffix: "", label: "מטמיעים נדרשים" },
-          { num: 2, suffix: " דק׳", label: "לבנות מערכת חדשה" },
-          { num: 24, suffix: "/7", label: "זמין בשבילכם" },
+          { num: 2, suffix: " דק׳", label: "לבנות מערכת לארגון" },
+          { num: 24, suffix: "/7", label: "זמין לצוות שלכם" },
           { num: 100, suffix: "%", label: "עברית טבעית" },
         ].map((s, i) => (
           <div key={i} className="stat" data-reveal>
@@ -198,10 +198,10 @@ export default function Home() {
         </div>
         <div className="capabilities__grid">
           {[
-            { icon: "🏗️", title: "בנו מערכת חדשה", desc: "תארו מה אתם צריכים — AnyDay בונה בורדים, עמודות, קבוצות ואוטומציות. בלי מטמיע." },
-            { icon: "🔧", title: "סדרו מערכת קיימת", desc: "חיברו את Monday שלכם. AnyDay סורקת, מזהה בעיות ומציעה שיפורים מיידיים." },
-            { icon: "⚡", title: "אוטומציות בקליק", desc: "הגדירו כללים בעברית: ״כשסטטוס משתנה — העבירו לקבוצה.״ בלי נוסחאות." },
-            { icon: "📊", title: "דוחות ודשבורדים", desc: "דוח להנהלה, סיכום רבעוני, גרף ביצועים — מוכן תוך שניות, לא שעות." },
+            { icon: "🏗️", title: "בנו מערכת לארגון", desc: "ניהול מוטבים, מעקב תוכניות, מאגר מתנדבים — תארו מה צריך, AnyDay בונה. בלי מטמיע." },
+            { icon: "🔧", title: "סדרו מערכת קיימת", desc: "חיברו את Monday שלכם. AnyDay סורקת בורדים, מזהה כפילויות ומציעה סדר מיידי." },
+            { icon: "⚡", title: "אוטומציות בקליק", desc: "״כשמשתתף סיים תוכנית — עדכנו סטטוס ושלחו דוח.״ כלל בעברית, בלי נוסחאות." },
+            { icon: "📊", title: "דוחות לדירקטוריון", desc: "דוח אימפקט, סיכום רבעוני, נתוני תוצאות — מוכן לישיבה תוך שניות, לא שעות." },
           ].map((cap, i) => (
             <div key={i} className="cap-card" data-reveal style={{animationDelay: `${i * .1}s`}}>
               <span className="cap-card__icon">{cap.icon}</span>
@@ -221,23 +221,23 @@ export default function Home() {
 
         {[
           {
-            title: "אמרתם \"תבנו לנו CRM\".\nהוא נבנה.",
-            desc: "תארו מה אתם צריכים — AnyDay בונה בורדים, עמודות, קבוצות ופריטים. מערכת מוכנה בדקות, לא בשבועות.",
+            title: "\"תבנו לנו מערכת\nניהול מוטבים.\"",
+            desc: "תארו מה הארגון צריך — AnyDay בונה בורדים, עמודות, קבוצות ואוטומציות. מערכת מוכנה בדקות, לא בשבועות.",
             visual: "build",
           },
           {
-            title: "30 בורדים?\nסדר תוך דקה.",
-            desc: "AnyDay סורקת את כל המבנה, מזהה עמודות כפולות, קבוצות ריקות ובעיות מבניות — ומציעה תיקון מיידי.",
+            title: "30 בורדים בבלגן?\nסדר תוך דקה.",
+            desc: "AnyDay סורקת את כל המבנה, מזהה עמודות כפולות, תוכניות לא מעודכנות ובעיות מבניות — ומציעה תיקון מיידי.",
             visual: "alert",
           },
           {
-            title: "אוטומציות\nבלי לכתוב שורה.",
-            desc: "\"כשסטטוס משתנה — שלחו התראה.\" הגדרתם כלל בעברית, AnyDay מפעילה אותו. בלי פורמולות ובלי מטמיע.",
+            title: "אוטומציות\nבשפה שלכם.",
+            desc: "\"כשמשתתף סיים — עדכנו סטטוס ושלחו דוח למנהל.\" הגדרתם כלל בעברית, AnyDay מפעילה אותו.",
             visual: "chat",
           },
           {
-            title: "דוח להנהלה?\nשניות.",
-            desc: "סיכום רבעוני, דשבורד ביצועים, גרפים — מוכן לפני הישיבה. מה שלקח חצי יום עבודה קורה בלחיצה.",
+            title: "דוח לדירקטוריון?\nשניות.",
+            desc: "סיכום רבעוני, נתוני אימפקט, גרפי תוצאות — מוכן לפני הישיבה. מה שלקח חצי יום עבודה קורה בלחיצה.",
             visual: "report",
           },
         ].map((f, i) => (
@@ -251,13 +251,13 @@ export default function Home() {
               <div className={`feat__box feat__box--${f.visual}`}>
                 {f.visual === "chat" && (
                   <>
-                    <div className="fv-bubble fv-bubble--q">כמה פרויקטים נסגרו?</div>
-                    <div className="fv-bubble fv-bubble--a">12 פרויקטים נסגרו ברבעון. 3 בהמתנה.</div>
+                    <div className="fv-bubble fv-bubble--q">כשסטטוס משתנה ל״סיים״ — עדכנו דוח</div>
+                    <div className="fv-bubble fv-bubble--a">אוטומציה פעילה. 14 משתתפים עודכנו החודש.</div>
                   </>
                 )}
                 {f.visual === "report" && (
                   <div className="fv-report">
-                    <div className="fv-report__title">דוח רבעוני Q1</div>
+                    <div className="fv-report__title">דוח אימפקט Q1</div>
                     <div className="fv-bars">
                       <div className="fv-bar" style={{height: "60%"}} /><div className="fv-bar" style={{height: "80%"}} />
                       <div className="fv-bar" style={{height: "45%"}} /><div className="fv-bar fv-bar--accent" style={{height: "90%"}} />
@@ -266,9 +266,9 @@ export default function Home() {
                 )}
                 {f.visual === "alert" && (
                   <div className="fv-alerts">
-                    <div className="fv-alert fv-alert--red"><span className="fv-dot fv-dot--red" />לקוח לא הגיב 14 יום</div>
-                    <div className="fv-alert fv-alert--amber"><span className="fv-dot fv-dot--amber" />פרויקט בעיכוב</div>
-                    <div className="fv-alert fv-alert--green"><span className="fv-dot fv-dot--green" />משימה הושלמה</div>
+                    <div className="fv-alert fv-alert--red"><span className="fv-dot fv-dot--red" />3 עמודות כפולות בבורד מוטבים</div>
+                    <div className="fv-alert fv-alert--amber"><span className="fv-dot fv-dot--amber" />קבוצה ריקה: ״ארכיון 2024״</div>
+                    <div className="fv-alert fv-alert--green"><span className="fv-dot fv-dot--green" />מבנה תוכנית תוקן</div>
                   </div>
                 )}
                 {f.visual === "build" && (
@@ -276,7 +276,7 @@ export default function Home() {
                     <div className="fv-build__block fv-build__block--1" />
                     <div className="fv-build__block fv-build__block--2" />
                     <div className="fv-build__block fv-build__block--3" />
-                    <div className="fv-build__label">CRM חדש</div>
+                    <div className="fv-build__label">מערכת ניהול</div>
                   </div>
                 )}
               </div>
@@ -295,9 +295,9 @@ export default function Home() {
         <div className="timeline">
           <div className="timeline__line" />
           {[
-            { num: "01", title: "חברו את Monday שלכם", desc: "הכניסו API Token — וזהו. בלי התקנות, בלי הגדרות, בלי IT.", color: "var(--lime)" },
-            { num: "02", title: "בנו או סדרו", desc: "צריכים מערכת חדשה? תארו אותה. יש מערכת קיימת? AnyDay תסרוק ותציע שיפורים.", color: "var(--orange)" },
-            { num: "03", title: "הפעילו ותנהלו", desc: "אוטומציות, דוחות, שינויים — הכל בעברית, הכל במקום אחד, הכל עכשיו.", color: "var(--cyan)" },
+            { num: "01", title: "חברו את Monday של הארגון", desc: "הכניסו API Token — וזהו. בלי התקנות, בלי הגדרות, בלי IT.", color: "var(--lime)" },
+            { num: "02", title: "בנו מערכת או סדרו קיימת", desc: "ניהול מוטבים, מעקב תוכניות, דוחות — תארו מה צריך או תנו ל-AnyDay לסרוק ולשפר.", color: "var(--orange)" },
+            { num: "03", title: "הפעילו ותנהלו", desc: "אוטומציות, דוחות לדירקטוריון, עדכונים — הכל בעברית, הכל במקום אחד.", color: "var(--cyan)" },
           ].map((s, i) => (
             <div key={i} className="tl-step" data-reveal>
               <div className="tl-step__dot" style={{background: s.color}} />
@@ -318,10 +318,10 @@ export default function Home() {
 
         <div className="plans">
           {[
-            { name: "סטארטר", price: "250", items: ["צ׳אט AI בעברית","100 שאלות בחודש","בורד אחד"], cta: "להתחיל בחינם →", badge: "לנסות" },
-            { name: "צוות", price: "450", items: ["דוחות PDF מוכנים","התראות חכמות","500 שאלות בחודש"], cta: "דקה — ואתם שם →" },
-            { name: "מנהלים", price: "750", items: ["אוטומציות מלאות","דשבורד אימפקט","2,000 שאלות בחודש","בורדים ללא הגבלה"], cta: "דקה — ואתם שם →", pop: true },
-            { name: "ארגון", price: "1,200", items: ["White Label","SSO + API","תמיכה ייעודית","SLA מותאם"], cta: "בואו נדבר →" },
+            { name: "סטארטר", price: "250", items: ["בניית בורדים בעברית","100 פעולות בחודש","בורד אחד"], cta: "להתחיל בחינם →", badge: "לנסות" },
+            { name: "צוות", price: "450", items: ["דוחות PDF לדירקטוריון","התראות חכמות","500 פעולות בחודש"], cta: "להתחיל →" },
+            { name: "ארגון", price: "750", items: ["אוטומציות מלאות","דשבורד אימפקט","2,000 פעולות בחודש","בורדים ללא הגבלה"], cta: "להתחיל →", pop: true },
+            { name: "רשת / קבוצה", price: "1,200", items: ["מספר עמותות","SSO + API","תמיכה ייעודית","SLA מותאם"], cta: "בואו נדבר →" },
           ].map((p, i) => (
             <div key={i} className={`plan ${p.pop ? "plan--pop" : ""}`} data-reveal>
               {(p.pop || p.badge) && <div className="plan__badge">{p.pop ? "פופולרי" : p.badge}</div>}
@@ -360,12 +360,12 @@ export default function Home() {
         </div>
         <div className="faq-list">
           {[
-            { q: "רגע, למה לא Monday AI או ChatGPT?", a: "Monday AI רואה בורד אחד בכל פעם ונותנת סיכום בסיסי. ChatGPT לא מחובר לנתונים שלכם בכלל. AnyDay קוראת את כל הבורדים, מזהה דפוסים, בונה דוחות, מפעילה אוטומציות — ועושה את זה בעברית." },
-            { q: "מה צריך מהצד שלי?", a: "API Token של Monday (מקבלים בשתי דקות) — וזהו. בלי התקנות, בלי הגדרות, בלי לשנות כלום בבורדים. AnyDay מתחברת ולומדת את המבנה לבד." },
-            { q: "כמה זמן עד שזה עובד?", a: "שתי דקות לחיבור. שעה עד לתשובה הראשונה שתפתיע אתכם. שבוע — ולא תבינו איך עבדתם בלי זה." },
-            { q: "יש לי 30 בורדים. זה עובד?", a: "בהחלט. AnyDay נבנתה בדיוק בשביל ארגונים עם הרבה בורדים. ככל שיש יותר מידע — התשובות חכמות יותר, הדוחות מדויקים יותר." },
+            { q: "זה מתאים לעמותות קטנות?", a: "בדיוק בשביל זה. עמותה עם 3 אנשי צוות ו-5 בורדים — או רשת עם 50 בורדים. AnyDay מתאימה את עצמה לגודל הארגון." },
+            { q: "מה צריך מהצד שלנו?", a: "API Token של Monday (מקבלים בשתי דקות) — וזהו. בלי התקנות, בלי הגדרות, בלי לשנות כלום בבורדים. AnyDay מתחברת ולומדת את המבנה לבד." },
+            { q: "אפשר לבנות מערכת ניהול מוטבים?", a: "כן. תארו מה אתם צריכים — AnyDay בונה בורד עם עמודות, קבוצות, אוטומציות ומעקב. מערכת מוכנה בדקות." },
+            { q: "יש לנו 30 בורדים בבלגן. זה עוזר?", a: "בדיוק בשביל זה. AnyDay סורקת את כל המבנה, מזהה כפילויות, עמודות ריקות ובעיות — ומציעה סדר מיידי." },
             { q: "ואם לא מתאים?", a: "7 ימי ניסיון חינם. ביטול בלחיצה אחת. בלי חוזה, בלי שיחת שימור, בלי התחייבות." },
-            { q: "הנתונים שלי בטוחים?", a: "הצפנה מלאה, אנחנו לא שומרים נתונים ולא מאמנים מודלים עליהם. כל שאילתה רצה בזמן אמת ונמחקת. ואפשר לנתק בלחיצה." },
+            { q: "הנתונים של המוטבים בטוחים?", a: "הצפנה מלאה, אנחנו לא שומרים נתונים ולא מאמנים מודלים עליהם. כל שאילתה רצה בזמן אמת ונמחקת. ואפשר לנתק בלחיצה." },
           ].map((faq, i) => (
             <div key={i} className={`faq ${openFaq === i ? "faq--open" : ""}`} data-reveal
               onClick={() => setOpenFaq(openFaq === i ? null : i)}>
@@ -384,11 +384,11 @@ export default function Home() {
         <div className="final__bg" />
         <div className="final__content" data-reveal>
           <h2 className="final__title">
-            ה-Monday שלכם<br/>יכול לעבוד<br/>הרבה יותר טוב.
+            הארגון שלכם<br/>יכול לנהל<br/>הרבה יותר טוב.
           </h2>
-          <p className="final__accent">בנו מערכת חדשה או שפרו את הקיימת — בדקות, לא בשבועות.</p>
+          <p className="final__accent">בנו מערכת ניהול חדשה או שפרו את הקיימת — בדקות, לא בשבועות.</p>
           <p className="final__sub">ללא כרטיס אשראי · ללא מטמיע · ביטול בלחיצה</p>
-          <a href="/workspace" className="btn btn--lime btn--xl">בנו מערכת Monday חדשה →</a>
+          <a href="/workspace" className="btn btn--lime btn--xl">בנו מערכת Monday לארגון →</a>
         </div>
       </section>
 
