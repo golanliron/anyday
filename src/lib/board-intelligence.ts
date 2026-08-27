@@ -317,3 +317,87 @@ export function autoWidgets(board: Board): Widget[] {
   if (out.length < 2) out.push(list(board));
   return out;
 }
+
+/* ---------------------------------------------------------------------------
+ * ONE RECORD'S TIMELINE — its own story, in the order it actually happened.
+ *
+ * Every date-type column on the board is a stage. A stage's NAME is that
+ * column's own title, exactly as the board spells it — nothing here knows what
+ * a stage is called, in any language. The ORDER comes from the dates the
+ * record actually carries, never from the column order on the board and never
+ * from a list in this file.
+ *
+ * A date column the record has not filled in is a stage that has not happened
+ * yet. That is information, not noise, so it is returned too (`at: null`) and
+ * placed after everything that already has a date — the screen shows it faded
+ * rather than dropping it silently.
+ *
+ * A board with no date column at all has no timeline: this returns null, and
+ * the screen shows nothing.
+ * ------------------------------------------------------------------------- */
+
+export interface Stage {
+  colId: string;
+  title: string;        // the board's own column title = the stage's name
+  text: string;         // the raw value, as Monday rendered it
+  at: number | null;    // ms since epoch (local midnight), null = not yet
+  iso: string | null;   // YYYY-MM-DD, null = not yet
+}
+
+const pad2 = (n: number) => (n < 10 ? `0${n}` : String(n));
+
+/**
+ * The first calendar date inside a Monday date-ish value, as local midnight.
+ * Handles what Monday's `text` actually returns: ISO ("2026-02-03", with or
+ * without a clock), a `timeline` range ("2026-02-03 - 2026-03-01" -> its
+ * start), and a day-first written date ("3.2.2026", "3/2/26") — day-first
+ * because that is how the date is written where this product is used.
+ * Anything that is not a date returns null; it is simply not a stage.
+ */
+export function parseBoardDate(text: string): { at: number; iso: string } | null {
+  if (!text) return null;
+  const s = text.trim();
+  let y: number, m: number, d: number;
+  const iso = /(\d{4})-(\d{1,2})-(\d{1,2})/.exec(s);
+  if (iso) { y = +iso[1]; m = +iso[2]; d = +iso[3]; }
+  else {
+    const dmy = /(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})/.exec(s);
+    if (!dmy) return null;
+    d = +dmy[1]; m = +dmy[2]; y = +dmy[3];
+    if (y < 100) y += 2000;
+  }
+  if (m < 1 || m > 12 || d < 1 || d > 31) return null;
+  const dt = new Date(y, m - 1, d);
+  if (dt.getFullYear() !== y || dt.getMonth() !== m - 1 || dt.getDate() !== d) return null;
+  return { at: dt.getTime(), iso: `${y}-${pad2(m)}-${pad2(d)}` };
+}
+
+/** The timeline of ONE record. null = this board has no date column. */
+export function timeline(board: Board, item: Item): Widget | null {
+  const dateCols = board.columns.filter((c) => isDate(c.type));
+  if (!dateCols.length) return null;
+
+  const stages = dateCols
+    .map((col, order) => {
+      const text = valueOf(item, col);
+      const p = parseBoardDate(text);
+      return { order, stage: { colId: col.id, title: col.title, text, at: p?.at ?? null, iso: p?.iso ?? null } as Stage };
+    })
+    // dated first, in date order; undated after them, keeping the board's order
+    .sort((a, b) => {
+      if (a.stage.at === null || b.stage.at === null) {
+        if (a.stage.at === b.stage.at) return a.order - b.order;
+        return a.stage.at === null ? 1 : -1;
+      }
+      return a.stage.at - b.stage.at || a.order - b.order;
+    })
+    .map((x) => x.stage);
+
+  const passed = stages.filter((s) => s.at !== null).length;
+  return {
+    kind: "timeline",
+    title: `ציר הזמן של "${item.name}"`,
+    source: `בורד "${board.name}" · ${dateCols.length} עמודות תאריך`,
+    data: { stages, passed, total: stages.length },
+  };
+}
