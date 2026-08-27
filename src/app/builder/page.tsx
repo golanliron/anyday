@@ -6,27 +6,21 @@ import type { SystemType, OrgType, BuilderBlueprint } from "@/types/builder";
 import { generateBlueprint } from "@/lib/builder-engine";
 import { BuilderForm } from "@/components/builder/BuilderForm";
 import { BlueprintView } from "@/components/builder/BlueprintView";
+import { getMondayStatus, disconnectMonday } from "@/lib/api-client";
 
 export default function BuilderPage() {
   const [blueprint, setBlueprint] = useState<BuilderBlueprint | null>(null);
-  const [mondayToken, setMondayToken] = useState<string | null>(null);
+  const [connected, setConnected] = useState(false);
 
-  // Pick up token from OAuth redirect or localStorage
+  // Connection is a server-side fact — ask the API, clean any OAuth flag.
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search);
-      const oauthToken = params.get("monday_token");
-      if (oauthToken) {
-        setMondayToken(oauthToken);
-        localStorage.setItem("anyday-token", oauthToken);
+      if (params.get("monday") || params.get("monday_error")) {
         window.history.replaceState({}, "", window.location.pathname);
-        return;
-      }
-      const saved = localStorage.getItem("anyday-token");
-      if (saved) {
-        setMondayToken(saved);
       }
     } catch {}
+    getMondayStatus().then((s) => setConnected(s.connected)).catch(() => {});
   }, []);
 
   function handleGenerate(systemType: SystemType, orgType: OrgType, description: string) {
@@ -38,9 +32,9 @@ export default function BuilderPage() {
     setBlueprint(null);
   }
 
-  function handleDisconnect() {
-    setMondayToken(null);
-    try { localStorage.removeItem("anyday-token"); } catch {}
+  async function handleDisconnect() {
+    await disconnectMonday();
+    setConnected(false);
   }
 
   return (
@@ -88,7 +82,7 @@ export default function BuilderPage() {
           <p style={{ fontSize: 13, color: "var(--color-muted)", margin: 0 }}>by AnyDay</p>
         </div>
         {/* Connected indicator */}
-        {mondayToken && (
+        {connected && (
           <div style={{ marginRight: "auto", display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{
               fontSize: 12, fontWeight: 600, color: "var(--color-green)",
@@ -151,7 +145,7 @@ export default function BuilderPage() {
           <BlueprintView
             blueprint={blueprint}
             onReset={handleReset}
-            mondayToken={mondayToken}
+            connected={connected}
           />
         )}
       </main>

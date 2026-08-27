@@ -1,30 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { BoardDashboard } from "@/components/board/BoardDashboard";
-import { loadBoard } from "@/lib/api-client";
-import type { MondayBoard, MondayItem } from "@/types";
 
 export default function Home() {
-  const [board, setBoard] = useState<MondayBoard | null>(null);
-  const [items, setItems] = useState<MondayItem[]>([]);
-  const [apiToken, setApiToken] = useState("");
-  const [boardId, setBoardId] = useState("");
   const [mobileMenu, setMobileMenu] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const oauthToken = params.get("monday_token");
-      if (oauthToken) {
-        setApiToken(oauthToken);
-        localStorage.setItem("anyday-token", oauthToken);
-        window.history.replaceState({}, "", window.location.pathname);
-      }
-    } catch {}
-  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -71,10 +52,6 @@ export default function Home() {
 
   function scrollToDemo() {
     window.location.href = "mailto:hello@anyday.co.il?subject=הזמנת דמו של 15 דקות";
-  }
-
-  if (board) {
-    return <BoardDashboard board={board} items={items} onBack={() => { setBoard(null); setItems([]); }} apiToken={apiToken} boardId={boardId} />;
   }
 
   return (

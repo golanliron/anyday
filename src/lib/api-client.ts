@@ -1,24 +1,28 @@
 import type { MondayBoard, MondayItem, AIAnalysis } from "@/types";
 
-export async function loadBoard(boardId: string, apiToken: string): Promise<{
+// NOTE: The Monday token is resolved SERVER-SIDE from the logged-in user's org.
+// These helpers no longer send a token — the `apiToken` params are kept only so
+// existing callers/components don't need to be rewired, and are ignored.
+
+export async function loadBoard(boardId: string, _apiToken?: string): Promise<{
   board: MondayBoard;
   items: MondayItem[];
 }> {
   const res = await fetch("/api/monday", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "board", boardId, apiToken }),
+    body: JSON.stringify({ action: "board", boardId }),
   });
   const data = await res.json();
   if (data.error) throw new Error(data.error);
   return data;
 }
 
-export async function listBoards(apiToken: string): Promise<{ id: string; name: string; items_count: number; description: string }[]> {
+export async function listBoards(_apiToken?: string): Promise<{ id: string; name: string; items_count: number; description: string }[]> {
   const res = await fetch("/api/monday", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "list_boards", apiToken }),
+    body: JSON.stringify({ action: "list_boards" }),
   });
   const data = await res.json();
   if (data.error) throw new Error(data.error);
@@ -26,36 +30,36 @@ export async function listBoards(apiToken: string): Promise<{ id: string; name: 
 }
 
 export async function changeColumnValue(
-  boardId: string, apiToken: string, itemId: string, columnId: string, value: unknown
+  boardId: string, _apiToken: string, itemId: string, columnId: string, value: unknown
 ): Promise<void> {
   const res = await fetch("/api/monday", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "change_value", boardId, apiToken, itemId, columnId, value }),
+    body: JSON.stringify({ action: "change_value", boardId, itemId, columnId, value }),
   });
   const data = await res.json();
   if (data.error) throw new Error(data.error);
 }
 
 export async function changeSimpleValue(
-  boardId: string, apiToken: string, itemId: string, columnId: string, value: string
+  boardId: string, _apiToken: string, itemId: string, columnId: string, value: string
 ): Promise<void> {
   const res = await fetch("/api/monday", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "change_simple", boardId, apiToken, itemId, columnId, value }),
+    body: JSON.stringify({ action: "change_simple", boardId, itemId, columnId, value }),
   });
   const data = await res.json();
   if (data.error) throw new Error(data.error);
 }
 
 export async function createItem(
-  boardId: string, apiToken: string, itemName: string, groupId?: string
+  boardId: string, _apiToken: string, itemName: string, groupId?: string
 ): Promise<{ id: string; name: string }> {
   const res = await fetch("/api/monday", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "create_item", boardId, apiToken, itemName, groupId }),
+    body: JSON.stringify({ action: "create_item", boardId, itemName, groupId }),
   });
   const data = await res.json();
   if (data.error) throw new Error(data.error);
@@ -76,4 +80,21 @@ export async function analyzeBoardAI(
   const data = await res.json();
   if (data.error) throw new Error(data.error);
   return data;
+}
+
+/** Ask the server whether the current user's org is connected to Monday. */
+export async function getMondayStatus(): Promise<{
+  configured: boolean;
+  authed: boolean;
+  connected: boolean;
+  orgName?: string;
+  accountName?: string | null;
+}> {
+  const res = await fetch("/api/monday/status", { cache: "no-store" });
+  return res.json();
+}
+
+/** Disconnect Monday for the current org. */
+export async function disconnectMonday(): Promise<void> {
+  await fetch("/api/monday/disconnect", { method: "POST" });
 }

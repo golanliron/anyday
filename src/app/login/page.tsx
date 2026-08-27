@@ -1,83 +1,105 @@
 "use client";
 
-import { signIn } from "next-auth/react";
+import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase-browser";
 
 function LoginContent() {
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/";
+  const callbackUrl = searchParams.get("callbackUrl") || "/workspace";
+  const [email, setEmail] = useState("");
+  const [sent, setSent] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const configured = isSupabaseConfigured();
+
+  async function signInWithGoogle() {
+    const supabase = getSupabaseBrowser();
+    if (!supabase) return;
+    setErr(null);
+    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(callbackUrl)}`;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo },
+    });
+    if (error) setErr(error.message);
+  }
+
+  async function signInWithEmail() {
+    const supabase = getSupabaseBrowser();
+    if (!supabase || !email.trim()) return;
+    setBusy(true);
+    setErr(null);
+    const emailRedirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(callbackUrl)}`;
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email.trim(),
+      options: { emailRedirectTo },
+    });
+    setBusy(false);
+    if (error) setErr(error.message);
+    else setSent(true);
+  }
 
   return (
     <div style={{
       minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
       background: "var(--color-bg)", fontFamily: "var(--font-dm)",
-      padding: 24, position: "relative", overflow: "hidden",
+      padding: 24, position: "relative", overflow: "hidden", direction: "rtl",
     }}>
-      {/* Background blobs */}
       <div style={{
         position: "absolute", width: 300, height: 300, borderRadius: "50%",
-        background: "var(--color-accent)", opacity: 0.06, top: -80, right: -60,
-        filter: "blur(80px)",
+        background: "var(--color-accent)", opacity: 0.06, top: -80, right: -60, filter: "blur(80px)",
       }} />
       <div style={{
         position: "absolute", width: 200, height: 200, borderRadius: "50%",
-        background: "var(--color-accent)", opacity: 0.04, bottom: -40, left: -40,
-        filter: "blur(60px)",
+        background: "var(--color-accent)", opacity: 0.04, bottom: -40, left: -40, filter: "blur(60px)",
       }} />
 
       <div style={{ maxWidth: 420, width: "100%", textAlign: "center", position: "relative", zIndex: 1 }}>
-        {/* Logo */}
         <div style={{
-          width: 64, height: 64, borderRadius: 50,
-          background: "var(--color-accent)",
+          width: 64, height: 64, borderRadius: 50, background: "var(--color-accent)",
           display: "flex", alignItems: "center", justifyContent: "center",
           margin: "0 auto 24px", fontSize: 28, color: "var(--color-bg)", fontWeight: 900,
           boxShadow: "0 0 30px rgba(212,255,43,0.2)",
         }}>A</div>
 
         <h1 style={{
-          fontSize: 36, fontWeight: 900, color: "var(--color-accent)", marginBottom: 8, letterSpacing: "-0.02em",
-          fontFamily: "var(--font-syne)",
-        }}>
-          AnyDay
-        </h1>
+          fontSize: 36, fontWeight: 900, color: "var(--color-accent)", marginBottom: 8,
+          letterSpacing: "-0.02em", fontFamily: "var(--font-syne)",
+        }}>AnyDay</h1>
 
-        <p style={{
-          fontSize: 16, color: "var(--color-muted)", marginBottom: 40, lineHeight: 1.6,
-        }}>
-          שכבת ניהול חכמה מעל הטבלאות שלכם
+        <p style={{ fontSize: 16, color: "var(--color-muted)", marginBottom: 40, lineHeight: 1.6 }}>
+          שכבת ניהול חכמה מעל ה-Monday שלכם
         </p>
 
-        {/* Login Card */}
         <div style={{
           background: "var(--color-surf)", borderRadius: 24, padding: "36px 32px",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
-          border: "1px solid var(--color-border)",
+          boxShadow: "0 20px 60px rgba(0,0,0,0.5)", border: "1px solid var(--color-border)",
         }}>
-          <h2 style={{
-            fontSize: 20, fontWeight: 700, color: "var(--color-text)", marginBottom: 8,
-          }}>התחברות</h2>
-          <p style={{
-            fontSize: 14, color: "var(--color-muted)", marginBottom: 28,
-          }}>היכנסו עם חשבון Google כדי להתחיל</p>
+          {!configured && (
+            <div style={{
+              background: "var(--color-amber-light)", color: "#8a6d00", borderRadius: 12,
+              padding: "14px 16px", marginBottom: 20, fontSize: 13, lineHeight: 1.6, textAlign: "right",
+            }}>
+              ⚙️ ההתחברות עדיין לא מוגדרת. הזינו את מפתחות Supabase ב-<code>.env.local</code> כדי להפעיל התחברות אמיתית.
+            </div>
+          )}
+
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--color-text)", marginBottom: 8 }}>התחברות</h2>
+          <p style={{ fontSize: 14, color: "var(--color-muted)", marginBottom: 28 }}>
+            היכנסו כדי לבנות ולנהל את מערכות ה-Monday של הארגון שלכם
+          </p>
 
           <button
-            onClick={() => signIn("google", { callbackUrl })}
+            onClick={signInWithGoogle}
+            disabled={!configured}
             style={{
               width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
               background: "var(--color-surf)", border: "1px solid var(--color-border2)",
               borderRadius: 50, padding: "14px 24px", fontSize: 16, fontWeight: 600,
-              color: "var(--color-text)", cursor: "pointer", transition: "all 0.2s",
-              fontFamily: "var(--font-dm)",
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.borderColor = "var(--color-accent)";
-              e.currentTarget.style.boxShadow = "0 4px 20px rgba(212,255,43,0.1)";
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)";
-              e.currentTarget.style.boxShadow = "none";
+              color: "var(--color-text)", cursor: configured ? "pointer" : "not-allowed",
+              opacity: configured ? 1 : 0.5, transition: "all 0.2s", fontFamily: "var(--font-dm)",
             }}
           >
             <svg width="20" height="20" viewBox="0 0 24 24">
@@ -89,33 +111,64 @@ function LoginContent() {
             התחברות עם Google
           </button>
 
-          <div style={{
-            marginTop: 20, display: "flex", alignItems: "center", gap: 12,
-          }}>
+          <div style={{ marginTop: 20, display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ flex: 1, height: 1, background: "var(--color-border)" }} />
-            <span style={{ fontSize: 12, color: "var(--color-muted)" }}>או</span>
+            <span style={{ fontSize: 12, color: "var(--color-muted)" }}>או במייל</span>
             <div style={{ flex: 1, height: 1, background: "var(--color-border)" }} />
           </div>
 
+          {sent ? (
+            <p style={{ marginTop: 20, fontSize: 14, color: "var(--color-green)", fontWeight: 600, lineHeight: 1.6 }}>
+              ✅ שלחנו קישור התחברות ל-{email}. פִּתחו אותו כדי להיכנס.
+            </p>
+          ) : (
+            <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>
+              <input
+                type="email"
+                dir="ltr"
+                placeholder="you@organization.org"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && signInWithEmail()}
+                disabled={!configured}
+                style={{
+                  padding: "13px 16px", borderRadius: 12, border: "1px solid var(--color-border2)",
+                  background: "var(--color-bg)", fontSize: 15, outline: "none", textAlign: "left",
+                  fontFamily: "var(--font-dm)", color: "var(--color-text)",
+                }}
+              />
+              <button
+                onClick={signInWithEmail}
+                disabled={!configured || busy || !email.trim()}
+                style={{
+                  background: "var(--color-accent-light)", border: "none", borderRadius: 50,
+                  padding: "13px 24px", fontSize: 14, fontWeight: 700, color: "var(--color-accent)",
+                  cursor: !configured || busy || !email.trim() ? "not-allowed" : "pointer",
+                  opacity: !configured || busy || !email.trim() ? 0.5 : 1, fontFamily: "var(--font-dm)",
+                }}
+              >
+                {busy ? "שולח..." : "שלחו לי קישור התחברות"}
+              </button>
+            </div>
+          )}
+
+          {err && (
+            <p style={{ marginTop: 16, fontSize: 13, color: "var(--color-red)", fontWeight: 600 }}>{err}</p>
+          )}
+
           <button
-            onClick={() => window.location.href = "/"}
+            onClick={() => (window.location.href = "/")}
             style={{
-              width: "100%", marginTop: 20,
-              background: "var(--color-accent-light)", border: "none",
-              borderRadius: 50, padding: "14px 24px", fontSize: 14, fontWeight: 600,
-              color: "var(--color-accent)", cursor: "pointer", transition: "all 0.2s",
-              fontFamily: "var(--font-dm)",
+              width: "100%", marginTop: 20, background: "none", border: "none",
+              padding: "10px", fontSize: 13, color: "var(--color-muted)", cursor: "pointer",
+              fontFamily: "var(--font-dm)", textDecoration: "underline",
             }}
-            onMouseEnter={e => e.currentTarget.style.background = "rgba(212,255,43,0.12)"}
-            onMouseLeave={e => e.currentTarget.style.background = "rgba(212,255,43,0.08)"}
           >
-            המשך בלי התחברות
+            חזרה לדף הבית
           </button>
         </div>
 
-        <p style={{
-          fontSize: 12, color: "var(--color-muted2)", marginTop: 24,
-        }}>
+        <p style={{ fontSize: 12, color: "var(--color-muted2)", marginTop: 24 }}>
           בהתחברות אתם מסכימים לתנאי השימוש ומדיניות הפרטיות
         </p>
       </div>

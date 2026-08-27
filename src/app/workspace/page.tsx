@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { listBoards, loadBoard } from "@/lib/api-client";
+import { listBoards, loadBoard, getMondayStatus, disconnectMonday } from "@/lib/api-client";
 import { BoardDashboard } from "@/components/board/BoardDashboard";
 import { SmartBuilder } from "@/components/builder/SmartBuilder";
 import type { MondayBoard, MondayItem } from "@/types";
@@ -15,7 +15,10 @@ interface BoardSummary {
 }
 
 export default function WorkspacePage() {
-  const [mondayToken, setMondayToken] = useState<string | null>(null);
+  // Connection is now a server-side fact \u2014 no token ever lives in the browser.
+  const [connected, setConnected] = useState(false);
+  const [accountName, setAccountName] = useState<string | null>(null);
+  const [checking, setChecking] = useState(true);
   const [boards, setBoards] = useState<BoardSummary[]>([]);
   const [loadingBoards, setLoadingBoards] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,48 +30,52 @@ export default function WorkspacePage() {
   const [loadingBoard, setLoadingBoard] = useState(false);
   const [showBuilder, setShowBuilder] = useState(false);
 
-  // Pick up token from OAuth redirect or localStorage
+  // On load: clean the OAuth ?monday= flag, then ask the server if we're connected.
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search);
-      const oauthToken = params.get("monday_token");
-      if (oauthToken) {
-        setMondayToken(oauthToken);
-        localStorage.setItem("anyday-token", oauthToken);
+      if (params.get("monday") || params.get("monday_error")) {
         window.history.replaceState({}, "", window.location.pathname);
-        fetchBoards(oauthToken);
-        return;
-      }
-      const saved = localStorage.getItem("anyday-token");
-      if (saved) {
-        setMondayToken(saved);
-        fetchBoards(saved);
       }
     } catch {}
+    void refreshStatus();
   }, []);
 
-  async function fetchBoards(token: string) {
+  async function refreshStatus() {
+    setChecking(true);
+    try {
+      const status = await getMondayStatus();
+      setConnected(status.connected);
+      setAccountName(status.accountName ?? null);
+      if (status.connected) {
+        await fetchBoards();
+      }
+    } catch {
+      setConnected(false);
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  async function fetchBoards() {
     setLoadingBoards(true);
     setError(null);
     try {
-      const b = await listBoards(token);
+      const b = await listBoards();
       setBoards(b);
     } catch {
       setError("\u05DC\u05D0 \u05D4\u05E6\u05DC\u05D7\u05E0\u05D5 \u05DC\u05D8\u05E2\u05D5\u05DF \u05D1\u05D5\u05E8\u05D3\u05D9\u05DD. \u05E0\u05E1\u05D5 \u05DC\u05D4\u05EA\u05D7\u05D1\u05E8 \u05DE\u05D7\u05D3\u05E9.");
-      setMondayToken(null);
-      try { localStorage.removeItem("anyday-token"); } catch {}
     } finally {
       setLoadingBoards(false);
     }
   }
 
   async function handleSelectBoard(id: string) {
-    if (!mondayToken) return;
     setSelectedBoardId(id);
     setLoadingBoard(true);
     setError(null);
     try {
-      const data = await loadBoard(id, mondayToken);
+      const data = await loadBoard(id);
       setSelectedBoard(data.board);
       setSelectedItems(data.items);
     } catch (e: unknown) {
@@ -85,12 +92,13 @@ export default function WorkspacePage() {
     setError(null);
   }
 
-  function handleDisconnect() {
-    setMondayToken(null);
+  async function handleDisconnect() {
+    await disconnectMonday();
+    setConnected(false);
     setBoards([]);
     setSelectedBoard(null);
     setSelectedItems([]);
-    try { localStorage.removeItem("anyday-token"); } catch {}
+    setAccountName(null);
   }
 
   // ========== Dashboard view ==========
@@ -100,7 +108,7 @@ export default function WorkspacePage() {
         board={selectedBoard}
         items={selectedItems}
         onBack={handleBack}
-        apiToken={mondayToken || ""}
+        apiToken=""
         boardId={selectedBoardId}
       />
     );
@@ -149,16 +157,16 @@ export default function WorkspacePage() {
         <div>
           <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>AnyDay Workspace</h1>
           <p style={{ fontSize: 13, color: "var(--color-muted)", margin: 0 }}>
-            {mondayToken ? `${boards.length} \u05D1\u05D5\u05E8\u05D3\u05D9\u05DD` : "\u05DC\u05D0 \u05DE\u05D7\u05D5\u05D1\u05E8"}
+            {connected ? `${boards.length} \u05D1\u05D5\u05E8\u05D3\u05D9\u05DD` : "\u05DC\u05D0 \u05DE\u05D7\u05D5\u05D1\u05E8"}
           </p>
         </div>
-        {mondayToken && (
+        {connected && (
           <div style={{ marginRight: "auto", display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{
               fontSize: 12, fontWeight: 600, color: "var(--color-green)",
               background: "var(--color-green-light)", padding: "4px 10px", borderRadius: 8,
             }}>
-              {"\u2705 \u05DE\u05D7\u05D5\u05D1\u05E8 \u05DC-Monday"}
+              {accountName ? `\u2705 ${accountName}` : "\u2705 \u05DE\u05D7\u05D5\u05D1\u05E8 \u05DC-Monday"}
             </span>
             <button onClick={handleDisconnect} style={{
               fontSize: 11, color: "var(--color-muted)", background: "none",
@@ -173,8 +181,23 @@ export default function WorkspacePage() {
 
       <main className="ws-main" style={{ maxWidth: 900, margin: "0 auto", padding: "32px 20px" }}>
 
+        {/* Checking connection status */}
+        {checking && (
+          <div style={{ textAlign: "center", padding: 48 }}>
+            <div style={{
+              width: 40, height: 40,
+              border: "3px solid var(--color-border)",
+              borderTopColor: "var(--color-accent)",
+              borderRadius: "50%",
+              animation: "spin 0.8s linear infinite",
+              margin: "0 auto 16px",
+            }} />
+            <p style={{ fontSize: 16, fontWeight: 600 }}>{"בודקים חיבור..."}</p>
+          </div>
+        )}
+
         {/* Not connected — show connect button */}
-        {!mondayToken && !loadingBoards && (
+        {!checking && !connected && !loadingBoards && (
           <div style={{
             textAlign: "center",
             padding: "60px 24px",
@@ -251,7 +274,7 @@ export default function WorkspacePage() {
         )}
 
         {/* Smart Builder */}
-        {mondayToken && !loadingBoards && !loadingBoard && showBuilder && (
+        {connected && !loadingBoards && !loadingBoard && showBuilder && (
           <div style={{ marginBottom: 24 }}>
             <button
               onClick={() => setShowBuilder(false)}
@@ -265,18 +288,18 @@ export default function WorkspacePage() {
               {"\u2190 \u05D7\u05D6\u05E8\u05D4 \u05DC\u05D1\u05D5\u05E8\u05D3\u05D9\u05DD"}
             </button>
             <SmartBuilder
-              apiToken={mondayToken}
+              apiToken=""
               existingBoards={boards.map(b => b.name)}
               onBoardCreated={() => {
                 setShowBuilder(false);
-                fetchBoards(mondayToken!);
+                void fetchBoards();
               }}
             />
           </div>
         )}
 
         {/* Board list */}
-        {mondayToken && !loadingBoards && !loadingBoard && !showBuilder && (
+        {connected && !loadingBoards && !loadingBoard && !showBuilder && (
           <>
             {/* Build new system — prominent CTA */}
             <div

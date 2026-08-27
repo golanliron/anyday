@@ -7,6 +7,7 @@ import { getDemoResult } from "@/lib/health-demo-data";
 import { buildActionPlan } from "@/lib/health-action-plan";
 import { HealthSummary } from "@/components/health/HealthSummary";
 import { HealthActionPlan } from "@/components/health/HealthActionPlan";
+import { getMondayStatus, disconnectMonday } from "@/lib/api-client";
 
 interface ScanResponse extends HealthCheckResult {
   boardNames: string[];
@@ -34,65 +35,47 @@ const CONFIDENCE_LABELS: Record<string, string> = {
 };
 
 export default function HealthCheckPage() {
-  const [token, setToken] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ScanResponse | null>(null);
   const [isDemo, setIsDemo] = useState(false);
-  const [mondayToken, setMondayToken] = useState<string | null>(null);
-  const [showManualToken, setShowManualToken] = useState(false);
+  const [connected, setConnected] = useState(false);
 
-  // Pick up token from OAuth redirect or localStorage
+  // Connection is a server-side fact — ask the API, clean any OAuth flag.
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search);
-      const oauthToken = params.get("monday_token");
-      if (oauthToken) {
-        setMondayToken(oauthToken);
-        localStorage.setItem("anyday-token", oauthToken);
+      if (params.get("monday") || params.get("monday_error")) {
         window.history.replaceState({}, "", window.location.pathname);
-        return;
       }
-      const saved = localStorage.getItem("anyday-token");
-      if (saved) setMondayToken(saved);
     } catch {}
+    getMondayStatus().then((st) => setConnected(st.connected)).catch(() => {});
   }, []);
 
-  const effectiveToken = mondayToken || token.trim();
-
-  function handleDisconnect() {
-    setMondayToken(null);
-    try { localStorage.removeItem("anyday-token"); } catch {}
+  async function handleDisconnect() {
+    await disconnectMonday();
+    setConnected(false);
   }
 
   async function handleScan() {
-    if (!effectiveToken) {
-      setError(mondayToken ? "\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05D7\u05D9\u05D1\u05D5\u05E8. \u05E0\u05E1\u05D5 \u05DC\u05D4\u05EA\u05D7\u05D1\u05E8 \u05DE\u05D7\u05D3\u05E9." : "\u05E0\u05D0 \u05DC\u05D4\u05EA\u05D7\u05D1\u05E8 \u05DC-Monday \u05E7\u05D5\u05D3\u05DD.");
-      return;
-    }
-
     setLoading(true);
     setError(null);
     setResult(null);
     setIsDemo(false);
 
     try {
+      // Token is resolved server-side from the org — nothing sent from client.
       const res = await fetch("/api/health-check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: effectiveToken }),
       });
-
       const data = await res.json();
-
       if (!res.ok) {
         const msg = data.error || "שגיאה לא צפויה.";
         setError(friendlyError(msg, res.status));
         return;
       }
-
       setResult(data);
-      setToken("");
     } catch {
       setError("לא הצלחנו להתחבר לשרת. בדקו את החיבור לאינטרנט ונסו שוב.");
     } finally {
@@ -104,7 +87,6 @@ export default function HealthCheckPage() {
     setResult(getDemoResult());
     setIsDemo(true);
     setError(null);
-    setToken("");
   }
 
   function handleReset() {
@@ -162,7 +144,7 @@ export default function HealthCheckPage() {
           <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Monday Health Check</h1>
           <p style={{ fontSize: 13, color: "var(--color-muted)", margin: 0 }}>by AnyDay</p>
         </div>
-        {mondayToken && (
+        {connected && (
           <div style={{ marginRight: "auto", display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{
               fontSize: 12, fontWeight: 600, color: "var(--color-green)",
@@ -228,7 +210,7 @@ export default function HealthCheckPage() {
               </h3>
 
               {/* Connected — just show scan button */}
-              {mondayToken && (
+              {connected && (
                 <>
                   <p style={{ color: "var(--color-muted)", fontSize: 14, lineHeight: 1.6, marginBottom: 20 }}>
                     {"\u05D0\u05EA\u05DD \u05DE\u05D7\u05D5\u05D1\u05E8\u05D9\u05DD \u05DC-Monday. \u05DC\u05D7\u05E6\u05D5 \u05DB\u05D3\u05D9 \u05DC\u05E1\u05E8\u05D5\u05E7 \u05D0\u05EA \u05D4\u05D1\u05D5\u05E8\u05D3\u05D9\u05DD \u05E9\u05DC\u05DB\u05DD."}
@@ -273,7 +255,7 @@ export default function HealthCheckPage() {
               )}
 
               {/* Not connected — OAuth button + manual fallback */}
-              {!mondayToken && (
+              {!connected && (
                 <>
                   <p style={{ color: "var(--color-muted)", fontSize: 14, lineHeight: 1.6, marginBottom: 20 }}>
                     {"\u05D7\u05D1\u05E8\u05D5 \u05D0\u05EA \u05D7\u05E9\u05D1\u05D5\u05DF \u05D4-Monday \u05E9\u05DC\u05DB\u05DD \u05D5\u05E0\u05D1\u05D3\u05D5\u05E7 \u05DE\u05D4 \u05D4\u05DE\u05E6\u05D1."}
@@ -311,67 +293,6 @@ export default function HealthCheckPage() {
                       {"\u05DC\u05D7\u05D9\u05E6\u05D4 \u05D0\u05D7\u05EA. \u05E7\u05E8\u05D9\u05D0\u05D4 \u05D1\u05DC\u05D1\u05D3, \u05D1\u05DC\u05D9 \u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD."}
                     </p>
                   </div>
-
-                  {/* Divider with manual toggle */}
-                  <div style={{
-                    display: "flex", alignItems: "center", gap: 12,
-                    marginBottom: 12,
-                  }}>
-                    <div style={{ flex: 1, height: 1, background: "var(--color-border)" }} />
-                    <button
-                      onClick={() => setShowManualToken(!showManualToken)}
-                      style={{
-                        fontSize: 12, color: "var(--color-muted)", background: "none",
-                        border: "none", cursor: "pointer", fontFamily: "var(--font-dm)",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {showManualToken ? "\u05D4\u05E1\u05EA\u05E8\u05D4" : "\u05D0\u05D5 \u05D4\u05D6\u05D9\u05E0\u05D5 Token \u05D9\u05D3\u05E0\u05D9\u05EA"}
-                    </button>
-                    <div style={{ flex: 1, height: 1, background: "var(--color-border)" }} />
-                  </div>
-
-                  {showManualToken && (
-                    <div className="hc-input-row" style={{ display: "flex", gap: 10, marginBottom: 12 }}>
-                      <input
-                        type="password"
-                        placeholder="eyJhbGciOi..."
-                        value={token}
-                        onChange={e => setToken(e.target.value)}
-                        onKeyDown={e => e.key === "Enter" && handleScan()}
-                        style={{
-                          flex: 1,
-                          padding: "12px 16px",
-                          borderRadius: 10,
-                          border: "1px solid var(--color-border)",
-                          background: "var(--color-bg)",
-                          fontSize: 15,
-                          fontFamily: "monospace",
-                          direction: "ltr",
-                          textAlign: "left",
-                          outline: "none",
-                        }}
-                      />
-                      <button
-                        onClick={handleScan}
-                        disabled={!token.trim()}
-                        style={{
-                          padding: "12px 28px",
-                          borderRadius: 10,
-                          border: "none",
-                          background: !token.trim() ? "var(--color-border)" : "var(--color-accent)",
-                          color: !token.trim() ? "var(--color-muted)" : "#fff",
-                          fontSize: 15,
-                          fontWeight: 600,
-                          cursor: !token.trim() ? "not-allowed" : "pointer",
-                          whiteSpace: "nowrap",
-                          fontFamily: "var(--font-dm)",
-                        }}
-                      >
-                        {"\u05E1\u05E8\u05E7\u05D5"}
-                      </button>
-                    </div>
-                  )}
 
                   <div style={{ textAlign: "center" }}>
                     <button

@@ -22,7 +22,7 @@ interface ExecuteResponse {
 interface BlueprintViewProps {
   blueprint: BuilderBlueprint;
   onReset: () => void;
-  mondayToken?: string | null;
+  connected: boolean;
 }
 
 const COLUMN_TYPE_ICONS: Record<string, string> = {
@@ -63,30 +63,22 @@ const COLUMN_TYPE_LABELS: Record<string, string> = {
   location: "\u05DE\u05D9\u05E7\u05D5\u05DD",
 };
 
-export function BlueprintView({ blueprint, onReset, mondayToken }: BlueprintViewProps) {
-  const [token, setToken] = useState("");
+export function BlueprintView({ blueprint, onReset, connected }: BlueprintViewProps) {
   const [building, setBuilding] = useState(false);
   const [executeResult, setExecuteResult] = useState<ExecuteResponse | null>(null);
   const [executeError, setExecuteError] = useState<string | null>(null);
-  const [showManualToken, setShowManualToken] = useState(false);
-
-  // Use OAuth token if available
-  const effectiveToken = mondayToken || token.trim();
 
   async function handleBuild() {
-    if (!effectiveToken) {
-      setExecuteError("\u05E0\u05D0 \u05DC\u05D4\u05EA\u05D7\u05D1\u05E8 \u05DC-Monday \u05E7\u05D5\u05D3\u05DD.");
-      return;
-    }
     setBuilding(true);
     setExecuteError(null);
     setExecuteResult(null);
 
     try {
+      // Token is resolved server-side from the org \u2014 nothing sensitive sent.
       const res = await fetch("/api/builder-execute", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ blueprint, apiToken: effectiveToken }),
+        body: JSON.stringify({ blueprint }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -94,7 +86,6 @@ export function BlueprintView({ blueprint, onReset, mondayToken }: BlueprintView
         return;
       }
       setExecuteResult(data);
-      setToken("");
     } catch {
       setExecuteError("\u05DC\u05D0 \u05D4\u05E6\u05DC\u05D7\u05E0\u05D5 \u05DC\u05D4\u05EA\u05D7\u05D1\u05E8 \u05DC\u05E9\u05E8\u05EA. \u05E0\u05E1\u05D5 \u05E9\u05D5\u05D1.");
     } finally {
@@ -183,13 +174,13 @@ export function BlueprintView({ blueprint, onReset, mondayToken }: BlueprintView
             {"\u05DE\u05E8\u05D5\u05E6\u05D9\u05DD \u05DE\u05D4\u05DE\u05D1\u05E0\u05D4? \u05D1\u05D5\u05D0\u05D5 \u05E0\u05D1\u05E0\u05D4 \u05D0\u05EA \u05D6\u05D4 \u05D1-Monday"}
           </h3>
           <p style={{ fontSize: 14, color: "var(--color-muted)", lineHeight: 1.6, marginBottom: 20, maxWidth: 440, marginLeft: "auto", marginRight: "auto", textAlign: "center" }}>
-            {mondayToken
+            {connected
               ? "\u05D0\u05EA\u05DD \u05DE\u05D7\u05D5\u05D1\u05E8\u05D9\u05DD \u05DC-Monday. \u05DC\u05D7\u05E6\u05D5 \u05DB\u05D3\u05D9 \u05DC\u05D9\u05E6\u05D5\u05E8 \u05D0\u05EA \u05D4\u05D1\u05D5\u05E8\u05D3\u05D9\u05DD, \u05D4\u05E2\u05DE\u05D5\u05D3\u05D5\u05EA \u05D5\u05D4\u05E7\u05D1\u05D5\u05E6\u05D5\u05EA \u05D9\u05E9\u05D9\u05E8\u05D5\u05EA \u05D1\u05D7\u05E9\u05D1\u05D5\u05DF \u05E9\u05DC\u05DB\u05DD."
               : "\u05D7\u05D1\u05E8\u05D5 \u05D0\u05EA \u05D7\u05E9\u05D1\u05D5\u05DF \u05D4-Monday \u05E9\u05DC\u05DB\u05DD \u05D5\u05E0\u05D9\u05E6\u05D5\u05E8 \u05D0\u05EA \u05D4\u05D1\u05D5\u05E8\u05D3\u05D9\u05DD \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9\u05EA."}
           </p>
 
           {/* Connected state — just show build button */}
-          {mondayToken && !building && (
+          {connected && !building && (
             <div style={{ textAlign: "center" }}>
               <button
                 onClick={handleBuild}
@@ -212,10 +203,9 @@ export function BlueprintView({ blueprint, onReset, mondayToken }: BlueprintView
             </div>
           )}
 
-          {/* Not connected — show connect button + manual token fallback */}
-          {!mondayToken && !building && (
-            <>
-              <div style={{ textAlign: "center", marginBottom: 16 }}>
+          {/* Not connected — single OAuth connect button (token stays server-side) */}
+          {!connected && !building && (
+            <div style={{ textAlign: "center", marginBottom: 8 }}>
                 <button
                   onClick={() => {
                     window.location.href = "/api/monday-oauth/authorize?return_to=/builder";
@@ -247,68 +237,7 @@ export function BlueprintView({ blueprint, onReset, mondayToken }: BlueprintView
                   {"\u05DC\u05D7\u05D9\u05E6\u05D4 \u05D0\u05D7\u05EA. \u05E7\u05E8\u05D9\u05D0\u05D4 \u05D1\u05DC\u05D1\u05D3, \u05D1\u05DC\u05D9 \u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD."}
                 </p>
               </div>
-
-              {/* Manual token fallback */}
-              <div style={{
-                display: "flex", alignItems: "center", gap: 12,
-                marginBottom: 12,
-              }}>
-                <div style={{ flex: 1, height: 1, background: "var(--color-border)" }} />
-                <button
-                  onClick={() => setShowManualToken(!showManualToken)}
-                  style={{
-                    fontSize: 12, color: "var(--color-muted)", background: "none",
-                    border: "none", cursor: "pointer", fontFamily: "var(--font-dm)",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {showManualToken ? "\u05D4\u05E1\u05EA\u05E8\u05D4" : "\u05D0\u05D5 \u05D4\u05D6\u05D9\u05E0\u05D5 Token \u05D9\u05D3\u05E0\u05D9\u05EA"}
-                </button>
-                <div style={{ flex: 1, height: 1, background: "var(--color-border)" }} />
-              </div>
-
-              {showManualToken && (
-                <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
-                  <input
-                    type="password"
-                    placeholder="eyJhbGciOi..."
-                    value={token}
-                    onChange={(e) => setToken(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleBuild()}
-                    style={{
-                      flex: 1,
-                      padding: "12px 16px",
-                      borderRadius: 10,
-                      border: "1px solid var(--color-border)",
-                      background: "var(--color-bg)",
-                      fontSize: 15,
-                      fontFamily: "monospace",
-                      direction: "ltr",
-                      textAlign: "left",
-                      outline: "none",
-                    }}
-                  />
-                  <button
-                    onClick={handleBuild}
-                    disabled={!token.trim()}
-                    style={{
-                      padding: "12px 28px",
-                      borderRadius: 10,
-                      border: "none",
-                      background: !token.trim() ? "var(--color-border)" : "var(--color-accent)",
-                      color: !token.trim() ? "var(--color-muted)" : "#fff",
-                      fontSize: 15,
-                      fontWeight: 600,
-                      cursor: !token.trim() ? "not-allowed" : "pointer",
-                      whiteSpace: "nowrap",
-                      fontFamily: "var(--font-dm)",
-                    }}
-                  >
-                    {"\u05D1\u05E0\u05D5"}
-                  </button>
-                </div>
-              )}
-            </>
+            
           )}
 
           {/* Loading spinner */}

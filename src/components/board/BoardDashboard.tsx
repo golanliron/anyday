@@ -1,6 +1,6 @@
 "use client";
 
-import { useSession, signOut } from "next-auth/react";
+import { useUser } from "@/lib/use-user";
 
 import { useState, useRef, useEffect, Component, type ReactNode, lazy, Suspense } from "react";
 import { Spinner } from "../ui/Spinner";
@@ -403,7 +403,7 @@ export function BoardDashboard({
   const [chatHistory, setChatHistory] = useState<ChatSession[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [mobilePanel, setMobilePanel] = useState(false);
-  const { data: session } = useSession();
+  const authUser = useUser();
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -735,13 +735,15 @@ export function BoardDashboard({
           התראות
         </button>
         {/* User profile */}
-        {session?.user && (
+        {authUser && (
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginRight: 8, borderRight: "1px solid rgba(255,255,255,0.05)", paddingRight: 12 }}>
-            <img src={session.user.image || ""} alt="" style={{
-              width: 28, height: 28, borderRadius: "50%", border: `2px solid ${hexToRgba(pc, 0.2)}`,
-            }} />
+            {authUser.image && (
+              <img src={authUser.image} alt="" style={{
+                width: 28, height: 28, borderRadius: "50%", border: `2px solid ${hexToRgba(pc, 0.2)}`,
+              }} />
+            )}
             <span className="dash-header-info" style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text)" }}>
-              {session.user.name?.split(" ")[0]}
+              {authUser.name?.split(" ")[0]}
             </span>
           </div>
         )}

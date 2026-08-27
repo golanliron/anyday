@@ -1,19 +1,17 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getBoards, getItems } from "@/lib/monday";
 import { runHealthCheck } from "@/lib/health-engine";
+import { requireMonday } from "@/lib/monday-server";
 import type { MondayItem } from "@/types";
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   try {
-    const body = await req.json();
-    const token = body.token;
-
-    if (!token || typeof token !== "string" || token.trim().length < 10) {
-      return NextResponse.json(
-        { error: "נא להזין Monday API Token תקין." },
-        { status: 400 }
-      );
+    // Resolve token from the logged-in user's org — never from the client.
+    const guard = await requireMonday();
+    if (!guard.ok) {
+      return NextResponse.json({ error: guard.error }, { status: guard.status });
     }
+    const token = guard.token;
 
     // Fetch boards (up to 25)
     let boards;

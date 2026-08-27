@@ -30,7 +30,8 @@ interface Blueprint {
 }
 
 interface Props {
-  apiToken: string;
+  /** Kept for backwards compatibility; the Monday token is resolved server-side. */
+  apiToken?: string;
   existingBoards?: string[];
   onBoardCreated?: () => void;
 }
@@ -41,7 +42,7 @@ const COLUMN_ICONS: Record<string, string> = {
   timeline: "⟷", link: "🔗", checkbox: "☑", rating: "★", color_picker: "🎨",
 };
 
-export function SmartBuilder({ apiToken, existingBoards, onBoardCreated }: Props) {
+export function SmartBuilder({ existingBoards, onBoardCreated }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -123,12 +124,13 @@ export function SmartBuilder({ apiToken, existingBoards, onBoardCreated }: Props
   }
 
   async function handleBuild() {
-    if (!blueprint || !apiToken) return;
+    if (!blueprint) return;
 
     setBuilding(true);
     setBuildResult(null);
 
     try {
+      // Token is resolved server-side from the org — nothing sent from client.
       const res = await fetch("/api/builder-execute", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -144,7 +146,6 @@ export function SmartBuilder({ apiToken, existingBoards, onBoardCreated }: Props
             status: "approved",
             boards: blueprint.boards,
           },
-          token: apiToken,
         }),
       });
 

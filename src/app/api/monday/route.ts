@@ -1,31 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-
-const MONDAY_API = "https://api.monday.com/v2";
-
-async function mondayQuery(query: string, apiToken: string) {
-  const res = await fetch(MONDAY_API, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: apiToken,
-      "API-Version": "2024-01",
-    },
-    body: JSON.stringify({ query }),
-  });
-  if (!res.ok) throw new Error(`Monday API error (${res.status})`);
-  const json = await res.json();
-  if (json.errors?.length) throw new Error(json.errors[0].message);
-  return json.data;
-}
+import { mondayQuery as mondayQueryWithToken, requireMonday } from "@/lib/monday-server";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { action, boardId, apiToken } = body;
-
-    if (!apiToken) {
-      return NextResponse.json({ error: "נא להזין API Token" }, { status: 400 });
+    // Resolve the token from the logged-in user's org — never from the client.
+    const guard = await requireMonday();
+    if (!guard.ok) {
+      return NextResponse.json({ error: guard.error }, { status: guard.status });
     }
+    const apiToken = guard.token;
+    const mondayQuery = (query: string) => mondayQueryWithToken(query, apiToken);
+
+    const body = await req.json();
+    const { action, boardId } = body;
 
     if (action === "board") {
       if (!boardId) {
@@ -33,8 +20,7 @@ export async function POST(req: NextRequest) {
       }
 
       const data = await mondayQuery(
-        `query { boards(ids:[${boardId}]) { id name description items_count columns { id title type } items_page(limit:100) { items { id name column_values { id text column { title type } } } } } }`,
-        apiToken
+        `query { boards(ids:[${boardId}]) { id name description items_count columns { id title type } items_page(limit:100) { items { id name column_values { id text column { title type } } } } } }`
       );
 
       const board = data.boards?.[0];
@@ -58,8 +44,7 @@ export async function POST(req: NextRequest) {
 
       // Fetch all items
       const boardData = await mondayQuery(
-        `query { boards(ids:[${boardId}]) { groups { id title } items_page(limit:500) { items { id name column_values { id text value column { title type } } } } } }`,
-        apiToken
+        `query { boards(ids:[${boardId}]) { groups { id title } items_page(limit:500) { items { id name column_values { id text value column { title type } } } } } }`
       );
       const allItems = boardData.boards?.[0]?.items_page?.items || [];
       const groups = boardData.boards?.[0]?.groups || [];
@@ -87,15 +72,13 @@ export async function POST(req: NextRequest) {
             const { columnId, newValue } = actionConfig;
             const valueJson = JSON.stringify({ label: newValue }).replace(/"/g, '\\"');
             await mondayQuery(
-              `mutation { change_column_value(board_id:${boardId}, item_id:${item.id}, column_id:"${columnId}", value:"${valueJson}") { id } }`,
-              apiToken
+              `mutation { change_column_value(board_id:${boardId}, item_id:${item.id}, column_id:"${columnId}", value:"${valueJson}") { id } }`
             );
             results.push(`${item.name}: סטטוס שונה ל-${newValue}`);
           } else if (actionType === "move_to_group") {
             const { groupId } = actionConfig;
             await mondayQuery(
-              `mutation { move_item_to_group(item_id:${item.id}, group_id:"${groupId}") { id } }`,
-              apiToken
+              `mutation { move_item_to_group(item_id:${item.id}, group_id:"${groupId}") { id } }`
             );
             const groupName = groups.find((g: { id: string; title: string }) => g.id === groupId)?.title || groupId;
             results.push(`${item.name}: הועבר ל-${groupName}`);
@@ -103,14 +86,13 @@ export async function POST(req: NextRequest) {
             const { text } = actionConfig;
             let userId = actionConfig.userId;
             if (!userId) {
-              const meRes = await mondayQuery(`query { me { id } }`, apiToken);
+              const meRes = await mondayQuery(`query { me { id } }`);
               userId = meRes?.me?.id;
             }
             if (userId) {
               const escapedText = (text || "התראה").replace(/"/g, '\\"');
               await mondayQuery(
-                `mutation { create_notification(user_id:${userId}, target_id:${item.id}, text:"${escapedText}", target_type:Project) { text } }`,
-                apiToken
+                `mutation { create_notification(user_id:${userId}, target_id:${item.id}, text:"${escapedText}", target_type:Project) { text } }`
               );
               results.push(`${item.name}: נשלחה התראה`);
             } else {
@@ -118,8 +100,7 @@ export async function POST(req: NextRequest) {
             }
           } else if (actionType === "archive") {
             await mondayQuery(
-              `mutation { archive_item(item_id:${item.id}) { id } }`,
-              apiToken
+              `mutation { archive_item(item_id:${item.id}) { id } }`
             );
             results.push(`${item.name}: הועבר לארכיון`);
           } else if (actionType === "send_email") {
@@ -127,12 +108,11 @@ export async function POST(req: NextRequest) {
             if (to) {
               // Monday doesn't have native email sending via API, but we can create a notification with the content
               const emailText = `מייל ל-${to}: ${subject || "ללא נושא"}`;
-              const meRes = await mondayQuery(`query { me { id } }`, apiToken);
+              const meRes = await mondayQuery(`query { me { id } }`);
               const uid = meRes?.me?.id;
               if (uid) {
                 await mondayQuery(
-                  `mutation { create_notification(user_id:${uid}, target_id:${item.id}, text:"${emailText.replace(/"/g, '\\"')}", target_type:Project) { text } }`,
-                  apiToken
+                  `mutation { create_notification(user_id:${uid}, target_id:${item.id}, text:"${emailText.replace(/"/g, '\\"')}", target_type:Project) { text } }`
                 );
               }
               results.push(`${item.name}: נשלחה התראת מייל`);
@@ -145,8 +125,7 @@ export async function POST(req: NextRequest) {
               const escaped = itemName.replace(/"/g, '\\"');
               const groupClause = gId ? `, group_id:"${gId}"` : "";
               await mondayQuery(
-                `mutation { create_item(board_id:${boardId}, item_name:"${escaped}"${groupClause}) { id } }`,
-                apiToken
+                `mutation { create_item(board_id:${boardId}, item_name:"${escaped}"${groupClause}) { id } }`
               );
               results.push(`נוצר פריט: ${itemName}`);
             }
@@ -166,15 +145,14 @@ export async function POST(req: NextRequest) {
       if (!mutation) {
         return NextResponse.json({ error: "חסרה מוטציה" }, { status: 400 });
       }
-      const data = await mondayQuery(mutation, apiToken);
+      const data = await mondayQuery(mutation);
       return NextResponse.json({ success: true, data });
     }
 
     // ── Get groups for a board ──
     if (action === "groups") {
       const data = await mondayQuery(
-        `query { boards(ids:[${boardId}]) { groups { id title color } } }`,
-        apiToken
+        `query { boards(ids:[${boardId}]) { groups { id title color } } }`
       );
       return NextResponse.json({ groups: data.boards?.[0]?.groups || [] });
     }
@@ -182,8 +160,7 @@ export async function POST(req: NextRequest) {
     // ── List all boards for the user ──
     if (action === "list_boards") {
       const data = await mondayQuery(
-        `query { boards(limit:50, order_by:used_at) { id name items_count description } }`,
-        apiToken
+        `query { boards(limit:50, order_by:used_at) { id name items_count description } }`
       );
       return NextResponse.json({ boards: data.boards || [] });
     }
@@ -196,8 +173,7 @@ export async function POST(req: NextRequest) {
       }
       const valueJson = JSON.stringify(value).replace(/"/g, '\\"');
       const data = await mondayQuery(
-        `mutation { change_column_value(board_id:${boardId}, item_id:${itemId}, column_id:"${columnId}", value:"${valueJson}") { id } }`,
-        apiToken
+        `mutation { change_column_value(board_id:${boardId}, item_id:${itemId}, column_id:"${columnId}", value:"${valueJson}") { id } }`
       );
       return NextResponse.json({ success: true, data });
     }
@@ -210,8 +186,7 @@ export async function POST(req: NextRequest) {
       }
       const escaped = String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
       const data = await mondayQuery(
-        `mutation { change_simple_column_value(board_id:${boardId}, item_id:${itemId}, column_id:"${columnId}", value:"${escaped}") { id } }`,
-        apiToken
+        `mutation { change_simple_column_value(board_id:${boardId}, item_id:${itemId}, column_id:"${columnId}", value:"${escaped}") { id } }`
       );
       return NextResponse.json({ success: true, data });
     }
@@ -225,8 +200,7 @@ export async function POST(req: NextRequest) {
       const escaped = itemName.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
       const groupClause = groupId ? `, group_id:"${groupId}"` : "";
       const data = await mondayQuery(
-        `mutation { create_item(board_id:${boardId}, item_name:"${escaped}"${groupClause}) { id name } }`,
-        apiToken
+        `mutation { create_item(board_id:${boardId}, item_name:"${escaped}"${groupClause}) { id name } }`
       );
       return NextResponse.json({ success: true, item: data.create_item });
     }
@@ -242,8 +216,7 @@ export async function POST(req: NextRequest) {
 
       // 1. Create the board
       const boardData = await mondayQuery(
-        `mutation { create_board(board_name:"${escapedName}", board_kind:${kind}) { id } }`,
-        apiToken
+        `mutation { create_board(board_name:"${escapedName}", board_kind:${kind}) { id } }`
       );
       const newBoardId = boardData.create_board?.id;
       if (!newBoardId) {
@@ -261,8 +234,7 @@ export async function POST(req: NextRequest) {
           const colType = col.type || "text";
           try {
             const colData = await mondayQuery(
-              `mutation { create_column(board_id:${newBoardId}, title:"${colTitle}", column_type:${colType}) { id } }`,
-              apiToken
+              `mutation { create_column(board_id:${newBoardId}, title:"${colTitle}", column_type:${colType}) { id } }`
             );
             columnMap[i] = colData.create_column?.id || "";
             results.push(`עמודה: ${col.title} (${colType})`);
@@ -280,8 +252,7 @@ export async function POST(req: NextRequest) {
           const grpName = (grp.title || `קבוצה ${i + 1}`).replace(/"/g, '\\"');
           try {
             const grpData = await mondayQuery(
-              `mutation { create_group(board_id:${newBoardId}, group_name:"${grpName}") { id } }`,
-              apiToken
+              `mutation { create_group(board_id:${newBoardId}, group_name:"${grpName}") { id } }`
             );
             groupMap[i] = grpData.create_group?.id || "";
             results.push(`קבוצה: ${grp.title}`);
@@ -300,8 +271,7 @@ export async function POST(req: NextRequest) {
             : "";
           try {
             await mondayQuery(
-              `mutation { create_item(board_id:${newBoardId}, item_name:"${itemName}"${groupClause}) { id } }`,
-              apiToken
+              `mutation { create_item(board_id:${newBoardId}, item_name:"${itemName}"${groupClause}) { id } }`
             );
             results.push(`פריט: ${item.name}`);
           } catch (err) {

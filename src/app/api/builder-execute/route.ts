@@ -1,23 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { BuilderBlueprint, BuilderBoard, BuilderColumn } from "@/types/builder";
-
-const MONDAY_API = "https://api.monday.com/v2";
-
-async function mondayQuery(query: string, apiToken: string) {
-  const res = await fetch(MONDAY_API, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: apiToken,
-      "API-Version": "2024-01",
-    },
-    body: JSON.stringify({ query }),
-  });
-  if (!res.ok) throw new Error(`Monday API error (${res.status})`);
-  const json = await res.json();
-  if (json.errors?.length) throw new Error(json.errors[0].message);
-  return json.data;
-}
+import { mondayQuery, requireMonday } from "@/lib/monday-server";
+import { getOrgContext } from "@/lib/session";
+import { createServiceClient } from "@/lib/supabase-server";
 
 // Map our ColumnType to Monday's column_type enum
 const COLUMN_TYPE_MAP: Record<string, string> = {
@@ -124,21 +109,18 @@ async function buildBoard(board: BuilderBoard, apiToken: string): Promise<BoardR
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { blueprint, apiToken } = body as { blueprint: BuilderBlueprint; apiToken: string };
-
-    if (!apiToken) {
-      return NextResponse.json({ error: "Missing API token" }, { status: 400 });
+    // Auth + Monday connection are resolved server-side; no client token.
+    const guard = await requireMonday();
+    if (!guard.ok) {
+      return NextResponse.json({ error: guard.error }, { status: guard.status });
     }
+    const apiToken = guard.token;
+
+    const body = await req.json();
+    const { blueprint } = body as { blueprint: BuilderBlueprint };
+
     if (!blueprint || !blueprint.boards || blueprint.boards.length === 0) {
       return NextResponse.json({ error: "Missing blueprint data" }, { status: 400 });
-    }
-
-    // Verify token works
-    try {
-      await mondayQuery(`query { me { id name } }`, apiToken);
-    } catch {
-      return NextResponse.json({ error: "API Token is invalid or expired" }, { status: 401 });
     }
 
     // Build each board sequentially
@@ -149,6 +131,26 @@ export async function POST(req: NextRequest) {
     }
 
     const successCount = results.filter((r) => r.boardId && !r.error).length;
+
+    // Persist the built blueprint to the org's history (best-effort).
+    try {
+      const ctx = await getOrgContext();
+      const service = createServiceClient();
+      if (ctx && service) {
+        await service.from("blueprints").insert({
+          org_id: ctx.orgId,
+          created_by: ctx.userId,
+          system_name: blueprint.systemName || "מערכת ללא שם",
+          description: blueprint.description ?? null,
+          status: "built",
+          payload: blueprint as unknown as Record<string, unknown>,
+          built_result: { results, successCount, totalBoards: results.length },
+          built_at: new Date().toISOString(),
+        });
+      }
+    } catch (persistErr) {
+      console.error("Blueprint persist failed:", persistErr);
+    }
 
     return NextResponse.json({
       success: successCount === results.length,

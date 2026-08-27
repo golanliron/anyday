@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { getOrgContext } from "@/lib/session";
+import { isSupabaseServerConfigured } from "@/lib/supabase-server";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -10,6 +12,12 @@ interface Message {
 
 export async function POST(req: NextRequest) {
   try {
+    // Require login once Supabase is configured (keeps the builder tenant-scoped).
+    if (isSupabaseServerConfigured()) {
+      const ctx = await getOrgContext();
+      if (!ctx) return NextResponse.json({ error: "יש להתחבר כדי להמשיך" }, { status: 401 });
+    }
+
     const { messages, existingBoards } = await req.json();
 
     if (!messages?.length) {

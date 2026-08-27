@@ -1,36 +1,82 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AnyDay 🟣
 
-## Getting Started
+**מערכת ניהול חכמה לעמותות, מעל Monday.com.**
+לא עוד דשבורד לצפייה — מנהלים מכאן את הכל, וכל שינוי נכתב חזרה ל-Monday האמיתי.
 
-First, run the development server:
+AnyDay קורא בורד Monday של עמותה, בונה עליו תמונת מצב חכמה, מזהה תובנות
+("שמתי לב ש..."), ומאפשר לערוך / להוסיף / למחוק רשומות ולעדכן סטטוסים —
+דרך ממשק נעים או דרך צ'אט בשפה טבעית. **הכל גנרי**: המערכת עובדת לפי טיפוסי
+העמודות, לא לפי שמות, כך שאותו קוד משרת עמותת בוגרים, נפגעי מלחמה, קשישים
+או בעלי חיים — בלי שינוי.
+
+---
+
+## הרצה מקומית (5 דקות)
 
 ```bash
+# 1. התקנת תלויות
+npm install
+
+# 2. הגדרת משתני סביבה
+cp .env.example .env.local
+#    ואז ערכו את .env.local — למינימום צריך:
+#    MONDAY_PERSONAL_TOKEN  (monday.com -> Developers -> My Access Tokens)
+#    ANTHROPIC_API_KEY      (לצ'אט החופשי; אופציונלי — בלעדיו הצ'אט עדיין עונה דטרמיניסטית)
+
+# 3. הרצה
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+פותחים **http://localhost:3000/app** ובוחרים בורד.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+> **טיפ:** הדרך המהירה להתחיל היא `MONDAY_PERSONAL_TOKEN` (טוקן אישי).
+> ה-OAuth המלא (`MONDAY_CLIENT_ID/SECRET`) נחוץ רק כשמרובה-משתמשים אמיתי.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### בדיקות תקינות לפני קומיט
+```bash
+npx tsc --noEmit     # חייב לעבור נקי
+npm run build        # חייב לעבור נקי
+```
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## מבנה הקוד (מה איפה)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+src/
+├── app/
+│   ├── app/page.tsx              ← המסך הראשי: לשוניות, דשבורד, משתתפים, צ'אט צף
+│   └── api/
+│       ├── boards/route.ts       ← רשימת הבורדים + שמירת הבחירה (cookie)
+│       ├── dashboard/route.ts    ← KPIs + גרפים (נגזרים מהבורד, לא קבועים!)
+│       ├── people/route.ts       ← הרשומות כ"אנשים" + כל השדות לעריכה
+│       ├── record/route.ts       ← כתיבה ל-Monday: update / create / delete / import
+│       ├── insights/route.ts     ← תובנות "שמתי לב ש..." מנוסחות
+│       ├── constellation/route.ts← נתוני מפת האימפקט (שמור לעתיד)
+│       ├── action/route.ts       ← עדכון סטטוס דרך הצ'אט (preview -> apply)
+│       └── ask/route.ts          ← מוח הצ'אט: זיהוי-כוונה + AI + widgets
+├── lib/
+│   ├── monday-server.ts          ← כל הקריאות ל-Monday GraphQL API (requireMonday, mondayQuery)
+│   └── board-intelligence.ts     ← ⭐ המנוע הגנרי: breakdown/attention/byOwner/
+│                                    terminology/headlineKpis — הכל לפי טיפוס עמודה
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+**הכלל החשוב ביותר:** `board-intelligence.ts` הוא הלב. הוא **לעולם לא מקודד**
+מילים ספציפיות לעמותה. אם צריך "איך קוראים לרשומות" — זה נגזר שם
+(`terminology`). כל פיצ'ר חדש צריך להישאר גנרי באותו אופן.
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## מצב נוכחי — ראו `HANDOFF.md`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+מסמך המסירה `HANDOFF.md` מפרט מה כבר בנוי, מה עובד ומאומת, ומה הפיצ'רים
+הבאים בתור. **קראו אותו קודם.**
+
+---
+
+## עקרונות עבודה
+
+1. **גנרי לכל העמותות** — אפס מילים/עמודות מקודדות. הכל מהבורד.
+2. **כתיבה ל-Monday בטוחה** — עריכה/הוספה מיידית; מחיקה עם אישור.
+3. **מקור לכל נתון** — כל מספר/תובנה מציג מאיפה הגיע (שם הבורד/עמודה).
+4. **בלי המצאות** — אין נתון? כותבים "לא ידוע", לא ממציאים.
