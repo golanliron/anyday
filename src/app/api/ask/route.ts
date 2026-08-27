@@ -3,6 +3,10 @@ import { cookies } from "next/headers";
 import { mondayQuery, requireMonday } from "@/lib/monday-server";
 import { fetchBoards, parseBoardIds, coverage, type FetchedBoard } from "@/lib/board-fetch";
 import * as BI from "@/lib/board-intelligence";
+import {
+  writePayload, looksLikeWrite, resolveName, valueCandidates, matchLabel,
+  labelsHtml, escapeHtml, labelsByColumn, STATUS_COLUMNS_QUERY,
+} from "@/lib/chat-intent";
 
 /**
  * The AnyDay chat brain. Reads the user's SELECTED Monday boards live and
@@ -46,26 +50,11 @@ export async function POST(req: NextRequest) {
   const cov = coverage(boards);
   const source = boards.map((b) => b.name).join(" · ") + (cov.truncated ? ` · ${cov.note}` : "");
 
-  // ── WRITE-INTENT detection: "סמן/עדכן את <שם> כ/ל <סטטוס>" ──
-  const intent = detectUpdateIntent(question);
-  if (intent) {
-    // Find the person + status column so the client can show a "what changes" card.
-    for (const b of boards) {
-      const statusCol = b.columns.find((c) => ["status", "color"].includes(c.type));
-      if (!statusCol) continue;
-      const item = b.items.find((it) => it.name.includes(intent.name) || intent.name.includes(it.name));
-      if (!item) continue;
-      const current = item.values.find((v) => v.colId === statusCol.id)?.text || "—";
-      return NextResponse.json({
-        action: {
-          type: "update-status", personName: item.name, boardId: b.id, boardName: b.name,
-          itemId: item.id, columnId: statusCol.id, columnTitle: statusCol.title, from: current, to: intent.status,
-        },
-        answer: `רוצה לעדכן את <b>${item.name}</b>: ${statusCol.title} מ-"${current}" ל-"<b>${intent.status}</b>". מאשרת?`,
-        source,
-      });
-    }
-    return NextResponse.json({ answer: `לא מצאתי את "${intent.name}" בבורדים שבחרת (או שאין עמודת סטטוס). בדקי את השם.`, source });
+  // ── WRITE-INTENT detection: "סמן/עדכן את <שם> כ/ל<ערך>" ──
+  const payload = writePayload(question);
+  if (payload) {
+    const written = await respondToUpdate(payload, boards, guard.token, source);
+    if (written) return written;   // null = read it as a question after all
   }
 
   // ── Intent routing: build canvas widgets from the generic engine ──
@@ -85,16 +74,109 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ answer: det.answer, source, ai: false, widgets, coverage: cov });
 }
 
-/** Detect a status-update request in Hebrew, e.g.:
- *  "סמן את דנה כבוגרת פעילה" / "עדכן את יוסי ל'סיים תוכנית'" / "תשנה את מיכל לבטיפול" */
-function detectUpdateIntent(q: string): { name: string; status: string } | null {
-  // patterns: (סמן|עדכן|תעדכן|שנה|תשנה) את <name> (כ|ל|לסטטוס) <status>
-  const m = q.match(/(?:סמן|סמני|עדכן|עדכני|תעדכן|שנה|תשנה|העבר|תעביר)\s+(?:את\s+)?(.+?)\s+(?:כ|ל|לסטטוס\s+|למצב\s+)['"]?(.+?)['"]?$/);
-  if (!m) return null;
-  const name = m[1].trim().replace(/^["']|["']$/g, "");
-  const status = m[2].trim().replace(/^["']|["']$/g, "");
-  if (!name || !status || name.length > 40) return null;
-  return { name, status };
+/**
+ * A board's status columns and the labels each one actually allows.
+ *
+ * DEBT (documented in anyday-ops/reports/T1.md): `board-fetch.ts` already reads
+ * this board's columns, but not their `settings_str`, and it is owned by
+ * another task right now — so the label list is read here with one small extra
+ * query. Worth folding into fetchBoards once that task lands.
+ */
+async function statusLabels(boardId: string, token: string): Promise<Record<string, string[]>> {
+  try {
+    const data = await mondayQuery(STATUS_COLUMNS_QUERY, token, { ids: [String(boardId)] });
+    return labelsByColumn(data);
+  } catch {
+    return {};   // labels unavailable → don't block the user, just skip validation
+  }
+}
+
+/**
+ * Turn "סמן את יוסי כהן כסיים" into a confirmable action card.
+ *
+ * Where the name ends is decided by the board's own item names (longest match
+ * wins), not by Hebrew grammar — so a name that starts with כ/ל no longer
+ * splits in the middle. Nothing is written here: an unknown value or an
+ * ambiguous name comes back as an answer that offers the real options.
+ * Returns null when the sentence should fall through to the normal Q&A path.
+ */
+async function respondToUpdate(
+  payload: string,
+  boards: FetchedBoard[],
+  token: string,
+  source: string,
+): Promise<NextResponse | null> {
+  const withStatus = boards.filter((b) => b.columns.some((c) => ["status", "color"].includes(c.type)));
+  const pool = withStatus.length ? withStatus : boards;
+  const found = resolveName(
+    payload,
+    pool.map((b) => ({ id: b.id, name: b.name, items: b.items.map((it) => ({ id: it.id, name: it.name })) })),
+  );
+
+  if (found.kind === "none") {
+    if (!looksLikeWrite(payload)) return null;
+    return NextResponse.json({
+      answer: `לא מצאתי "<b>${escapeHtml(payload)}</b>" בבורדים שבחרת, אז לא שיניתי כלום. כתבי את השם בדיוק כפי שהוא מופיע בבורד.`,
+      source,
+    });
+  }
+
+  if (found.kind === "many") {
+    const manyBoards = new Set(found.matches.map((m) => m.board.id)).size > 1;
+    const shown = found.matches.slice(0, 8)
+      .map((m) => `<b>${escapeHtml(m.item.name)}</b>${manyBoards ? ` (${escapeHtml(m.board.name)})` : ""}`)
+      .join(" · ");
+    const more = found.matches.length > 8 ? ` ועוד ${found.matches.length - 8}` : "";
+    return NextResponse.json({
+      answer: `ל"<b>${escapeHtml(found.matched)}</b>" יש יותר מהתאמה אחת: ${shown}${more}. לא שיניתי כלום — כתבי את השם המלא כדי שאדע במי מדובר.`,
+      source,
+    });
+  }
+
+  const { item, board } = found.matches[0];
+  const full = boards.find((b) => b.id === board.id);
+  const statusCol = full?.columns.find((c) => ["status", "color"].includes(c.type));
+  if (!full || !statusCol) {
+    return NextResponse.json({
+      answer: `מצאתי את <b>${escapeHtml(item.name)}</b>, אבל אין בבורד עמודת סטטוס לעדכן.`,
+      source,
+    });
+  }
+
+  const fullItem = full.items.find((it) => it.id === item.id);
+  const current = fullItem?.values.find((v) => v.colId === statusCol.id)?.text || "—";
+  const allowed = (await statusLabels(full.id, token))[statusCol.id] || [];
+  const options = allowed.length ? ` הערכים שקיימים בעמודה <b>${escapeHtml(statusCol.title)}</b>: ${labelsHtml(allowed)}.` : "";
+  const candidates = valueCandidates(found.rest);
+
+  if (!candidates.length) {
+    return NextResponse.json({
+      answer: `מצאתי את <b>${escapeHtml(item.name)}</b>, אבל לא כתוב לאיזה ערך לעדכן.${options}`,
+      source,
+    });
+  }
+
+  let value = candidates[0];
+  if (allowed.length) {
+    const hit = matchLabel(candidates, allowed);
+    if (!hit) {
+      const asked = candidates[candidates.length - 1];
+      return NextResponse.json({
+        answer: `"<b>${escapeHtml(asked)}</b>" לא קיים בעמודה <b>${escapeHtml(statusCol.title)}</b>, אז לא שיניתי כלום.${options}`,
+        source,
+      });
+    }
+    value = hit;   // write the board's own spelling, not the user's
+  }
+
+  return NextResponse.json({
+    action: {
+      type: "update-status", personName: item.name, boardId: full.id, boardName: full.name,
+      itemId: item.id, columnId: statusCol.id, columnTitle: statusCol.title, from: current, to: value,
+    },
+    answer: `רוצה לעדכן את <b>${escapeHtml(item.name)}</b>: ${escapeHtml(statusCol.title)} מ-"${escapeHtml(current)}" ל-"<b>${escapeHtml(value)}</b>". מאשרת?`,
+    source,
+  });
 }
 
 /** Route the user's question to the generic board-intelligence widget builders. */
