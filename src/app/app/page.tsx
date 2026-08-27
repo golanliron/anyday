@@ -37,6 +37,9 @@ interface KPI { icon: string; n: number; label: string; tone: string; }
 interface PField { colId: string; title: string; type: string; text: string }
 interface Person { id: string; name: string; boardId: string; boardName: string; status: string; owner: string; date: string; fields: PField[]; }
 interface BoardOpt { id: string; name: string; items: number; }
+/** A board's real columns, as /api/people reports them (id + title + TYPE). */
+interface BoardCol { id: string; title: string; type: string }
+interface BoardInfo { id: string; name: string; columns: BoardCol[] }
 
 /** How much of the board the numbers are actually based on (see board-fetch). */
 interface Cov { loaded: number; total: number; truncated: boolean; note: string }
@@ -448,8 +451,11 @@ function People() {
   // tone map + the board's own word for a row - both derived server-side
   const [meta, setMeta] = useState<{ tones: ToneMap; entities: Record<string, string> } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  // the selected boards' real columns — the only source for file→board matching
+  const [boardInfo, setBoardInfo] = useState<BoardInfo[]>([]);
+  const [plan, setPlan] = useState<ImportPlan | null>(null);
 
-  const load = () => fetch("/api/people", { cache: "no-store" }).then((r) => r.json()).then((d) => { if (d.error) { setErr(d.error); return; } setPeople(d.people || []); setCov(d.coverage || null); }).catch(() => setErr("שגיאה"));
+  const load = () => fetch("/api/people", { cache: "no-store" }).then((r) => r.json()).then((d) => { if (d.error) { setErr(d.error); return; } setPeople(d.people || []); setCov(d.coverage || null); setBoardInfo(d.boards || []); }).catch(() => setErr("שגיאה"));
   useEffect(() => { load();
     fetch("/api/dashboard?meta=1", { cache: "no-store" })
       .then((r) => r.json())
@@ -467,17 +473,54 @@ function People() {
     const r = await fetch("/api/record", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ op: "delete", itemId: id }) });
     const d = await r.json(); if (d.ok) { flash("נמחק מ-Monday ✓"); setOpen(null); load(); } else flash("שגיאה: " + d.error);
   }
+  /**
+   * Reading a file does NOT import it. It builds a plan — which file column
+   * goes into which board column — and hands it to the confirmation screen.
+   * An import writes to a real board, so nothing is written before the user
+   * has seen the mapping and approved it.
+   */
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0]; if (!f) return;
-    const text = await f.text();
-    // simple CSV: first column = name (one per line, skip header if it looks like one)
-    const lines = text.split(/\r?\n/).map((l) => l.split(/[,\t;]/)[0]?.trim()).filter(Boolean);
-    if (lines.length && /שם|name/i.test(lines[0])) lines.shift();
-    const boardId = people?.[0]?.boardId; if (!boardId || !lines.length) { flash("לא נמצאו שורות"); return; }
-    flash(`מייבא ${lines.length} רשומות...`);
-    const r = await fetch("/api/record", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ op: "import", boardId, rows: lines.map((name) => ({ name })) }) });
-    const d = await r.json(); flash(d.ok ? `יובאו ${d.created} רשומות ל-Monday ✓` : "שגיאה בייבוא"); load();
-    if (fileRef.current) fileRef.current.value = "";
+    const f = e.target.files?.[0];
+    if (fileRef.current) fileRef.current.value = "";   // so the same file can be re-picked
+    if (!f) return;
+    const boardId = people?.[0]?.boardId || boardInfo[0]?.id;
+    const board = boardInfo.find((b) => b.id === boardId);
+    if (!boardId || !board) { flash("לא נמצא לוח פעיל לייבוא"); return; }
+
+    const parsed = parseDelimited(await f.text());
+    const rows = parsed.filter((r) => r.some((c) => c !== ""));
+    const emptyRows = parsed.length - rows.length;
+    if (!rows.length) { flash("הקובץ ריק — לא נמצאו שורות"); return; }
+
+    const cols = board.columns || [];
+    const targets = importTargets(cols);
+    const head = headRow(rows);
+    const hasHeader = looksLikeHeader(head, targets);
+    setPlan({
+      fileName: f.name, boardId, boardName: board.name,
+      rows, emptyRows, cols, targets,
+      hasHeader, map: autoMap(head, targets, hasHeader),
+    });
+  }
+
+  /** The user approved the mapping — only now do we write to Monday. */
+  async function runImport(p: ImportPlan): Promise<ImportOutcome> {
+    const { rows: payload, noName } = rowsToImport(p);
+    const r = await fetch("/api/record", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ op: "import", boardId: p.boardId, rows: payload.slice(0, IMPORT_LIMIT) }),
+    });
+    const d = await r.json();
+    load();
+    if (!d.ok) return { created: 0, failed: 0, noName, skippedEmpty: p.emptyRows, overCap: 0, failures: [], error: d.error || "הייבוא נכשל" };
+    return {
+      created: d.created || 0,
+      failed: d.failed || 0,
+      noName: noName + (d.noName || 0),
+      skippedEmpty: p.emptyRows,
+      overCap: Math.max(0, payload.length - IMPORT_LIMIT) + (d.overCap || 0),
+      failures: d.failures || [],
+    };
   }
 
   if (err) return <ErrBox msg={err} />;
@@ -500,6 +543,7 @@ function People() {
         </div>
       </div>
       {adding && <AddRow onAdd={addRecord} onCancel={() => setAdding(false)} entity={entity} />}
+      {plan && <ImportMapper plan={plan} setPlan={setPlan} onRun={runImport} />}
       <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="חיפוש..." style={{ width: "100%", maxWidth: 400, padding: "11px 14px", borderRadius: 12, border: "1px solid #E6E4F0", fontSize: 13.5, marginBottom: 16, outline: "none", fontFamily: "inherit" }} />
       {view === "cards" ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: 12 }}>
@@ -522,6 +566,246 @@ function People() {
     </div>
   );
 }
+/* ===== list upload: read the file → SHOW THE MAPPING → approve → write =====
+   Nothing here knows a single content word. A file column reaches a board
+   column only by matching that board's own column titles, and the match is
+   shown to the user for approval before one row is written. */
+
+const IMPORT_LIMIT = 200;             // the server's protection cap, mirrored here
+const NAME_TARGET = "__name__";       // the item's own name in Monday
+/** Column TYPES a text cell cannot legally be written into: computed values,
+    references to users/files/boards, and Monday-managed fields. */
+const UNWRITABLE = ["name", "subtasks", "subitems", "button", "creation_log", "last_updated", "formula", "mirror", "board_relation", "dependency", "file", "doc", "auto_number", "progress", "integration", "time_tracking", "person", "people", "multiple-person", "vote"];
+
+interface ImportCell { columnId: string; type: string; value: string }
+interface ImportPlan {
+  fileName: string; boardId: string; boardName: string;
+  rows: string[][];     // every non-empty row of the file, header row included
+  emptyRows: number;    // rows that were blank end to end
+  cols: BoardCol[];     // the board's columns exactly as Monday reports them
+  targets: BoardCol[];  // the subset a file column may be written into
+  hasHeader: boolean;
+  map: string[];        // per file column: a target id, or "" = do not import
+}
+interface ImportOutcome {
+  created: number; failed: number; noName: number; skippedEmpty: number; overCap: number;
+  failures: { name: string; reason: string }[]; error?: string;
+}
+
+/** Which delimiter this file uses — counted on the first line, outside quotes. */
+function sniffDelimiter(text: string): string {
+  const counts: Record<string, number> = { ",": 0, "\t": 0, ";": 0 };
+  let quoted = false;
+  for (const ch of text) {
+    if (ch === "\"") { quoted = !quoted; continue; }
+    if (quoted) continue;
+    if (ch === "\n") break;
+    if (ch in counts) counts[ch]++;
+  }
+  return Object.keys(counts).reduce((a, b) => (counts[b] > counts[a] ? b : a), ",");
+}
+
+/**
+ * A real spreadsheet export is not "split on comma": a cell may hold the
+ * delimiter or a line break inside quotes, and a quote inside a quoted cell is
+ * written twice. Splitting naively turns one such row into two broken records.
+ * This walks the text character by character instead, so a name with a comma
+ * stays one name.
+ */
+function parseDelimited(text: string): string[][] {
+  const src = text.replace(/^\uFEFF/, "");   // Excel writes a BOM before the first title
+  const delim = sniffDelimiter(src);
+  const rows: string[][] = [];
+  let row: string[] = [], cell = "", quoted = false, started = false;
+  const endCell = () => { row.push(cell.trim()); cell = ""; started = false; };
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+    if (quoted) {
+      if (ch !== "\"") { cell += ch; continue; }
+      if (src[i + 1] === "\"") { cell += "\""; i++; } else quoted = false;
+      continue;
+    }
+    if (ch === "\"" && !started) { quoted = true; started = true; continue; }
+    if (ch === delim) { endCell(); continue; }
+    if (ch === "\n") { endCell(); rows.push(row); row = []; continue; }
+    if (ch === "\r") continue;
+    cell += ch; started = true;
+  }
+  endCell(); rows.push(row);
+  return rows;
+}
+
+/**
+ * The first row, widened to the widest row in the file. A row further down may
+ * carry more cells than the title row does; without this those cells would be
+ * dropped without anyone being told, which is the bug this whole screen exists
+ * to end. Widened, they show up in the mapping as unnamed columns.
+ */
+function headRow(rows: string[][]): string[] {
+  const width = rows.reduce((m, r) => Math.max(m, r.length), 0);
+  return Array.from({ length: width }, (_, i) => rows[0][i] || "");
+}
+
+/** Forgiving comparison of two column names: spacing and case are ignored. */
+const normKey = (s: string) => (s || "").replace(/\s+/g, " ").trim().toLowerCase();
+
+/** The board columns a file column may be sent to, plus the record name itself. */
+function importTargets(cols: BoardCol[]): BoardCol[] {
+  const nameCol = cols.find((c) => c.type === "name");
+  return [
+    { id: NAME_TARGET, title: nameCol?.title || "שם הרשומה", type: "name" },
+    ...cols.filter((c) => !UNWRITABLE.includes(c.type)),
+  ];
+}
+
+/** First row = titles? Only if it names at least one real column of this board. */
+function looksLikeHeader(first: string[], targets: BoardCol[]): boolean {
+  const titles = new Set(targets.map((t) => normKey(t.title)));
+  return first.some((c) => c && titles.has(normKey(c)));
+}
+
+/** The proposed mapping — a proposal only; the user sees it and may change it. */
+function autoMap(first: string[], targets: BoardCol[], hasHeader: boolean): string[] {
+  const byTitle = new Map(targets.map((t) => [normKey(t.title), t.id]));
+  return first.map((h, i) => (hasHeader ? byTitle.get(normKey(h)) || "" : i === 0 ? NAME_TARGET : ""));
+}
+
+/** Turn the approved plan into the rows the API will write. */
+function rowsToImport(p: ImportPlan): { rows: { name: string; values: ImportCell[] }[]; noName: number } {
+  const data = p.hasHeader ? p.rows.slice(1) : p.rows;
+  const nameIdx = p.map.indexOf(NAME_TARGET);
+  const typeOf = (id: string) => p.cols.find((c) => c.id === id)?.type || "text";
+  const rows: { name: string; values: ImportCell[] }[] = [];
+  let noName = 0;
+  for (const r of data) {
+    const name = (nameIdx >= 0 ? r[nameIdx] || "" : "").trim();
+    if (!name) { noName++; continue; }
+    const values: ImportCell[] = [];
+    p.map.forEach((target, i) => {
+      if (!target || target === NAME_TARGET) return;
+      const v = (r[i] || "").trim();
+      if (v) values.push({ columnId: target, type: typeOf(target), value: v });
+    });
+    rows.push({ name, values });
+  }
+  return { rows, noName };
+}
+
+/** The confirmation screen. It is the whole point: an import writes to a real
+    board, so the user reads what will happen before it happens. */
+function ImportMapper({ plan, setPlan, onRun }: { plan: ImportPlan; setPlan: (p: ImportPlan | null) => void; onRun: (p: ImportPlan) => Promise<ImportOutcome> }) {
+  const [busy, setBusy] = useState(false);
+  const [out, setOut] = useState<ImportOutcome | null>(null);
+
+  const head = headRow(plan.rows);
+  const header = plan.hasHeader ? head : head.map((_, i) => `עמודה ${i + 1}`);
+  const data = plan.hasHeader ? plan.rows.slice(1) : plan.rows;
+  const sample = data[0] || [];
+  const { rows: ready, noName } = rowsToImport(plan);
+  const dropped = header.map((h, i) => (plan.map[i] ? "" : h || `עמודה ${i + 1}`)).filter(Boolean);
+  const dupe = plan.map.some((t, i) => t && plan.map.indexOf(t) !== i);
+  const willImport = Math.min(ready.length, IMPORT_LIMIT);
+  const blocked = plan.map.indexOf(NAME_TARGET) < 0
+    ? "בחרו איזו עמודה בקובץ היא שם הרשומה — בלעדיה אי אפשר לייבא."
+    : dupe ? "שתי עמודות בקובץ מכוונות לאותה עמודה בלוח — תקנו כדי להמשיך."
+    : !ready.length ? "אין בקובץ אף שורה עם שם." : "";
+
+  const setMapAt = (i: number, target: string) => setPlan({ ...plan, map: plan.map.map((t, j) => (j === i ? target : t)) });
+  const toggleHeader = (v: boolean) => setPlan({ ...plan, hasHeader: v, map: autoMap(head, plan.targets, v) });
+  async function approve() {
+    setBusy(true);
+    try { setOut(await onRun(plan)); } catch { setOut({ created: 0, failed: 0, noName: 0, skippedEmpty: 0, overCap: 0, failures: [], error: "הייבוא נכשל — לא הצלחתי לפנות לשרת" }); }
+    finally { setBusy(false); }
+  }
+
+  const box: React.CSSProperties = { background: C.panel, borderRadius: 20, width: 640, maxWidth: "calc(100vw - 32px)", maxHeight: "86vh", overflowY: "auto", padding: 22, boxShadow: "0 30px 70px -20px rgba(40,30,90,.45)", animation: "pop .22s both" };
+  const label: React.CSSProperties = { fontSize: 11, color: C.muted, marginBottom: 3 };
+
+  return (
+    <div dir="rtl" style={{ position: "fixed", inset: 0, background: "rgba(27,24,48,.45)", display: "grid", placeItems: "center", zIndex: 70, padding: 16 }}>
+      <div style={box}>
+        {out ? (
+          <>
+            <h2 style={{ fontSize: 19, fontWeight: 800, margin: "0 0 4px" }}>{out.error ? "הייבוא נכשל" : "סיכום הייבוא"}</h2>
+            <p style={{ fontSize: 12.5, color: C.muted, margin: "0 0 14px" }}>{plan.fileName} ← {plan.boardName}</p>
+            {out.error ? (
+              <div style={{ background: C.coralL, color: "#D63A5C", borderRadius: 12, padding: "12px 14px", fontSize: 13, fontWeight: 600 }}>{out.error}</div>
+            ) : (
+              <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
+                {[["נוצרו ב-Monday", out.created, C.teal, C.tealL], ["נכשלו", out.failed, C.coral, C.coralL]].map(([l, n, fg, bg]) => (
+                  <div key={l as string} style={{ flex: 1, background: bg as string, borderRadius: 13, padding: 12 }}>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: fg as string, fontVariantNumeric: "tabular-nums" }}>{n as number}</div>
+                    <div style={{ fontSize: 11.5, color: C.muted }}>{l as string}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <ul style={{ margin: "0 0 12px", paddingInlineStart: 18, fontSize: 12.5, color: C.muted, lineHeight: 1.7 }}>
+              {out.skippedEmpty > 0 && <li>{out.skippedEmpty} שורות ריקות בקובץ — דולגו.</li>}
+              {out.noName > 0 && <li>{out.noName} שורות בלי שם — לא יובאו.</li>}
+              {out.overCap > 0 && <li>{out.overCap} שורות מעבר לתקרת {IMPORT_LIMIT} השורות לייבוא — לא נשלחו. העלו אותן בקובץ נוסף.</li>}
+              {dropped.length > 0 && <li>עמודות בקובץ שלא נכנסו ללוח: {dropped.join(" · ")}</li>}
+            </ul>
+            {out.failures.length > 0 && (
+              <div style={{ border: `1px solid ${C.coral}40`, borderRadius: 13, padding: 12, marginBottom: 14 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: C.coral, marginBottom: 6 }}>מה נכשל ולמה</div>
+                {out.failures.map((f, i) => <div key={i} style={{ fontSize: 12, color: C.ink, lineHeight: 1.6 }}><b>{f.name}</b> — <span style={{ color: C.muted }}>{f.reason}</span></div>)}
+                {out.failed > out.failures.length && <div style={{ fontSize: 11.5, color: C.muted, marginTop: 5 }}>ועוד {out.failed - out.failures.length} שורות שנכשלו.</div>}
+              </div>
+            )}
+            <button onClick={() => setPlan(null)} style={{ background: C.grape, color: "#fff", border: "none", borderRadius: 11, padding: "10px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>סגירה</button>
+          </>
+        ) : (
+          <>
+            <h2 style={{ fontSize: 19, fontWeight: 800, margin: "0 0 4px" }}>לפני שמייבאים — כך יתאימו העמודות</h2>
+            <p style={{ fontSize: 12.5, color: C.muted, margin: "0 0 14px" }}>{plan.fileName} ← הלוח {plan.boardName}. שום דבר עוד לא נכתב ל-Monday.</p>
+
+            <label style={{ display: "flex", alignItems: "center", gap: 8, background: C.grapeL, borderRadius: 12, padding: "9px 12px", marginBottom: 14, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+              <input type="checkbox" checked={plan.hasHeader} onChange={(e) => toggleHeader(e.target.checked)} />
+              השורה הראשונה בקובץ היא שורת כותרות
+              <span style={{ color: C.muted, fontWeight: 500 }}>({plan.rows[0].slice(0, 3).join(" · ")})</span>
+            </label>
+
+            <div style={{ border: "1px solid #ECEBF5", borderRadius: 14, overflow: "hidden", marginBottom: 12 }}>
+              {header.map((h, i) => {
+                const target = plan.map[i];
+                return (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderBottom: i === header.length - 1 ? "none" : "1px solid #F4F3FB", background: target ? "#fff" : "#FBFAFE" }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{h || `עמודה ${i + 1}`}</div>
+                      <div style={{ ...label, marginBottom: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sample[i] ? `לדוגמה: ${sample[i]}` : "ריקה בשורה הראשונה"}</div>
+                    </div>
+                    <span style={{ color: C.muted }}>←</span>
+                    <select value={target} onChange={(e) => setMapAt(i, e.target.value)} style={{ width: 210, border: `1px solid ${target ? "#E1DBFC" : "#E6E4F0"}`, borderRadius: 10, padding: "8px 10px", fontSize: 12.5, fontWeight: 600, fontFamily: "inherit", color: target ? C.ink : C.muted, background: "#fff" }}>
+                      <option value="">לא לייבא</option>
+                      {plan.targets.map((t) => <option key={t.id} value={t.id}>{t.id === NAME_TARGET ? `${t.title} (שם הרשומה)` : t.title}</option>)}
+                    </select>
+                  </div>
+                );
+              })}
+            </div>
+
+            <ul style={{ margin: "0 0 14px", paddingInlineStart: 18, fontSize: 12.5, color: C.muted, lineHeight: 1.7 }}>
+              <li><b style={{ color: C.ink }}>{willImport}</b> רשומות ייווצרו בלוח.</li>
+              {dropped.length > 0 && <li>לא נמצאו בלוח ולא ייובאו: {dropped.join(" · ")}</li>}
+              {plan.emptyRows > 0 && <li>{plan.emptyRows} שורות ריקות — ידולגו.</li>}
+              {noName > 0 && <li>{noName} שורות בלי שם — ידולגו.</li>}
+              {ready.length > IMPORT_LIMIT && <li>הקובץ מכיל {ready.length} שורות; בייבוא אחד נכתבות עד {IMPORT_LIMIT}. השאר לא ייכתבו.</li>}
+            </ul>
+
+            {blocked && <div style={{ background: C.amberL, color: "#C77A00", borderRadius: 12, padding: "10px 13px", fontSize: 12.5, fontWeight: 700, marginBottom: 12 }}>{blocked}</div>}
+
+            <div style={{ display: "flex", gap: 8 }}>
+              <button disabled={busy || !!blocked} onClick={approve} style={{ background: blocked || busy ? "#C9C6DE" : C.grape, color: "#fff", border: "none", borderRadius: 11, padding: "11px 20px", fontSize: 13, fontWeight: 700, cursor: blocked || busy ? "default" : "pointer", fontFamily: "inherit" }}>{busy ? "מייבא ל-Monday..." : `אשרו וייבאו ${willImport} רשומות`}</button>
+              <button disabled={busy} onClick={() => setPlan(null)} style={{ background: "#F0EFF6", color: C.muted, border: "none", borderRadius: 11, padding: "11px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>ביטול</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AddRow({ onAdd, onCancel, entity }: { onAdd: (n: string) => void; onCancel: () => void; entity: string }) {
   const [n, setN] = useState("");
   return (
