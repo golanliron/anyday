@@ -17,9 +17,19 @@ const PALETTE = [
   { fg: C.amber, bg: C.amberL }, { fg: C.sky, bg: C.skyL }, { fg: C.lime, bg: C.limeL },
 ];
 const pick = (i: number) => PALETTE[i % PALETTE.length];
-const statusColor = (s: string) => /סיים|בוגר|פעיל|הושלם|אושר|גויס|התגייס/.test(s) ? { fg: "#0B8F76", bg: C.tealL }
-  : /סיכון|תקוע|דחוף|בעיה|נשיר/.test(s) ? { fg: "#D63A5C", bg: C.coralL }
-  : /ממתין|בטיפול|בבדיק/.test(s) ? { fg: "#C77A00", bg: C.amberL } : { fg: C.muted, bg: "#F0EFF6" };
+/* A status value is painted by its TONE, which arrives from the server. The
+   server derives that tone from the colour the Monday board itself gave the
+   label (see board-intelligence), so this screen recognises no word at all -
+   a board in Hebrew, Arabic or English colours identically. */
+type Tone = "risk" | "progress" | "done" | "neutral";
+type ToneMap = Record<string, string>;
+const TONE_STYLE: Record<Tone, { fg: string; bg: string }> = {
+  done: { fg: "#0B8F76", bg: C.tealL },
+  risk: { fg: "#D63A5C", bg: C.coralL },
+  progress: { fg: "#C77A00", bg: C.amberL },
+  neutral: { fg: C.muted, bg: "#F0EFF6" },
+};
+const toneStyle = (t?: string) => TONE_STYLE[t as Tone] || TONE_STYLE.neutral;
 
 type Tab = "dash" | "people" | "insights";
 interface Widget { kind: string; title: string; source: string; data: unknown; }
@@ -170,9 +180,13 @@ function Onboard({ boards, onStart }: { boards: BoardOpt[]; onStart: (ids: strin
 interface Dot { id: string; name: string; cluster: string; status: string; updatedAt: string; fields: { title: string; text: string }[]; x?: number; y?: number; c?: string; }
 interface CBoard { boardId: string; boardName: string; entity: string; clusterTitle: string; statusTitle: string; clusters: { name: string; n: number }[]; dots: Dot[]; }
 const DOT_COLORS = ["#8A6BFF", "#4FA9FF", "#12C7A8", "#FFAE34", "#FF6B8A", "#84D65A"];
-function statusDotColor(s: string) { return /סיכון|תקוע|דחוף|בעיה|נשיר/.test(s) ? "#FF5470" : /סיים|בוגר|פעיל|הושלם|גויס|התגייס/.test(s) ? "#12C7A8" : null; }
+/** Dot colour from the server-derived tone - never from the status text. */
+function statusDotColor(tone?: string) { return tone === "risk" ? "#FF5470" : tone === "done" ? "#12C7A8" : null; }
 
-function ImpactMap({ names }: { names: string[] }) {
+// NOTE: this component is not mounted anywhere today. When it is wired back in,
+// its caller must hand it the tone map (GET /api/dashboard?meta=1), exactly as
+// People does - /api/constellation does not carry tones of its own.
+function ImpactMap({ names, tones }: { names: string[]; tones: ToneMap }) {
   const [data, setData] = useState<CBoard[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [sel, setSel] = useState<Dot | null>(null);
@@ -210,7 +224,7 @@ function ImpactMap({ names }: { names: string[] }) {
       const cp = clusterPos[d.cluster] || { cx: W / 2, cy: H / 2, color: "#8A6BFF" };
       const a = rand(i) * Math.PI * 2, r = 18 + rand(i + 999) * 78;
       const x = cp.cx + Math.cos(a) * r, y = cp.cy + Math.sin(a) * r * 0.8;
-      dots.push({ ...d, x, y, c: statusDotColor(d.status) || cp.color });
+      dots.push({ ...d, x, y, c: statusDotColor(tones[d.status]) || cp.color });
     });
     dotsRef.current = dots;
 
@@ -242,7 +256,7 @@ function ImpactMap({ names }: { names: string[] }) {
     }
     frame();
     return () => cancelAnimationFrame(raf);
-  }, [data]);
+  }, [data, tones]);
 
   function onClick(e: React.MouseEvent) {
     const rect = canvasRef.current!.getBoundingClientRect();
@@ -255,7 +269,7 @@ function ImpactMap({ names }: { names: string[] }) {
   if (err) return <ErrBox msg={err} />;
   if (!data) return <Spinner label="בונה את מפת האימפקט..." />;
   const totalDots = data.reduce((s, b) => s + b.dots.length, 0);
-  const atRisk = data.flatMap((b) => b.dots).filter((d) => statusDotColor(d.status) === "#FF5470").length;
+  const atRisk = data.flatMap((b) => b.dots).filter((d) => tones[d.status] === "risk").length;
 
   return (
     <div style={{ animation: "rise .4s both" }}>
@@ -273,7 +287,7 @@ function ImpactMap({ names }: { names: string[] }) {
         </div>
         {/* legend */}
         <div style={{ position: "absolute", bottom: 14, insetInlineStart: 18, display: "flex", gap: 14, fontSize: 11.5, color: "#B8B5D0" }}>
-          <Legend c="#8A6BFF" t="אדם" /><Legend c="#12C7A8" t="פעיל/הושלם" /><Legend c="#FF5470" t="דורש תשומת לב" />
+          <Legend c="#8A6BFF" t="אדם" /><Legend c="#12C7A8" t="הסתיים" /><Legend c="#FF5470" t="דורש תשומת לב" />
         </div>
       </div>
       {sel && <DotProfile d={sel} entity={data[0]?.entity || ""} onClose={() => setSel(null)} />}
@@ -404,8 +418,8 @@ function ChartBody({ w, c }: { w: Widget; c: { fg: string; bg: string } }) {
   const drill = (w as Widget & { drill?: Record<string, string[]> }).drill;
   const [openRow, setOpenRow] = useState<string | null>(null);
   if (w.kind === "breakdown" || w.kind === "byOwner") {
-    const rows = (d.rows as { label: string; n: number }[]) || []; const max = Math.max(...rows.map((r) => r.n), 1);
-    return <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>{rows.slice(0, 8).map((r, i) => { const sc = w.kind === "breakdown" ? statusColor(r.label) : pick(i); const canOpen = drill && drill[r.label]?.length; const isOpen = openRow === r.label;
+    const rows = (d.rows as { label: string; n: number; tone?: string }[]) || []; const max = Math.max(...rows.map((r) => r.n), 1);
+    return <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>{rows.slice(0, 8).map((r, i) => { const sc = w.kind === "breakdown" ? toneStyle(r.tone) : pick(i); const canOpen = drill && drill[r.label]?.length; const isOpen = openRow === r.label;
       return <div key={r.label} style={{ display: "grid", gap: 4 }}>
         <button onClick={() => canOpen && setOpenRow(isOpen ? null : r.label)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12.5, background: "none", border: "none", padding: 0, cursor: canOpen ? "pointer" : "default", fontFamily: "inherit", color: C.ink, textAlign: "right" }}>
           <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 190 }}>{r.label}{canOpen && <span style={{ color: "#C4C2D6", marginInlineStart: 5, fontSize: 11 }}>{isOpen ? "▾" : "◂ הצג שמות"}</span>}</span>
@@ -431,10 +445,17 @@ function People() {
   const [toast, setToast] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [cov, setCov] = useState<Cov | null>(null);
+  // tone map + the board's own word for a row - both derived server-side
+  const [meta, setMeta] = useState<{ tones: ToneMap; entities: Record<string, string> } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const load = () => fetch("/api/people", { cache: "no-store" }).then((r) => r.json()).then((d) => { if (d.error) { setErr(d.error); return; } setPeople(d.people || []); setCov(d.coverage || null); }).catch(() => setErr("שגיאה"));
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load();
+    fetch("/api/dashboard?meta=1", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => { if (!d.error) setMeta({ tones: d.tones || {}, entities: d.entities || {} }); })
+      .catch(() => { /* colours simply stay neutral */ });
+  }, []);
   function flash(m: string) { setToast(m); setTimeout(() => setToast(null), 2600); }
 
   async function addRecord(name: string) {
@@ -461,7 +482,8 @@ function People() {
 
   if (err) return <ErrBox msg={err} />;
   if (!people) return <Spinner label="קורא רשומות..." />;
-  const entity = deriveEntity(people[0]?.boardName || "");
+  const tones: ToneMap = meta?.tones || {};
+  const entity = meta?.entities[people[0]?.boardName || ""] || "רשומות";
   const shown = people.filter((p) => p.name.includes(q) || p.status.includes(q) || p.owner.includes(q));
   return (
     <div style={{ animation: "rise .4s both" }}>
@@ -481,7 +503,7 @@ function People() {
       <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="חיפוש..." style={{ width: "100%", maxWidth: 400, padding: "11px 14px", borderRadius: 12, border: "1px solid #E6E4F0", fontSize: 13.5, marginBottom: 16, outline: "none", fontFamily: "inherit" }} />
       {view === "cards" ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: 12 }}>
-          {shown.slice(0, 60).map((p, i) => <PersonCard key={p.id} p={p} i={i} open={open === p.id} onToggle={() => setOpen(open === p.id ? null : p.id)} onSaved={load} onDelete={delRecord} flash={flash} />)}
+          {shown.slice(0, 60).map((p, i) => <PersonCard key={p.id} p={p} i={i} tone={tones[p.status]} open={open === p.id} onToggle={() => setOpen(open === p.id ? null : p.id)} onSaved={load} onDelete={delRecord} flash={flash} />)}
         </div>
       ) : (
         <div style={{ background: C.panel, border: "1px solid #ECEBF5", borderRadius: 16, overflow: "hidden" }}>
@@ -490,7 +512,7 @@ function People() {
               <button onClick={() => setOpen(open === p.id ? null : p.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 15px", background: open === p.id ? "#FAF9FE" : "#fff", border: "none", borderBottom: "1px solid #F4F3FB", cursor: "pointer", textAlign: "right", fontFamily: "inherit" }}>
                 <Avatar name={p.name} i={i} sm />
                 <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</div>{p.owner && <div style={{ fontSize: 11.5, color: C.muted }}>{p.owner}</div>}</div>
-                {p.status && <Chip s={p.status} />}
+                {p.status && <Chip s={p.status} tone={tones[p.status]} />}
               </button>
               {open === p.id && <ProfileExpand p={p} onSaved={load} onDelete={delRecord} flash={flash} />}
             </div>
@@ -510,7 +532,7 @@ function AddRow({ onAdd, onCancel, entity }: { onAdd: (n: string) => void; onCan
     </div>
   );
 }
-function PersonCard({ p, i, open, onToggle, onSaved, onDelete, flash }: { p: Person; i: number; open: boolean; onToggle: () => void; onSaved: () => void; onDelete: (id: string) => void; flash: (m: string) => void }) {
+function PersonCard({ p, i, tone, open, onToggle, onSaved, onDelete, flash }: { p: Person; i: number; tone?: string; open: boolean; onToggle: () => void; onSaved: () => void; onDelete: (id: string) => void; flash: (m: string) => void }) {
   const c = pick(i);
   return (
     <div onClick={(e) => { if ((e.target as HTMLElement).tagName !== "INPUT" && (e.target as HTMLElement).tagName !== "BUTTON") onToggle(); }} style={{ background: C.panel, border: `1px solid ${open ? c.fg : "#ECEBF5"}`, borderRadius: 16, padding: 15, cursor: "pointer", boxShadow: open ? `0 10px 26px -12px ${c.fg}` : "0 3px 12px -6px rgba(60,50,120,.1)", transition: "all .18s", gridColumn: open ? "1 / -1" : "auto" }}>
@@ -520,7 +542,7 @@ function PersonCard({ p, i, open, onToggle, onSaved, onDelete, flash }: { p: Per
           <div style={{ fontSize: 14.5, fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</div>
           <div style={{ fontSize: 11.5, color: C.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.owner || p.boardName}</div>
         </div>
-        {p.status && <Chip s={p.status} />}
+        {p.status && <Chip s={p.status} tone={tone} />}
       </div>
       {open && <ProfileExpand p={p} inline onSaved={onSaved} onDelete={onDelete} flash={flash} />}
     </div>
@@ -572,16 +594,13 @@ function EditField({ f, onSave }: { f: PField; onSave: (f: PField, v: string) =>
     </div>
   );
 }
-function deriveEntity(boardName: string) {
-  const map: [RegExp, string][] = [[/בוגר/, "בוגרים"], [/מוטב/, "מוטבים"], [/תלמיד/, "תלמידים"], [/משפח/, "משפחות"], [/מתנדב/, "מתנדבים"], [/קשיש|זקן/, "קשישים"], [/חיה|בעל.?ח/, "בעלי חיים"], [/איש קשר|אנשי קשר/, "אנשי קשר"], [/לקוח/, "לקוחות"]];
-  for (const [re, w] of map) if (re.test(boardName)) return w;
-  return "רשומות";
-}
+// (the board's word for a row is derived server-side by terminology() and
+//  delivered through /api/dashboard?meta=1 - the screen keeps no copy)
 function Avatar({ name, i, sm }: { name: string; i: number; sm?: boolean }) {
   const c = pick(i); const s = sm ? 34 : 42;
   return <div style={{ width: s, height: s, borderRadius: 12, background: `linear-gradient(135deg,${c.fg},${c.fg}cc)`, color: "#fff", display: "grid", placeItems: "center", fontSize: sm ? 12 : 15, fontWeight: 800, flexShrink: 0 }}>{initials(name)}</div>;
 }
-function Chip({ s }: { s: string }) { const c = statusColor(s); return <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999, background: c.bg, color: c.fg, whiteSpace: "nowrap" }}>{s}</span>; }
+function Chip({ s, tone }: { s: string; tone?: string }) { const c = toneStyle(tone); return <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999, background: c.bg, color: c.fg, whiteSpace: "nowrap" }}>{s}</span>; }
 
 /* ===== insights = "שמתי לב ש..." phrased discoveries (NOT charts) ===== */
 interface Discovery { tone: string; icon: string; title: string; body: string; source: string }

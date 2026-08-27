@@ -67,7 +67,7 @@ export async function fetchBoards(
     `query ($ids:[ID!], $limit:Int!) {
        boards(ids:$ids) {
          id name items_count
-         columns { id title type }
+         columns { id title type settings_str }
          items_page(limit:$limit) { cursor ${ITEM_FIELDS} }
        }
      }`,
@@ -122,4 +122,30 @@ export function coverage(boards: FetchedBoard[]): Coverage {
     truncated,
     note: truncated ? `מבוסס על ${loaded} מתוך ${total} רשומות` : "",
   };
+}
+
+/**
+ * Columns ONLY — no items. Used by the "meta" mode of /api/dashboard, which
+ * needs each status column's label→color settings (and the board name) in
+ * order to hand the browser a language-independent tone map. Reading items is
+ * still the exclusive job of fetchBoards(); this never touches items_page.
+ */
+export async function fetchBoardMeta(
+  ids: string[],
+  token: string
+): Promise<BIBoard[]> {
+  if (!ids.length) return [];
+  const res = await mondayQuery(
+    `query ($ids:[ID!]) {
+       boards(ids:$ids) { id name columns { id title type settings_str } }
+     }`,
+    token,
+    { ids }
+  );
+  return ((res?.boards || []) as RawBoard[]).map((rb) => ({
+    id: rb.id,
+    name: rb.name,
+    columns: (rb.columns || []) as Col[],
+    items: [],
+  }));
 }

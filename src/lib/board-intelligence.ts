@@ -3,7 +3,7 @@
 // nonprofit's structure, in any language. Given a board's columns + items, it
 // figures out which analyses/visualizations are meaningful and computes them.
 
-export interface Col { id: string; title: string; type: string; }
+export interface Col { id: string; title: string; type: string; settings_str?: string; }
 export interface ItemVal { colId: string; title: string; type: string; text: string; }
 export interface Item { id: string; name: string; values: ItemVal[]; }
 export interface Board { id: string; name: string; columns: Col[]; items: Item[]; }
@@ -21,8 +21,148 @@ const isDate = (t: string) => t === "date" || t === "timeline" || t === "creatio
 const isPeople = (t: string) => t === "people" || t === "person";
 const isNumber = (t: string) => t === "numbers" || t === "rating";
 
-/** Values that look like they need attention, in Hebrew or English. */
-const RISK_WORDS = ["סיכון", "תקוע", "עצר", "נשיר", "דחוף", "בעיה", "ממתין", "חריג", "risk", "stuck", "blocked", "urgent", "overdue"];
+/* ---------------------------------------------------------------------------
+ * MEANING FROM COLOUR, NOT FROM WORDS
+ *
+ * Every label in a Monday status column carries its own colour, and that colour
+ * means the same thing in Hebrew, Arabic and English: red = a problem,
+ * orange = in flight, green = finished. So the engine reads the board's own
+ * column settings (`settings_str`) and decides by the colour's HUE - a number -
+ * never by the text of the label, and never by a fixed list of hex codes. Any
+ * organisation, any language, any palette lands in the right bucket with zero
+ * per-customer code.
+ * ------------------------------------------------------------------------- */
+
+export type Tone = "risk" | "progress" | "done" | "neutral";
+export type ToneMap = Record<string, Tone>;
+
+/** "#rgb" / "#rrggbb" -> hue (0-360) + saturation + lightness (0-1). */
+function hsl(hex: string): { h: number; s: number; l: number } | null {
+  const m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return null;
+  let x = m[1];
+  if (x.length === 3) x = x.split("").map((c) => c + c).join("");
+  const r = parseInt(x.slice(0, 2), 16) / 255;
+  const g = parseInt(x.slice(2, 4), 16) / 255;
+  const b = parseInt(x.slice(4, 6), 16) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+  const l = (max + min) / 2;
+  const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
+  let h = 0;
+  if (d !== 0) {
+    if (max === r) h = ((g - b) / d) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h *= 60;
+    if (h < 0) h += 360;
+  }
+  return { h, s, l };
+}
+
+/**
+ * Hue -> semantic tone. The cut points are colour-wheel sectors, not a palette:
+ *   red / pink    -> risk        orange / yellow -> progress
+ *   green / teal  -> done        blue / purple   -> neutral (informational)
+ * Greys and near-black/near-white carry no signal, so they stay neutral.
+ */
+export function toneFromColor(hex: string): Tone {
+  const c = hsl(hex);
+  if (!c) return "neutral";
+  if (c.s < 0.15 || c.l < 0.12 || c.l > 0.93) return "neutral";
+  if (c.h >= 330 || c.h < 25) return "risk";
+  if (c.h < 70) return "progress";
+  if (c.h < 180) return "done";
+  return "neutral";
+}
+
+interface RawLabel { id?: string | number; name?: string; color?: unknown }
+interface RawSettings {
+  labels?: Record<string, string> | RawLabel[];
+  labels_colors?: Record<string, { color?: string }>;
+}
+
+const toneCache = new Map<string, ToneMap | null>();
+
+/**
+ * The column's own label -> tone table, read from `settings_str`.
+ * Returns null when the column carries no colour at all (a plain `dropdown`,
+ * or a board Monday returned without settings) - that is the ONLY case in
+ * which the word fallback below is allowed to speak.
+ */
+export function labelTones(col: Col): ToneMap | null {
+  const raw = col.settings_str;
+  if (!raw) return null;
+  const cached = toneCache.get(raw);
+  if (cached !== undefined) return cached;
+  const parsed = parseLabelTones(raw);
+  if (toneCache.size > 300) toneCache.clear();
+  toneCache.set(raw, parsed);
+  return parsed;
+}
+
+function parseLabelTones(raw: string): ToneMap | null {
+  let s: RawSettings;
+  try { s = JSON.parse(raw) as RawSettings; } catch { return null; }
+  const hexOf = (v: unknown): string | null => {
+    if (typeof v === "string") return v;
+    if (v && typeof v === "object") {
+      const c = (v as { color?: unknown }).color;
+      if (typeof c === "string") return c;
+    }
+    return null;
+  };
+  const out: ToneMap = {};
+  if (Array.isArray(s.labels)) {
+    // newer shape: [{ id, name, color }] - `dropdown` uses this WITHOUT colour
+    for (const l of s.labels) {
+      const hex = hexOf(l?.color);
+      if (typeof l?.name === "string" && hex) out[l.name] = toneFromColor(hex);
+    }
+  } else if (s.labels && typeof s.labels === "object") {
+    // classic shape: labels {"0":"Done"} + labels_colors {"0":{color:"#00c875"}}
+    for (const [id, name] of Object.entries(s.labels)) {
+      if (typeof name !== "string") continue;
+      const hex = hexOf(s.labels_colors?.[id]);
+      if (hex) out[name] = toneFromColor(hex);
+    }
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+/**
+ * FALLBACK ONLY - not "the list of risky words", and not to be extended.
+ * It runs in exactly one case: the column handed us no colour for this value
+ * (a `dropdown` column, or free text typed outside the column's own labels),
+ * so there is nothing to derive a tone from. Every column Monday colours -
+ * i.e. every `status`/`color` column - never reaches this line.
+ * The fix for a board that lands here is colour in Monday, not more words.
+ */
+const RISK_WORDS_FALLBACK = ["סיכון", "תקוע", "עצר", "נשיר", "דחוף", "בעיה", "ממתין", "חריג", "risk", "stuck", "blocked", "urgent", "overdue"];
+
+/** Tone of one value in one column: colour first; words only when there is none. */
+export function toneOf(col: Col, value: string): Tone {
+  if (!value) return "neutral";
+  const fromColor = labelTones(col)?.[value];
+  if (fromColor) return fromColor;
+  return RISK_WORDS_FALLBACK.some((w) => value.includes(w)) ? "risk" : "neutral";
+}
+
+/**
+ * Every status value on this board -> its tone. This is what the browser gets,
+ * so the UI can paint a chip without knowing a single word in any language.
+ */
+export function statusTones(board: Board): ToneMap {
+  const out: ToneMap = {};
+  for (const col of board.columns.filter((c) => isStatus(c.type))) {
+    const declared = labelTones(col);
+    if (declared) for (const [label, t] of Object.entries(declared)) if (!out[label]) out[label] = t;
+    for (const it of board.items) {
+      const v = valueOf(it, col);
+      if (v && !out[v]) out[v] = toneOf(col, v);
+    }
+  }
+  return out;
+}
 
 function valueOf(item: Item, col: Col): string {
   return item.values.find((v) => v.colId === col.id || v.title === col.title)?.text || "";
@@ -55,7 +195,7 @@ export function breakdown(board: Board, colTitle?: string): Widget | null {
     const v = valueOf(it, col) || "— ריק —";
     counts[v] = (counts[v] || 0) + 1;
   }
-  const rows = Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([label, n]) => ({ label, n }));
+  const rows = Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([label, n]) => ({ label, n, tone: toneOf(col, label) }));
   return { kind: "breakdown", title: `פילוח לפי "${col.title}"`, source: `בורד "${board.name}" · עמודת "${col.title}"`, data: { rows, total: board.items.length } };
 }
 
@@ -73,14 +213,17 @@ export function byOwner(board: Board, colTitle?: string): Widget | null {
   return { kind: "byOwner", title: `חלוקה לפי "${col.title}"`, source: `בורד "${board.name}" · עמודת "${col.title}"`, data: { rows } };
 }
 
-/** Items that look like they need attention (risky status values). */
+/**
+ * Items that need attention - chosen by the TONE of their status value, which
+ * comes from the colour the board itself gave that label. No word matching.
+ */
 export function attention(board: Board): Widget {
   const hits: { name: string; why: string }[] = [];
   const statusCols = board.columns.filter((c) => isStatus(c.type));
   for (const it of board.items) {
     for (const c of statusCols) {
       const v = valueOf(it, c);
-      if (v && RISK_WORDS.some((r) => v.includes(r))) { hits.push({ name: it.name, why: `${c.title}: ${v}` }); break; }
+      if (v && toneOf(c, v) === "risk") { hits.push({ name: it.name, why: `${c.title}: ${v}` }); break; }
     }
   }
   return { kind: "attention", title: "דורשים תשומת לב", source: `בורד "${board.name}"`, data: { items: hits, count: hits.length } };
