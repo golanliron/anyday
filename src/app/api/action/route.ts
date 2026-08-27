@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { mondayQuery, requireMonday } from "@/lib/monday-server";
+import { fetchBoards, parseBoardIds } from "@/lib/board-fetch";
 
 /**
  * Chat-driven WRITE actions on Monday, always in two steps:
@@ -8,6 +9,9 @@ import { mondayQuery, requireMonday } from "@/lib/monday-server";
  *   2) POST {mode:"apply", ...}    → performs the mutation
  * Generic: works by finding the right item + status-type column by TYPE, not
  * by hard-coded names, so it fits any nonprofit's board.
+ *
+ * The status text comes from a free-text chat message, so the write travels as
+ * a GraphQL variable rather than being pasted into the mutation string.
  */
 export async function POST(req: NextRequest) {
   const guard = await requireMonday();
@@ -16,26 +20,20 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const { mode, personName, newStatus, boardId, itemId, columnId, columnTitle } = body;
 
-  const selected = (await cookies()).get("anyday_selected_boards")?.value?.split(",").filter(Boolean) || [];
+  const selected = parseBoardIds((await cookies()).get("anyday_selected_boards")?.value);
   if (!selected.length) return NextResponse.json({ error: "בחרו בורד" }, { status: 400 });
 
   // ── PREVIEW: find the person + the status column, return the plan ──
   if (mode === "preview") {
     if (!personName || !newStatus) return NextResponse.json({ error: "חסר שם או סטטוס" }, { status: 400 });
     try {
-      const data = await mondayQuery(
-        `query { boards(ids:[${selected.join(",")}]) {
-           id name columns { id title type }
-           items_page(limit:300) { items { id name column_values { id text column { title type } } } }
-         } }`,
-        guard.token
-      );
-      for (const b of data?.boards || []) {
-        const statusCol = (b.columns || []).find((c: Col) => ["status", "color"].includes(c.type));
+      const boards = await fetchBoards(selected, guard.token);
+      for (const b of boards) {
+        const statusCol = b.columns.find((c) => ["status", "color"].includes(c.type));
         if (!statusCol) continue;
-        const item = (b.items_page?.items || []).find((it: RawItem) => it.name.includes(personName) || personName.includes(it.name));
+        const item = b.items.find((it) => it.name.includes(personName) || personName.includes(it.name));
         if (!item) continue;
-        const current = (item.column_values || []).find((cv: RawCV) => cv.id === statusCol.id)?.text || "—";
+        const current = item.values.find((cv) => cv.colId === statusCol.id)?.text || "—";
         return NextResponse.json({
           found: true,
           preview: { personName: item.name, boardId: b.id, boardName: b.name, itemId: item.id, columnId: statusCol.id, columnTitle: statusCol.title, from: current, to: newStatus },
@@ -51,10 +49,17 @@ export async function POST(req: NextRequest) {
   if (mode === "apply") {
     if (!boardId || !itemId || !columnId || !newStatus) return NextResponse.json({ error: "חסרים פרטים" }, { status: 400 });
     try {
-      const val = JSON.stringify({ label: newStatus }).replace(/"/g, '\\"');
       await mondayQuery(
-        `mutation { change_column_value(board_id:${boardId}, item_id:${itemId}, column_id:"${columnId}", value:"${val}") { id } }`,
-        guard.token
+        `mutation ($board:ID!, $item:ID!, $column:String!, $value:JSON!) {
+           change_column_value(board_id:$board, item_id:$item, column_id:$column, value:$value) { id }
+         }`,
+        guard.token,
+        {
+          board: String(boardId),
+          item: String(itemId),
+          column: String(columnId),
+          value: JSON.stringify({ label: String(newStatus) }),
+        }
       );
       return NextResponse.json({ ok: true, message: `עודכן: ${columnTitle || "סטטוס"} → ${newStatus}` });
     } catch (e: unknown) {
@@ -65,7 +70,3 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ error: "mode לא תקין" }, { status: 400 });
 }
-
-interface Col { id: string; title: string; type: string; }
-interface RawCV { id: string; text: string; column?: { title: string; type: string }; }
-interface RawItem { id: string; name: string; column_values?: RawCV[]; }

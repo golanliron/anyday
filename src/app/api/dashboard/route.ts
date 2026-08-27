@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { mondayQuery, requireMonday } from "@/lib/monday-server";
+import { requireMonday } from "@/lib/monday-server";
+import { fetchBoards, parseBoardIds, coverage } from "@/lib/board-fetch";
 import * as BI from "@/lib/board-intelligence";
 
 /**
@@ -10,6 +11,8 @@ import * as BI from "@/lib/board-intelligence";
  *  - every status column as a breakdown chart
  *  - owner distribution, number summaries, attention list
  * Accepts ?boards=id,id to override the saved selection (right-rail picker).
+ * Items are read with pagination, and the response says how much of the board
+ * the numbers actually cover.
  */
 export async function GET(req: NextRequest) {
   const guard = await requireMonday();
@@ -17,27 +20,11 @@ export async function GET(req: NextRequest) {
 
   const override = req.nextUrl.searchParams.get("boards");
   const saved = (await cookies()).get("anyday_selected_boards")?.value;
-  const ids = (override || saved || "").split(",").filter(Boolean);
+  const ids = parseBoardIds(override || saved);
   if (!ids.length) return NextResponse.json({ error: "בחרו בורד" }, { status: 400 });
 
   try {
-    const data = await mondayQuery(
-      `query { boards(ids:[${ids.join(",")}]) {
-         id name items_count
-         columns { id title type }
-         items_page(limit:300) { items { id name updated_at column_values { id text column { title type } } } }
-       } }`,
-      guard.token
-    );
-
-    const biBoards: BI.Board[] = (data?.boards || []).map((b: RawBoard) => ({
-      id: b.id, name: b.name,
-      columns: b.columns || [],
-      items: (b.items_page?.items || []).map((it) => ({
-        id: it.id, name: it.name,
-        values: (it.column_values || []).map((cv) => ({ colId: cv.id, title: cv.column?.title || "", type: cv.column?.type || "", text: cv.text || "" })),
-      })),
-    }));
+    const biBoards = await fetchBoards(ids, guard.token);
 
     // KPIs are DERIVED per board — no hardcoded "active/completed" that only
     // fit graduates. For one board we use its own headline KPIs; for two we
@@ -86,12 +73,10 @@ export async function GET(req: NextRequest) {
       kpis,
       charts: charts.slice(0, 8),
       attention: { count: atRisk, items: attentionItems.slice(0, 8) },
+      coverage: coverage(biBoards),
       source: biBoards.map((b) => b.name).join(" · "),
     });
   } catch (e: unknown) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "שגיאה" }, { status: 502 });
   }
 }
-
-interface RawBoard { id: string; name: string; items_count: number; columns?: { id: string; title: string; type: string }[]; items_page?: { items: RawItem[] }; }
-interface RawItem { id: string; name: string; updated_at?: string; column_values?: { id: string; text: string; column?: { title: string; type: string } }[]; }

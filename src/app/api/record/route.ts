@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { mondayQuery, requireMonday } from "@/lib/monday-server";
 
 /**
@@ -10,6 +9,10 @@ import { mondayQuery, requireMonday } from "@/lib/monday-server";
  *   POST {op:"import", boardId, rows:[{name, values}]}                → bulk add
  * Generic — value formatting is chosen by the Monday column TYPE, so it works
  * for any board/column of any nonprofit.
+ *
+ * Every value here comes from the browser, so all of it travels as GraphQL
+ * VARIABLES: a name with a quote or a newline is then just text, never part of
+ * the query. (This endpoint can delete real records — it must not be sprayable.)
  */
 export async function POST(req: NextRequest) {
   const guard = await requireMonday();
@@ -21,10 +24,12 @@ export async function POST(req: NextRequest) {
     if (op === "update") {
       const { boardId, itemId, columnId, columnType, value } = b;
       if (!boardId || !itemId || !columnId) return NextResponse.json({ error: "חסרים פרטים" }, { status: 400 });
-      const raw = formatValue(columnType, value);
       await mondayQuery(
-        `mutation { change_column_value(board_id:${boardId}, item_id:${itemId}, column_id:"${columnId}", value:"${esc(raw)}") { id } }`,
-        guard.token
+        `mutation ($board:ID!, $item:ID!, $column:String!, $value:JSON!) {
+           change_column_value(board_id:$board, item_id:$item, column_id:$column, value:$value) { id }
+         }`,
+        guard.token,
+        { board: String(boardId), item: String(itemId), column: String(columnId), value: formatValue(columnType, value) }
       );
       return NextResponse.json({ ok: true });
     }
@@ -33,8 +38,9 @@ export async function POST(req: NextRequest) {
       const { boardId, name } = b;
       if (!boardId || !name) return NextResponse.json({ error: "חסר שם" }, { status: 400 });
       const data = await mondayQuery(
-        `mutation { create_item(board_id:${boardId}, item_name:"${esc(name)}") { id name } }`,
-        guard.token
+        `mutation ($board:ID!, $name:String!) { create_item(board_id:$board, item_name:$name) { id name } }`,
+        guard.token,
+        { board: String(boardId), name: String(name) }
       );
       return NextResponse.json({ ok: true, item: data.create_item });
     }
@@ -42,7 +48,11 @@ export async function POST(req: NextRequest) {
     if (op === "delete") {
       const { itemId } = b;
       if (!itemId) return NextResponse.json({ error: "חסר מזהה" }, { status: 400 });
-      await mondayQuery(`mutation { delete_item(item_id:${itemId}) { id } }`, guard.token);
+      await mondayQuery(
+        `mutation ($item:ID!) { delete_item(item_id:$item) { id } }`,
+        guard.token,
+        { item: String(itemId) }
+      );
       return NextResponse.json({ ok: true });
     }
 
@@ -52,8 +62,14 @@ export async function POST(req: NextRequest) {
       let created = 0; const errors: string[] = [];
       for (const row of rows.slice(0, 200)) {
         if (!row.name?.trim()) continue;
-        try { await mondayQuery(`mutation { create_item(board_id:${boardId}, item_name:"${esc(row.name)}") { id } }`, guard.token); created++; }
-        catch (e) { errors.push(`${row.name}: ${e instanceof Error ? e.message : "שגיאה"}`); }
+        try {
+          await mondayQuery(
+            `mutation ($board:ID!, $name:String!) { create_item(board_id:$board, item_name:$name) { id } }`,
+            guard.token,
+            { board: String(boardId), name: row.name }
+          );
+          created++;
+        } catch (e) { errors.push(`${row.name}: ${e instanceof Error ? e.message : "שגיאה"}`); }
       }
       return NextResponse.json({ ok: true, created, errors: errors.slice(0, 5) });
     }
@@ -63,8 +79,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "שגיאה" }, { status: 502 });
   }
 }
-
-function esc(s: string) { return String(s).replace(/\\/g, "\\\\").replace(/"/g, '\\"'); }
 
 /** Format a value into Monday's JSON-string per column type. */
 function formatValue(type: string, value: string): string {

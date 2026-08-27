@@ -28,6 +28,9 @@ interface PField { colId: string; title: string; type: string; text: string }
 interface Person { id: string; name: string; boardId: string; boardName: string; status: string; owner: string; date: string; fields: PField[]; }
 interface BoardOpt { id: string; name: string; items: number; }
 
+/** How much of the board the numbers are actually based on (see board-fetch). */
+interface Cov { loaded: number; total: number; truncated: boolean; note: string }
+
 export default function AppPage() {
   const [boards, setBoards] = useState<BoardOpt[]>([]);
   const [active, setActive] = useState<string[]>([]);   // boards shown on dashboard
@@ -330,7 +333,7 @@ function DotProfile({ d, entity, onClose }: { d: Dot; entity: string; onClose: (
 
 /* ===== dashboard (charts fallback) ===== */
 function Dashboard({ names }: { names: string[] }) {
-  const [d, setD] = useState<{ kpis: KPI[]; charts: Widget[]; attention: { count: number; items: { name: string; why: string; board: string }[] }; source: string } | null>(null);
+  const [d, setD] = useState<{ kpis: KPI[]; charts: Widget[]; attention: { count: number; items: { name: string; why: string; board: string }[] }; coverage?: Cov; source: string } | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const load = () => { setD(null); setErr(null);
     fetch("/api/dashboard", { cache: "no-store" }).then((r) => r.json()).then((x) => x.error ? setErr(x.error) : setD(x)).catch(() => setErr("שגיאה"));
@@ -345,7 +348,7 @@ function Dashboard({ names }: { names: string[] }) {
     <div style={{ animation: "rise .4s both" }}>
       <div style={{ marginBottom: 16 }}>
         <h1 style={{ fontSize: 23, fontWeight: 800, margin: "0 0 2px" }}>הלוח של {names.join(" · ")}</h1>
-        <p style={{ fontSize: 13, color: C.muted, margin: 0 }}>מתעדכן חי מ-Monday</p>
+        <p style={{ fontSize: 13, color: C.muted, margin: 0 }}>מתעדכן חי מ-Monday{d.coverage?.truncated ? ` · ${d.coverage.note}` : ""}</p>
       </div>
       {/* KPI tiles — colorful, animated numbers */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 12, marginBottom: 16 }}>
@@ -427,9 +430,10 @@ function People() {
   const [view, setView] = useState<"cards" | "list">("cards");
   const [toast, setToast] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const [cov, setCov] = useState<Cov | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const load = () => fetch("/api/people", { cache: "no-store" }).then((r) => r.json()).then((d) => d.error ? setErr(d.error) : setPeople(d.people || [])).catch(() => setErr("שגיאה"));
+  const load = () => fetch("/api/people", { cache: "no-store" }).then((r) => r.json()).then((d) => { if (d.error) { setErr(d.error); return; } setPeople(d.people || []); setCov(d.coverage || null); }).catch(() => setErr("שגיאה"));
   useEffect(() => { load(); }, []);
   function flash(m: string) { setToast(m); setTimeout(() => setToast(null), 2600); }
 
@@ -463,7 +467,7 @@ function People() {
     <div style={{ animation: "rise .4s both" }}>
       {toast && <div style={{ position: "fixed", top: 70, insetInlineStart: "50%", transform: "translateX(-50%)", background: C.ink, color: "#fff", padding: "10px 18px", borderRadius: 12, fontSize: 13, fontWeight: 600, zIndex: 60, boxShadow: "0 10px 30px rgba(0,0,0,.3)" }}>{toast}</div>}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
-        <div><h1 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 2px" }}>{entity}</h1><p style={{ fontSize: 12.5, color: C.muted, margin: 0 }}>{people.length} רשומות · עריכה נכתבת ישר ל-Monday</p></div>
+        <div><h1 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 2px" }}>{entity}</h1><p style={{ fontSize: 12.5, color: C.muted, margin: 0 }}>{people.length} רשומות · עריכה נכתבת ישר ל-Monday{cov?.truncated ? ` · ${cov.note}` : ""}</p></div>
         <div style={{ marginInlineStart: "auto", display: "flex", gap: 8, alignItems: "center" }}>
           <button onClick={() => setAdding(true)} style={{ background: C.grape, color: "#fff", border: "none", borderRadius: 11, padding: "9px 15px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>+ רשומה</button>
           <button onClick={() => fileRef.current?.click()} style={{ background: "#fff", color: C.grape, border: `1px solid ${C.grape}`, borderRadius: 11, padding: "9px 15px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>העלאת רשימה</button>

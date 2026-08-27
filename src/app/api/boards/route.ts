@@ -40,7 +40,10 @@ export async function POST(req: NextRequest) {
   if (!Array.isArray(boardIds) || boardIds.length === 0) {
     return NextResponse.json({ error: "בחרו לפחות בורד אחד" }, { status: 400 });
   }
-  const ids = boardIds.slice(0, 2).map(String);
+  // only real (numeric) Monday ids reach the cookie — it is later used to
+  // build queries, so junk must not get stored there in the first place
+  const ids = boardIds.map(String).filter((id: string) => /^\d+$/.test(id)).slice(0, 2);
+  if (!ids.length) return NextResponse.json({ error: "מזהה בורד לא תקין" }, { status: 400 });
   (await cookies()).set(SEL_COOKIE, ids.join(","), {
     httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production",
     path: "/", maxAge: 60 * 60 * 24 * 7,

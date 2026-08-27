@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { mondayQuery, requireMonday } from "@/lib/monday-server";
+import { fetchBoards, parseBoardIds, coverage, type FetchedBoard } from "@/lib/board-fetch";
 import * as BI from "@/lib/board-intelligence";
 
 /**
@@ -21,8 +22,8 @@ export async function POST(req: NextRequest) {
   }
 
   // Which boards to read (selected, else the busiest few).
-  const selected = (await cookies()).get("anyday_selected_boards")?.value?.split(",").filter(Boolean);
-  let boardIds = selected || [];
+  const selected = parseBoardIds((await cookies()).get("anyday_selected_boards")?.value);
+  let boardIds = selected;
   try {
     if (!boardIds.length) {
       const list = await mondayQuery(`query { boards(limit:5, order_by:used_at, state:active){ id } }`, guard.token);
@@ -34,31 +35,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ answer: "עדיין לא בחרתם בורדים. חזרו למסך הבחירה כדי שאדע על מה להסתכל.", source: null });
   }
 
-  // Pull the selected boards with columns + items.
-  let boards: BoardFull[] = [];
+  // Pull the selected boards with columns + ALL of their items (paginated).
+  let boards: FetchedBoard[] = [];
   try {
-    const data = await mondayQuery(
-      `query { boards(ids:[${boardIds.join(",")}]) {
-         id name items_count
-         columns { id title type }
-         items_page(limit:200) { items { id name column_values { id text column { title type } } } }
-       } }`,
-      guard.token
-    );
-    boards = (data?.boards || []).map((b: RawBoard) => ({
-      id: b.id, name: b.name, itemsCount: b.items_count,
-      columns: b.columns || [],
-      items: (b.items_page?.items || []).map((it) => ({
-        id: it.id, name: it.name,
-        values: (it.column_values || []).map((cv) => ({ colId: cv.id, title: cv.column?.title || "", type: cv.column?.type || "", text: cv.text || "" })),
-      })),
-    }));
+    boards = await fetchBoards(boardIds, guard.token);
   } catch (e: unknown) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "שגיאה בקריאת הבורד" }, { status: 502 });
   }
 
-  const source = boards.map((b) => b.name).join(" · ");
-  const biBoards: BI.Board[] = boards.map((b) => ({ id: b.id, name: b.name, columns: b.columns, items: b.items }));
+  const cov = coverage(boards);
+  const source = boards.map((b) => b.name).join(" · ") + (cov.truncated ? ` · ${cov.note}` : "");
 
   // ── WRITE-INTENT detection: "סמן/עדכן את <שם> כ/ל <סטטוס>" ──
   const intent = detectUpdateIntent(question);
@@ -83,20 +69,20 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Intent routing: build canvas widgets from the generic engine ──
-  const widgets = buildWidgets(question, biBoards);
+  const widgets = buildWidgets(question, boards);
 
   // Tier 2: if an AI key exists, let Claude phrase the answer with real data.
   const key = process.env.ANTHROPIC_API_KEY;
   if (key && key.trim().length > 10 && question !== "__overview__") {
     try {
       const aiAnswer = await askClaude(key, question, boards);
-      if (aiAnswer) return NextResponse.json({ answer: aiAnswer, source, ai: true, widgets });
+      if (aiAnswer) return NextResponse.json({ answer: aiAnswer, source, ai: true, widgets, coverage: cov });
     } catch { /* fall through */ }
   }
 
   // Tier 1: deterministic phrasing grounded in the real data.
   const det = analyze(question, boards, widgets);
-  return NextResponse.json({ answer: det.answer, source, ai: false, widgets });
+  return NextResponse.json({ answer: det.answer, source, ai: false, widgets, coverage: cov });
 }
 
 /** Detect a status-update request in Hebrew, e.g.:
@@ -132,16 +118,8 @@ function buildWidgets(q: string, boards: BI.Board[]): BI.Widget[] {
   return out.slice(0, 6);
 }
 
-// ── types ──
-interface RawBoard { id: string; name: string; items_count: number; columns?: Col[]; items_page?: { items: RawItem[] }; }
-interface RawItem { id: string; name: string; column_values?: { id: string; text: string; column?: { title: string; type: string } }[]; }
-interface Col { id: string; title: string; type: string; }
-interface ItemVal { colId: string; title: string; type: string; text: string; }
-interface Item { id: string; name: string; values: ItemVal[]; }
-interface BoardFull { id: string; name: string; itemsCount: number; columns: Col[]; items: Item[]; }
-
 // ── deterministic phrasing that references the widgets we built ──
-function analyze(q: string, boards: BoardFull[], widgets: BI.Widget[]): { answer: string; source: string } {
+function analyze(q: string, boards: FetchedBoard[], widgets: BI.Widget[]): { answer: string; source: string } {
   void q;
   const source = boards.map((b) => b.name).join(" · ");
   const total = boards.reduce((s, b) => s + b.items.length, 0);
@@ -149,15 +127,18 @@ function analyze(q: string, boards: BoardFull[], widgets: BI.Widget[]): { answer
   const bd = widgets.find((w) => w.kind === "breakdown");
   const parts: string[] = [];
   parts.push(`הסתכלתי על ${boards.length} בורד${boards.length > 1 ? "ים" : ""} (${source}) — ${total} פריטים בסך הכל.`);
-  if (bd) { const dd = bd.data as { rows: { label: string; n: number }[] }; const top = dd.rows[0]; if (top) parts.push(`הקבוצה הכי גדולה ב"${bd.title.replace('פילוח לפי ', '')}": <b>${top.label}</b> (${top.n}).`); }
+  if (bd) {
+    const dd = bd.data as { rows: { label: string; n: number }[] };
+    const top = dd.rows[0];
+    if (top) parts.push(`הקבוצה הכי גדולה ב"${bd.title.replace("פילוח לפי ", "")}": <b>${top.label}</b> (${top.n}).`);
+  }
   if (att) { const c = (att.data as { count: number }).count; parts.push(c ? `<b>${c}</b> פריטים נראים דורשים תשומת לב.` : "לא זיהיתי פריטים בסיכון."); }
   parts.push("בניתי לך תצוגות במשטח ← אפשר להמשיך לשאול.");
   return { answer: parts.join(" "), source };
 }
 
-// (legacy signature kept below is unused)
 // ── Claude (optional tier 2) ──
-async function askClaude(key: string, question: string, boards: BoardFull[]): Promise<string | null> {
+async function askClaude(key: string, question: string, boards: FetchedBoard[]): Promise<string | null> {
   // Compact the real board data into a context block (never fabricate).
   const ctx = boards.map((b) => {
     const cols = b.columns.map((c) => `${c.title}(${c.type})`).join(", ");
