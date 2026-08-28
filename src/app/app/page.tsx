@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import * as BI from "@/lib/board-intelligence";
 
 /* ===== "לוח חי" palette — colorful, energetic, NOT flat purple ===== */
 const C = {
@@ -832,6 +833,40 @@ function PersonCard({ p, i, tone, open, onToggle, onSaved, onDelete, flash }: { 
     </div>
   );
 }
+/* ===== the record's journey — dots on a line, ordered by the dates themselves.
+   A stage's name is the board's own date-column title, so this component knows
+   no stage, no phase and no word of the organisation's content. A date column
+   the record has not filled in is a stage that has not happened yet: it stays
+   on the line, faded, instead of vanishing. A board with no date column draws
+   nothing at all. The order comes from the engine (BI.timeline). ===== */
+const DATE_FMT = new Intl.DateTimeFormat("he-IL", { day: "numeric", month: "numeric", year: "numeric" });
+const LINE_ON = "#C9BEF9", LINE_OFF = "#E4E1EF";
+
+function Journey({ p }: { p: Person }) {
+  const w = BI.timeline(
+    { id: p.boardId, name: p.boardName, items: [], columns: p.fields.map((f) => ({ id: f.colId, title: f.title, type: f.type })) },
+    { id: p.id, name: p.name, values: p.fields },
+  );
+  if (!w) return null;                       // no date column on this board
+  const stages = (w.data as { stages: BI.Stage[] }).stages;
+  const seg = (a: BI.Stage, b: BI.Stage) => (a.at !== null && b.at !== null ? LINE_ON : LINE_OFF);
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ fontSize: 11.5, fontWeight: 800, color: C.grape, marginBottom: 9 }}>ציר הזמן</div>
+      <div style={{ display: "flex", overflowX: "auto", paddingBottom: 2 }}>
+        {stages.map((s, i) => (
+          <div key={s.colId} style={{ position: "relative", flex: "1 0 94px", minWidth: 94, textAlign: "center", opacity: s.at === null ? 0.45 : 1 }}>
+            {i > 0 && <span style={{ position: "absolute", insetInlineEnd: "50%", width: "50%", top: 6, height: 2, background: seg(s, stages[i - 1]) }} />}
+            {i < stages.length - 1 && <span style={{ position: "absolute", insetInlineStart: "50%", width: "50%", top: 6, height: 2, background: seg(s, stages[i + 1]) }} />}
+            <span style={{ position: "relative", display: "block", width: 12, height: 12, boxSizing: "border-box", margin: "1px auto 7px", borderRadius: "50%", background: s.at === null ? "#F4F3FB" : "#fff", border: `3px solid ${s.at === null ? "#C4BFD8" : C.grape}` }} />
+            <div style={{ fontSize: 11.5, fontWeight: 800, color: s.at === null ? C.muted : C.ink, whiteSpace: "nowrap" }}>{s.at === null ? "טרם" : DATE_FMT.format(new Date(s.at))}</div>
+            <div style={{ fontSize: 10.5, color: C.muted, lineHeight: 1.3, padding: "0 4px" }}>{s.title}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 function ProfileExpand({ p, inline, onSaved, onDelete, flash }: { p: Person; inline?: boolean; onSaved: () => void; onDelete: (id: string) => void; flash: (m: string) => void }) {
   const [confirmDel, setConfirmDel] = useState(false);
   const editable = p.fields.filter((f) => !["subtasks", "button", "creation_log", "last_updated", "formula", "mirror", "board_relation"].includes(f.type));
@@ -842,6 +877,7 @@ function ProfileExpand({ p, inline, onSaved, onDelete, flash }: { p: Person; inl
   }
   return (
     <div style={{ marginTop: inline ? 14 : 0, padding: inline ? "14px 0 0" : "16px 18px", background: inline ? "transparent" : "#FAF9FE", borderTop: inline ? "1px dashed #EEEDF5" : "none", animation: "fade .25s both" }}>
+      <Journey p={p} />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(170px,1fr))", gap: 9 }}>
         {editable.map((f, i) => <EditField key={i} f={f} onSave={save} />)}
       </div>
