@@ -181,6 +181,30 @@ export default function WorkspacePage() {
 
       <main className="ws-main" style={{ maxWidth: 900, margin: "0 auto", padding: "32px 20px" }}>
 
+        {/* The shared roof is the way in now. This screen stays alive because the
+            four reports still open from here — see anyday-ops/reports/T6.md. */}
+        <a href="/app?mode=act&tab=chat" style={{
+          display: "flex", alignItems: "center", gap: 12, textDecoration: "none",
+          background: "var(--color-surf)", border: "1px solid var(--color-border)",
+          borderRadius: 14, padding: "14px 18px", marginBottom: 20,
+        }}>
+          <span style={{
+            width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+            background: "linear-gradient(135deg,#6C4CF1,#FF2D87)", color: "#fff",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontWeight: 900, fontSize: 16,
+          }}>A</span>
+          <span>
+            <span style={{ display: "block", fontSize: 15, fontWeight: 700, color: "var(--color-text)" }}>
+              {"המסך המלא של AnyDay"}
+            </span>
+            <span style={{ display: "block", fontSize: 12.5, color: "var(--color-muted)", lineHeight: 1.5 }}>
+              {"ניהול ופעולות במקום אחד — לוח חי, משתתפים, תובנות, צ׳אט־פקודות ועוד"}
+            </span>
+          </span>
+          <span style={{ marginRight: "auto", fontSize: 20, color: "var(--color-muted)" }}>{"←"}</span>
+        </a>
+
         {/* Checking connection status */}
         {checking && (
           <div style={{ textAlign: "center", padding: 48 }}>

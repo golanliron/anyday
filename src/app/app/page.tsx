@@ -1,7 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import * as BI from "@/lib/board-intelligence";
+import { ModeShell, type Mode, type ShellTab } from "@/components/ui/ModeShell";
+import { loadBoard } from "@/lib/api-client";
+import DataEditPanel from "@/components/board/DataEditPanel";
+import { AutomationsPanel } from "@/components/board/AutomationsPanel";
+import { SmartBuilder } from "@/components/builder/SmartBuilder";
+import type { MondayBoard, MondayItem } from "@/types";
 
 /* ===== "לוח חי" palette — colorful, energetic, NOT flat purple ===== */
 const C = {
@@ -32,7 +39,26 @@ const TONE_STYLE: Record<Tone, { fg: string; bg: string }> = {
 };
 const toneStyle = (t?: string) => TONE_STYLE[t as Tone] || TONE_STYLE.neutral;
 
-type Tab = "dash" | "people" | "insights";
+/* The eight tab names are locked by Meytal (28.8.2026) — see the approved
+   mockup in anyday-ops. Do not reword them. "AnyDay" is the product name on the
+   roof only; the chat tab is called צ׳אט־פקודות. */
+const TABS: Record<Mode, ShellTab[]> = {
+  manage: [
+    { id: "dash", label: "לוח חי" },
+    { id: "people", label: "משתתפים" },
+    { id: "insights", label: "תובנות" },
+  ],
+  act: [
+    { id: "chat", label: "צ׳אט־פקודות" },
+    { id: "bulk", label: "עריכה קבוצתית" },
+    { id: "autos", label: "אוטומציות" },
+    { id: "reports", label: "דוחות" },
+    { id: "build", label: "בניית בורד" },
+  ],
+};
+const readMode = (v: string | null): Mode => (v === "act" ? "act" : "manage");
+const readTab = (m: Mode, v: string | null): string =>
+  TABS[m].some((t) => t.id === v) ? (v as string) : TABS[m][0].id;
 interface Widget { kind: string; title: string; source: string; data: unknown; }
 interface KPI { icon: string; n: number; label: string; tone: string; }
 interface PField { colId: string; title: string; type: string; text: string }
@@ -46,10 +72,27 @@ interface BoardInfo { id: string; name: string; columns: BoardCol[] }
 interface Cov { loaded: number; total: number; truncated: boolean; note: string }
 
 export default function AppPage() {
+  // useSearchParams needs a Suspense boundary for the statically-rendered shell.
+  return (
+    <Suspense fallback={<Spinner label="טוען..." />}>
+      <AppShell />
+    </Suspense>
+  );
+}
+
+/**
+ * The shared roof. Two modes live here: "ניהול", where the system shows you what
+ * it already worked out, and "פעולות", where you ask it to do something. Both
+ * render existing screens unchanged — this component only decides which one is
+ * on screen, and keeps that choice in the URL so a view can be linked to.
+ */
+function AppShell() {
+  const params = useSearchParams();
   const [boards, setBoards] = useState<BoardOpt[]>([]);
   const [active, setActive] = useState<string[]>([]);   // boards shown on dashboard
   const [ready, setReady] = useState(false);
-  const [tab, setTab] = useState<Tab>("dash");
+  const [mode, setMode] = useState<Mode>(() => readMode(params.get("mode")));
+  const [tab, setTab] = useState<string>(() => readTab(readMode(params.get("mode")), params.get("tab")));
   const [chatOpen, setChatOpen] = useState(false);
 
   useEffect(() => {
@@ -57,6 +100,14 @@ export default function AppPage() {
       if (d.boards) { setBoards(d.boards.filter((b: BoardOpt) => b.items > 0)); if (d.selected?.length) { setActive(d.selected); setReady(true); } }
     });
   }, []);
+
+  /* Mirror mode+tab into the address bar. replaceState keeps it a client-side
+     move: no reload, no new history entry per click, but the URL is shareable. */
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    q.set("mode", mode); q.set("tab", tab);
+    window.history.replaceState({}, "", `${window.location.pathname}?${q.toString()}`);
+  }, [mode, tab]);
 
   async function begin(ids: string[]) {
     await fetch("/api/boards", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ boardIds: ids }) });
@@ -67,52 +118,55 @@ export default function AppPage() {
     await fetch("/api/boards", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ boardIds: ids }) });
     setActive(ids);
   }
+  /* Switching mode lands on that mode's first tab — a tab id is only valid
+     inside its own mode. */
+  function goMode(m: Mode) { setMode(m); setTab(TABS[m][0].id); }
+  /* Called after "בניית בורד" creates one, so it shows up in the board picker
+     without a page reload. */
+  async function reloadBoards() {
+    const d = await fetch("/api/boards", { cache: "no-store" }).then((r) => r.json());
+    if (d.boards) setBoards(d.boards.filter((b: BoardOpt) => b.items > 0));
+  }
 
   if (!ready) return <Onboard boards={boards} onStart={begin} />;
 
   const activeNames = boards.filter((b) => active.includes(b.id)).map((b) => b.name);
 
   return (
-    <div dir="rtl" style={{ minHeight: "100vh", background: C.bg, fontFamily: "Rubik, Assistant, Heebo, system-ui, sans-serif", color: C.ink }}>
-      <TopBar tab={tab} setTab={setTab} />
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 250px", maxWidth: 1260, margin: "0 auto", gap: 18, padding: "20px 20px 90px" }}>
-        <main style={{ minWidth: 0 }}>
-          {tab === "dash" && <Dashboard key={active.join()} names={activeNames} />}
-          {tab === "people" && <People />}
-          {tab === "insights" && <Insights key={active.join()} names={activeNames} />}
-        </main>
-        <BoardRail boards={boards} active={active} setActive={setActiveBoards} />
-      </div>
-      <ChatFab open={chatOpen} setOpen={setChatOpen} tab={tab} names={activeNames} />
-    </div>
+    <ModeShell mode={mode} onModeChange={goMode} tabs={TABS[mode]} tab={tab} onTabChange={setTab} aside={<ShellAside />}>
+      {mode === "manage" ? (
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 250px", maxWidth: 1260, margin: "0 auto", gap: 18, padding: "20px 20px 90px" }}>
+            <main style={{ minWidth: 0 }}>
+              {tab === "dash" && <Dashboard key={active.join()} names={activeNames} />}
+              {tab === "people" && <People />}
+              {tab === "insights" && <Insights key={active.join()} names={activeNames} />}
+            </main>
+            <BoardRail boards={boards} active={active} setActive={setActiveBoards} />
+          </div>
+          <ChatFab open={chatOpen} setOpen={setChatOpen} tab={tab} names={activeNames} />
+        </>
+      ) : (
+        <ActMode tab={tab} boards={boards} names={activeNames} onBoardsChanged={reloadBoards} />
+      )}
+    </ModeShell>
   );
 }
 
-/* ===== top bar + tabs ===== */
-function TopBar({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
+/* ===== right-hand slot of the top bar ===== */
+function ShellAside() {
   const synced = useSyncTime();
   return (
-    <header style={{ height: 58, background: C.panel, borderBottom: `1px solid #ECEBF5`, display: "flex", alignItems: "center", gap: 16, padding: "0 22px", position: "sticky", top: 0, zIndex: 20 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-        <div style={{ width: 32, height: 32, borderRadius: 10, background: `linear-gradient(135deg,${C.grape},${C.coral})`, color: "#fff", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 16 }}>A</div>
-        <div style={{ fontWeight: 800, fontSize: 18 }}>Any<span style={{ color: C.grape }}>Day</span></div>
-      </div>
-      <nav style={{ display: "flex", gap: 2, marginInlineStart: 8 }}>
-        {([["dash", "לוח חי"], ["people", "משתתפים"], ["insights", "תובנות"]] as [Tab, string][]).map(([id, label]) => (
-          <button key={id} onClick={() => setTab(id)} style={{ position: "relative", padding: "18px 14px", fontSize: 14, fontWeight: tab === id ? 700 : 500, color: tab === id ? C.grape : C.muted, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
-            {label}
-            {tab === id && <span style={{ position: "absolute", bottom: 0, insetInline: 8, height: 3, borderRadius: "3px 3px 0 0", background: C.grape }} />}
-          </button>
-        ))}
-      </nav>
-      <div style={{ marginInlineStart: "auto", display: "flex", alignItems: "center", gap: 6 }} title={`מסונכרן עם Monday · ${synced}`}>
+    <>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }} title={`מסונכרן עם Monday · ${synced}`}>
         <span style={{ width: 6, height: 6, borderRadius: "50%", background: C.teal }} />
         <span style={{ fontSize: 10.5, color: "#9E9CB2" }}>מסונכרן {synced}</span>
       </div>
       <div style={{ fontSize: 13, fontWeight: 600, color: C.muted, borderInlineStart: "1px solid #ECEBF5", paddingInlineStart: 12 }}>שלום, לירון</div>
-    </header>
+    </>
   );
 }
+
 function useSyncTime() {
   const [t, setT] = useState("עכשיו");
   useEffect(() => {
@@ -954,15 +1008,150 @@ function Insights({ names }: { names: string[] }) {
   );
 }
 
-/* ===== floating context chat ===== */
+/* ===== "פעולות" =====
+   Every screen here already existed; this mode only frames them. Three of them
+   (עריכה קבוצתית, אוטומציות, בניית בורד) are the components /workspace renders,
+   imported unchanged. צ׳אט־פקודות is the chat engine below, given a full panel
+   instead of a bubble.
+
+   Note the split in what they need: the bulk-edit and automations panels act on
+   ONE board and take its columns and items as props, so this mode asks which
+   board to work on. The chat and the builder do not — the chat reasons over all
+   the boards the org selected, and the builder is creating a board that does
+   not exist yet. */
+const ACT = "#FF2D87";
+
+function ActMode({ tab, boards, names, onBoardsChanged }: { tab: string; boards: BoardOpt[]; names: string[]; onBoardsChanged: () => void }) {
+  const [boardId, setBoardId] = useState("");
+  const [loaded, setLoaded] = useState<{ board: MondayBoard; items: MondayItem[] } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const chat = useChat();
+
+  async function choose(id: string) {
+    setBoardId(id); setBusy(true); setErr(null); setLoaded(null);
+    try { const d = await loadBoard(id); setLoaded({ board: d.board, items: d.items }); }
+    catch (e) { setErr(e instanceof Error ? e.message : "לא הצלחנו לטעון את הבורד"); }
+    finally { setBusy(false); }
+  }
+
+  const shell = (kids: React.ReactNode) => (
+    <div style={{ maxWidth: 1260, margin: "0 auto", padding: "20px 20px 60px" }}>{kids}</div>
+  );
+
+  if (tab === "chat") {
+    return shell(
+      <div style={{ background: C.panel, border: "1px solid #ECEBF5", borderRadius: 18, overflow: "hidden", display: "flex", flexDirection: "column", height: "calc(100vh - 190px)", minHeight: 420 }}>
+        <div style={{ padding: "14px 18px", borderBottom: "1px solid #ECEBF5" }}>
+          <div style={{ fontWeight: 800, fontSize: 15.5 }}>תגידו מה לעשות — ייעשה</div>
+          <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{names.length ? names.join(" · ") : "כל הבורדים שנבחרו"} · כל שינוי מוצג לאישור לפני שהוא נכתב ל-Monday</div>
+        </div>
+        <ChatCore chat={chat} ctx="הבורד" empty={<ChatIdeas onPick={(q) => chat.send(q)} />} />
+      </div>
+    );
+  }
+
+  if (tab === "build") {
+    return shell(<SmartBuilder existingBoards={boards.map((b) => b.name)} onBoardCreated={onBoardsChanged} />);
+  }
+
+  if (tab === "reports") {
+    return shell(<ReportsPending />);
+  }
+
+  /* bulk / autos — need one loaded board */
+  const picker = (
+    <BoardPicker boards={boards} value={boardId} onPick={choose} busy={busy} />
+  );
+  if (!loaded) {
+    return shell(
+      <>
+        {picker}
+        {err && <Notice tone="bad" title="שגיאה" body={err} />}
+        {!err && !busy && <Notice tone="calm" title="בחרו בורד" body="הפעולות במצב הזה נכתבות לבורד מסוים, ולכן צריך לבחור על איזה מהם לעבוד." />}
+      </>
+    );
+  }
+  return shell(
+    <>
+      {picker}
+      {tab === "bulk" && <DataEditPanel board={loaded.board} items={loaded.items} apiToken="" boardId={boardId} pc={ACT} />}
+      {tab === "autos" && <AutomationsPanel board={loaded.board} items={loaded.items} apiToken="" boardId={boardId} pc={ACT} />}
+    </>
+  );
+}
+
+function BoardPicker({ boards, value, onPick, busy }: { boards: BoardOpt[]; value: string; onPick: (id: string) => void; busy: boolean }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", background: C.panel, border: "1px solid #ECEBF5", borderRadius: 14, padding: "12px 16px", marginBottom: 16 }}>
+      <label htmlFor="act-board" style={{ fontSize: 13, fontWeight: 700 }}>עובדים על הבורד</label>
+      <select
+        id="act-board" value={value} onChange={(e) => onPick(e.target.value)} disabled={busy}
+        style={{ flex: "1 1 240px", maxWidth: 420, border: "1px solid #E6E4F0", borderRadius: 10, padding: "9px 12px", fontSize: 13.5, fontFamily: "inherit", background: "#fff", color: C.ink }}
+      >
+        <option value="">— בחרו —</option>
+        {boards.map((b) => <option key={b.id} value={b.id}>{b.name} ({b.items})</option>)}
+      </select>
+      {busy && <span style={{ fontSize: 12.5, color: C.muted }}>טוען…</span>}
+    </div>
+  );
+}
+
+function ChatIdeas({ onPick }: { onPick: (q: string) => void }) {
+  const ideas = ["כמה יש בכל סטטוס?", "מי דורש תשומת לב?", "מה לא עודכן הכי הרבה זמן?", "אילו עמודות ריקות ברובן?"];
+  return (
+    <div style={{ padding: "10px 6px" }}>
+      <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 10, textAlign: "center" }}>נסחו פקודה או שאלה — או התחילו מאחת מאלה:</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {ideas.map((q) => (
+          <button key={q} onClick={() => onPick(q)} style={{ textAlign: "start", background: C.panel, border: "1px solid #ECEBF5", borderRadius: 12, padding: "11px 14px", fontSize: 13, color: C.ink, cursor: "pointer", fontFamily: "inherit" }}>
+            <span style={{ color: ACT, fontWeight: 900, marginInlineEnd: 8 }}>›</span>{q}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* The four reports already exist, inside BoardDashboard's ReportPanel — which is
+   not exported, so this tab cannot render them yet. Rather than rebuild them, we
+   say so plainly and keep /workspace as the working route until the orchestrator
+   exports that component. See anyday-ops/reports/T6.md. */
+function ReportsPending() {
+  return (
+    <Notice
+      tone="calm"
+      title="ארבעת הדוחות עדיין נפתחים במסך הקודם"
+      body="דוח מנהלים, דוח שבועי, דוח למשקיעים ודוח KPIs כבר קיימים ועובדים — הם פשוט עוד לא הועברו ללשונית הזאת. עד שיועברו, הם זמינים במסך הבורדים."
+      action={{ href: "/workspace", label: "פתחו את מסך הבורדים" }}
+    />
+  );
+}
+
+function Notice({ tone, title, body, action }: { tone: "calm" | "bad"; title: string; body: string; action?: { href: string; label: string } }) {
+  const bad = tone === "bad";
+  return (
+    <div style={{ background: C.panel, border: `1px solid ${bad ? C.coral + "55" : "#ECEBF5"}`, borderInlineStart: `4px solid ${bad ? C.coral : ACT}`, borderRadius: 16, padding: "18px 22px", maxWidth: 620 }}>
+      <div style={{ fontSize: 15.5, fontWeight: 800, marginBottom: 6 }}>{title}</div>
+      <p style={{ fontSize: 13.5, color: C.muted, lineHeight: 1.7, margin: 0 }}>{body}</p>
+      {action && (
+        <a href={action.href} style={{ display: "inline-block", marginTop: 14, background: ACT, color: "#fff", borderRadius: 10, padding: "9px 18px", fontSize: 13.5, fontWeight: 700, textDecoration: "none" }}>{action.label}</a>
+      )}
+    </div>
+  );
+}
+
+/* ===== command chat =====
+   One chat engine, two frames: a floating bubble in "ניהול" (ask about what is
+   on screen) and a full panel as the "צ׳אט־פקודות" tab in "פעולות" (tell it what
+   to do). Both post to /api/ask and confirm every write before it reaches
+   Monday — the confirmation card is the safety rule, not decoration. */
 interface Action { type: string; personName: string; boardId: string; boardName: string; itemId: string; columnId: string; columnTitle: string; from: string; to: string; }
 interface ChatMsg { role: "user" | "bot"; text: string; ai?: boolean; source?: string | null; action?: Action; done?: boolean; }
-function ChatFab({ open, setOpen, tab, names }: { open: boolean; setOpen: (v: boolean) => void; tab: Tab; names: string[] }) {
+
+function useChat() {
   const [msgs, setMsgs] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState(""); const [busy, setBusy] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => { ref.current?.scrollTo(0, ref.current.scrollHeight); }, [msgs, busy]);
-  const ctx = tab === "people" ? "המשתתפים" : tab === "insights" ? "התובנות" : "הלוח";
   async function send(q?: string) {
     const question = (q ?? input).trim(); if (!question) return;
     setInput(""); setMsgs((m) => [...m, { role: "user", text: question }]); setBusy(true);
@@ -980,23 +1169,27 @@ function ChatFab({ open, setOpen, tab, names }: { open: boolean; setOpen: (v: bo
     } catch { setMsgs((m) => m.concat([{ role: "bot", text: "❌ העדכון נכשל" }])); } finally { setBusy(false); }
   }
   function cancelAction(idx: number) { setMsgs((m) => m.map((x, i) => i === idx ? { ...x, done: true } : x).concat([{ role: "bot", text: "ביטלתי — לא שונה כלום." }])); }
-  if (!open) return <button onClick={() => setOpen(true)} style={{ position: "fixed", bottom: 24, insetInlineStart: 24, height: 54, padding: "0 22px", borderRadius: 999, border: "none", background: `linear-gradient(135deg,${C.grape},${C.coral})`, color: "#fff", fontSize: 15, fontWeight: 800, cursor: "pointer", boxShadow: `0 14px 34px -10px ${C.grape}`, display: "flex", alignItems: "center", gap: 9, fontFamily: "inherit", zIndex: 40 }}>💬 שאלו על {ctx}</button>;
+  return { msgs, input, setInput, busy, send, confirmAction, cancelAction };
+}
+
+type ChatApi = ReturnType<typeof useChat>;
+
+/** Scroll area + composer. Whatever frames it decides the height. */
+function ChatCore({ chat, ctx, empty }: { chat: ChatApi; ctx: string; empty?: React.ReactNode }) {
+  const { msgs, input, setInput, busy, send, confirmAction, cancelAction } = chat;
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => { ref.current?.scrollTo(0, ref.current.scrollHeight); }, [msgs, busy]);
   return (
-    <div style={{ position: "fixed", bottom: 24, insetInlineStart: 24, width: 380, maxWidth: "calc(100vw - 40px)", height: 520, maxHeight: "78vh", background: C.panel, borderRadius: 22, boxShadow: "0 30px 70px -20px rgba(40,30,90,.4)", display: "flex", flexDirection: "column", overflow: "hidden", zIndex: 40, animation: "pop .25s both" }}>
-      <div style={{ padding: "14px 16px", background: `linear-gradient(135deg,${C.grape},${C.coral})`, color: "#fff", display: "flex", alignItems: "center", gap: 9 }}>
-        <div style={{ fontWeight: 800, fontSize: 14.5 }}>🟣 שאלו על {ctx}</div>
-        <div style={{ fontSize: 11, opacity: .85 }}>{names.join(" · ")}</div>
-        <button onClick={() => setOpen(false)} style={{ marginInlineStart: "auto", background: "rgba(255,255,255,.2)", border: "none", color: "#fff", width: 28, height: 28, borderRadius: 8, cursor: "pointer", fontSize: 15 }}>✕</button>
-      </div>
+    <>
       <div ref={ref} style={{ flex: 1, overflowY: "auto", padding: 14, display: "flex", flexDirection: "column", gap: 10, background: C.bg }}>
-        {msgs.length === 0 && <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "20px 10px" }}>שאלו כל דבר על {ctx} — למשל "כמה בכל סטטוס?" או "מי דורש תשומת לב?"</div>}
+        {msgs.length === 0 && (empty ?? <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "20px 10px" }}>שאלו כל דבר על {ctx} — למשל &quot;כמה בכל סטטוס?&quot; או &quot;מי דורש תשומת לב?&quot;</div>)}
         {msgs.map((m, i) => <div key={i} style={{ alignSelf: m.role === "user" ? "flex-start" : "flex-end", maxWidth: "90%" }}>
           {m.role === "bot" && <div style={{ fontSize: 10, fontWeight: 800, color: C.grape, marginBottom: 3 }}>ANYDAY {m.ai && "· AI"}</div>}
           <div style={{ background: m.role === "user" ? "#fff" : C.grapeL, border: `1px solid ${m.role === "user" ? "#ECEBF5" : "#E1DBFC"}`, borderRadius: 14, padding: "9px 13px", fontSize: 13.5, lineHeight: 1.55 }} dangerouslySetInnerHTML={{ __html: m.text }} />
           {m.action && !m.done && (
             <div style={{ marginTop: 8, background: "#fff", border: `1.5px solid ${C.amber}`, borderRadius: 14, padding: 13 }}>
               <div style={{ fontSize: 11, fontWeight: 800, color: C.amber, marginBottom: 8 }}>מה ישתנה ב-Monday?</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 11 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 11, flexWrap: "wrap" }}>
                 <b>{m.action.personName}</b>
                 <span style={{ color: C.muted }}>· {m.action.columnTitle}:</span>
                 <span style={{ background: "#F0EFF6", padding: "2px 8px", borderRadius: 7, textDecoration: "line-through", color: C.muted }}>{m.action.from}</span>
@@ -1015,9 +1208,26 @@ function ChatFab({ open, setOpen, tab, names }: { open: boolean; setOpen: (v: bo
       </div>
       <div style={{ padding: 12, borderTop: "1px solid #ECEBF5", display: "flex", gap: 8 }}>
         <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder={`שאלו על ${ctx}...`} style={{ flex: 1, border: "1px solid #E6E4F0", borderRadius: 12, padding: "10px 13px", fontSize: 13.5, outline: "none", fontFamily: "inherit" }} />
-        <button onClick={() => send()} style={{ width: 42, height: 42, borderRadius: 12, border: "none", background: C.grape, color: "#fff", fontSize: 17, cursor: "pointer" }}>↑</button>
+        <button onClick={() => send()} aria-label="שליחה" style={{ width: 42, height: 42, borderRadius: 12, border: "none", background: C.grape, color: "#fff", fontSize: 17, cursor: "pointer" }}>↑</button>
       </div>
       <style>{`@keyframes pop{from{opacity:0;transform:translateY(12px) scale(.97)}}@keyframes bob{0%,60%,100%{opacity:.35;transform:translateY(0)}30%{opacity:1;transform:translateY(-4px)}}`}</style>
+    </>
+  );
+}
+
+/* ===== floating context chat ("ניהול") ===== */
+function ChatFab({ open, setOpen, tab, names }: { open: boolean; setOpen: (v: boolean) => void; tab: string; names: string[] }) {
+  const chat = useChat();
+  const ctx = tab === "people" ? "המשתתפים" : tab === "insights" ? "התובנות" : "הלוח";
+  if (!open) return <button onClick={() => setOpen(true)} style={{ position: "fixed", bottom: 24, insetInlineStart: 24, height: 54, padding: "0 22px", borderRadius: 999, border: "none", background: `linear-gradient(135deg,${C.grape},${C.coral})`, color: "#fff", fontSize: 15, fontWeight: 800, cursor: "pointer", boxShadow: `0 14px 34px -10px ${C.grape}`, display: "flex", alignItems: "center", gap: 9, fontFamily: "inherit", zIndex: 40 }}>💬 שאלו על {ctx}</button>;
+  return (
+    <div style={{ position: "fixed", bottom: 24, insetInlineStart: 24, width: 380, maxWidth: "calc(100vw - 40px)", height: 520, maxHeight: "78vh", background: C.panel, borderRadius: 22, boxShadow: "0 30px 70px -20px rgba(40,30,90,.4)", display: "flex", flexDirection: "column", overflow: "hidden", zIndex: 40, animation: "pop .25s both" }}>
+      <div style={{ padding: "14px 16px", background: `linear-gradient(135deg,${C.grape},${C.coral})`, color: "#fff", display: "flex", alignItems: "center", gap: 9 }}>
+        <div style={{ fontWeight: 800, fontSize: 14.5 }}>🟣 שאלו על {ctx}</div>
+        <div style={{ fontSize: 11, opacity: .85 }}>{names.join(" · ")}</div>
+        <button onClick={() => setOpen(false)} aria-label="סגירה" style={{ marginInlineStart: "auto", background: "rgba(255,255,255,.2)", border: "none", color: "#fff", width: 28, height: 28, borderRadius: 8, cursor: "pointer", fontSize: 15 }}>✕</button>
+      </div>
+      <ChatCore chat={chat} ctx={ctx} />
     </div>
   );
 }
