@@ -3,9 +3,9 @@ import "./globals.css";
 import { SessionProvider } from "@/components/SessionProvider";
 
 export const metadata: Metadata = {
-  title: "AnyDay — שכבת AI חכמה מעל Monday.com",
+  title: "AnyDay — ה-Monday של הארגון, סוף סוף קריא",
   description:
-    "דשבורד חכם עם ניתוח AI לבורדים שלך ב-Monday.com. דוחות, תובנות והתראות אוטומטיות — בעברית.",
+    "מחברים את חשבון ה-Monday, ואוטומטית נבנה דשבורד קריא עם תובנות ועם פעולות שמתעדכנות חזרה בבורד. אפס הגדרות — לכל ארגון שעובד עם Monday.",
 };
 
 export default function RootLayout({

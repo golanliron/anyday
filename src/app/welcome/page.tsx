@@ -63,7 +63,7 @@ function Welcome({ onNext }: { onNext: () => void }) {
         ברוכים הבאים ל-Any<span style={{ color: PURPLE }}>Day</span>
       </h1>
       <p style={{ fontSize: 16, color: "#6B7385", lineHeight: 1.6, margin: "0 auto 32px", maxWidth: "36ch" }}>
-        מדברים עם ה-Monday של העמותה בשפה רגילה. שאלות, ניתוחים, אוטומציות ושאלונים — הכל במקום אחד.
+        מדברים עם ה-Monday של הארגון בשפה רגילה. שאלות, ניתוחים, אוטומציות ושאלונים — הכל במקום אחד.
       </p>
       <div style={{ background: "#fff", border: "1px solid #ECEDF3", borderRadius: 22, padding: "26px 28px", boxShadow: "0 12px 40px -14px rgba(70,55,140,.18)", textAlign: "right" }}>
         {[
@@ -124,7 +124,7 @@ function Waking({ account, onDone }: { account: string | null; onDone: () => voi
   const steps = [
     "מתחבר לחשבון Monday...",
     "קורא את הבורדים שלכם...",
-    "מזהה מבנה: מוטבים, תוכניות, מלווים...",
+    "מזהה מבנה: פריטים, סטטוסים, תאריכים ואחראים...",
     "בונה את תמונת המצב...",
   ];
   const [i, setI] = useState(0);

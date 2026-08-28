@@ -231,7 +231,7 @@ async function askClaude(key: string, question: string, boards: FetchedBoard[]):
     return `## בורד: ${b.name} (${b.items.length} פריטים)\nעמודות: ${cols}\nדוגמת פריטים:\n${sample}`;
   }).join("\n\n");
 
-  const system = `אתה AnyDay — עוזר חכם לעמותות שמנתח נתוני Monday.com בעברית.
+  const system = `אתה AnyDay — עוזר חכם לארגונים שמנתח נתוני Monday.com בעברית.
 ענה קצר, מדויק, וחם. השתמש אך ורק בנתונים שקיבלת — לעולם אל תמציא מספרים או פרטים. אם המידע לא קיים בנתונים, אמור "אין לי את זה בבורדים שבחרתם". סיים תמיד עם ציון המקור (שם הבורד).`;
 
   const res = await fetch("https://api.anthropic.com/v1/messages", {

@@ -94,19 +94,19 @@ export default function Home() {
 
         <div className="hero__inner">
           <div className="hero__text">
-            <p className="hero__over reveal-up">ניהול Monday לעמותות וארגונים חברתיים</p>
+            <p className="hero__over reveal-up">לכל ארגון שעובד עם Monday</p>
             <h1 className="hero__h1">
-              <span className="reveal-up" style={{animationDelay:".1s"}}>הארגון שלכם גדל.</span>
-              <span className="hero__accent reveal-up" style={{animationDelay:".2s"}}>ה-Monday צריך לגדול איתו.</span>
+              <span className="reveal-up" style={{animationDelay:".1s"}}>ה-Monday שלכם כבר עובד.</span>
+              <span className="hero__accent reveal-up" style={{animationDelay:".2s"}}>אנחנו הופכים אותו לקריא.</span>
             </h1>
             <p className="hero__sub reveal-up" style={{animationDelay:".35s"}}>
-              בניית מערכת ניהול חדשה, סידור בורדים קיימים, אוטומציות ודוחות לדירקטוריון — הכל במקום אחד, בלי מטמיע ובלי לחכות.
+              מחברים את החשבון — ואוטומטית נבנה דשבורד עם תובנות, ועם פעולות שיוצאות החוצה וחוזרות ומתעדכנות בבורד עצמו. אפס הגדרות.
             </p>
             <div className="hero__btns reveal-up" style={{animationDelay:".5s"}}>
-              <a href="/workspace" className="btn btn--lime">בנו מערכת Monday לארגון →</a>
-              <a href="/workspace" className="btn btn--outline">בדקו את ה-Monday שלכם</a>
+              <a href="/workspace" className="btn btn--lime">חברו את ה-Monday שלכם →</a>
+              <a href="/workspace" className="btn btn--outline">ראו מה AnyDay מוצאת אצלכם</a>
             </div>
-            <p className="hero__audience reveal-up" style={{animationDelay:".6s"}}>למנכ״לים, מנהלי תוכניות, רכזי פרויקטים וצוותי עמותות שעובדים עם Monday</p>
+            <p className="hero__audience reveal-up" style={{animationDelay:".6s"}}>למנכ״לים, מנהלי תפעול, ראשי צוותים ורכזי פרויקטים — במשרד עורכי דין, בחברת בנייה, בבית ספר או בעמותה</p>
           </div>
 
           {/* Floating Dashboard */}
@@ -118,10 +118,10 @@ export default function Home() {
               </div>
               <div className="dash__body">
                 <div className="dash__chat">
-                  <div className="chat-q">תבנה לי מערכת ניהול מוטבים</div>
+                  <div className="chat-q">מה דורש תשומת לב השבוע?</div>
                   <div className="chat-a">
                     <span className="chat-a__tag">AnyDay</span>
-                    בניתי בורד עם <strong>5 עמודות, 3 קבוצות ו-2 אוטומציות</strong>. מוכן — רוצים להוסיף מעקב התערבויות?
+                    מצאתי <strong>3 פריטים תקועים ו-2 תאריכי יעד שעברו</strong>. רוצים שאסמן אותם ואשלח סיכום לצוות?
                     <div className="chat-a__bar">
                       <div className="chat-a__fill" />
                     </div>
@@ -129,16 +129,16 @@ export default function Home() {
                 </div>
                 <div className="dash__cards">
                   <div className="dash__card">
-                    <span className="dash__card-label">מוטבים</span>
-                    <span className="dash__card-val dash__card-val--green">148 פעילים</span>
+                    <span className="dash__card-label">פריטים פעילים</span>
+                    <span className="dash__card-val dash__card-val--green">148</span>
                   </div>
                   <div className="dash__card">
-                    <span className="dash__card-label">תוכניות</span>
+                    <span className="dash__card-label">בורדים</span>
                     <span className="dash__card-val">6</span>
                   </div>
                   <div className="dash__card dash__card--alert">
-                    <span className="dash__card-label">דוח</span>
-                    <span className="dash__card-val dash__card-val--red">רבעוני מוכן</span>
+                    <span className="dash__card-label">דורשים תשומת לב</span>
+                    <span className="dash__card-val dash__card-val--red">3 פריטים</span>
                   </div>
                 </div>
               </div>
@@ -153,8 +153,8 @@ export default function Home() {
       {/* ─── STATS RIBBON ─── */}
       <section className="stats">
         {[
-          { num: 0, suffix: "", label: "מטמיעים נדרשים" },
-          { num: 2, suffix: " דק׳", label: "לבנות מערכת לארגון" },
+          { num: 0, suffix: "", label: "הגדרות נדרשות" },
+          { num: 2, suffix: " דק׳", label: "מהחיבור עד הדשבורד" },
           { num: 24, suffix: "/7", label: "זמין לצוות שלכם" },
           { num: 100, suffix: "%", label: "עברית טבעית" },
         ].map((s, i) => (
@@ -175,10 +175,10 @@ export default function Home() {
         </div>
         <div className="capabilities__grid">
           {[
-            { icon: "🏗️", title: "בנו מערכת לארגון", desc: "ניהול מוטבים, מעקב תוכניות, מאגר מתנדבים — תארו מה צריך, AnyDay בונה. בלי מטמיע." },
-            { icon: "🔧", title: "סדרו מערכת קיימת", desc: "חיברו את Monday שלכם. AnyDay סורקת בורדים, מזהה כפילויות ומציעה סדר מיידי." },
-            { icon: "⚡", title: "אוטומציות בקליק", desc: "״כשמשתתף סיים תוכנית — עדכנו סטטוס ושלחו דוח.״ כלל בעברית, בלי נוסחאות." },
-            { icon: "📊", title: "דוחות לדירקטוריון", desc: "דוח אימפקט, סיכום רבעוני, נתוני תוצאות — מוכן לישיבה תוך שניות, לא שעות." },
+            { icon: "📊", title: "דשבורד שנבנה לבד", desc: "מחברים את החשבון, AnyDay קוראת את הבורדים ובונה תמונת מצב קריאה. אפס הגדרות." },
+            { icon: "🔍", title: "תובנות, לא טבלאות", desc: "מה תקוע, מה עבר תאריך, מי עמוס — AnyDay מציפה את זה לבד, בלי שתחפשו." },
+            { icon: "⚡", title: "פעולות שחוזרות פנימה", desc: "״כשפריט עובר ל׳הושלם׳ — עדכנו ושלחו סיכום.״ כלל בעברית, והעדכון נכתב חזרה ל-Monday." },
+            { icon: "🏗️", title: "צריכים בורד חדש?", desc: "תארו אותו במילים ו-AnyDay תקים אותו — בלי לצאת מהמסך. נוחות, לא פרויקט הטמעה." },
           ].map((cap, i) => (
             <div key={i} className="cap-card" data-reveal style={{animationDelay: `${i * .1}s`}}>
               <span className="cap-card__icon">{cap.icon}</span>
@@ -198,23 +198,23 @@ export default function Home() {
 
         {[
           {
-            title: "\"תבנו לנו מערכת\nניהול מוטבים.\"",
-            desc: "תארו מה הארגון צריך — AnyDay בונה בורדים, עמודות, קבוצות ואוטומציות. מערכת מוכנה בדקות, לא בשבועות.",
+            title: "\"צריך בורד חדש.\nעכשיו.\"",
+            desc: "תארו אותו במילים — ו-AnyDay מקימה בורד עם עמודות, קבוצות ואוטומציות, בלי לצאת מהמסך ובלי להיכנס ל-Monday. זו נוחות בתוך המוצר, לא פרויקט הטמעה.",
             visual: "build",
           },
           {
-            title: "30 בורדים בבלגן?\nסדר תוך דקה.",
-            desc: "AnyDay סורקת את כל המבנה, מזהה עמודות כפולות, תוכניות לא מעודכנות ובעיות מבניות — ומציעה תיקון מיידי.",
+            title: "30 בורדים.\nמה דורש אתכם היום?",
+            desc: "AnyDay סורקת את כל המבנה, מזהה עמודות כפולות, פריטים תקועים ובעיות מבניות — ומציעה תיקון מיידי.",
             visual: "alert",
           },
           {
             title: "אוטומציות\nבשפה שלכם.",
-            desc: "\"כשמשתתף סיים — עדכנו סטטוס ושלחו דוח למנהל.\" הגדרתם כלל בעברית, AnyDay מפעילה אותו.",
+            desc: "\"כשפריט עובר ל׳הושלם׳ — עדכנו סטטוס ושלחו סיכום למנהל.\" הגדרתם כלל בעברית, AnyDay מפעילה אותו — והעדכון נכתב חזרה ל-Monday.",
             visual: "chat",
           },
           {
-            title: "דוח לדירקטוריון?\nשניות.",
-            desc: "סיכום רבעוני, נתוני אימפקט, גרפי תוצאות — מוכן לפני הישיבה. מה שלקח חצי יום עבודה קורה בלחיצה.",
+            title: "דוח להנהלה?\nשניות.",
+            desc: "סיכום רבעוני, מצב פרויקטים, גרפי התקדמות — מוכן לפני הישיבה. מה שלקח חצי יום עבודה קורה בלחיצה.",
             visual: "report",
           },
         ].map((f, i) => (
@@ -228,13 +228,13 @@ export default function Home() {
               <div className={`feat__box feat__box--${f.visual}`}>
                 {f.visual === "chat" && (
                   <>
-                    <div className="fv-bubble fv-bubble--q">כשסטטוס משתנה ל״סיים״ — עדכנו דוח</div>
-                    <div className="fv-bubble fv-bubble--a">אוטומציה פעילה. 14 משתתפים עודכנו החודש.</div>
+                    <div className="fv-bubble fv-bubble--q">כשסטטוס משתנה ל״הושלם״ — שלחו סיכום</div>
+                    <div className="fv-bubble fv-bubble--a">אוטומציה פעילה. 14 פריטים עודכנו החודש.</div>
                   </>
                 )}
                 {f.visual === "report" && (
                   <div className="fv-report">
-                    <div className="fv-report__title">דוח אימפקט Q1</div>
+                    <div className="fv-report__title">סיכום רבעוני Q1</div>
                     <div className="fv-bars">
                       <div className="fv-bar" style={{height: "60%"}} /><div className="fv-bar" style={{height: "80%"}} />
                       <div className="fv-bar" style={{height: "45%"}} /><div className="fv-bar fv-bar--accent" style={{height: "90%"}} />
@@ -243,9 +243,9 @@ export default function Home() {
                 )}
                 {f.visual === "alert" && (
                   <div className="fv-alerts">
-                    <div className="fv-alert fv-alert--red"><span className="fv-dot fv-dot--red" />3 עמודות כפולות בבורד מוטבים</div>
+                    <div className="fv-alert fv-alert--red"><span className="fv-dot fv-dot--red" />3 עמודות כפולות באותו בורד</div>
                     <div className="fv-alert fv-alert--amber"><span className="fv-dot fv-dot--amber" />קבוצה ריקה: ״ארכיון 2024״</div>
-                    <div className="fv-alert fv-alert--green"><span className="fv-dot fv-dot--green" />מבנה תוכנית תוקן</div>
+                    <div className="fv-alert fv-alert--green"><span className="fv-dot fv-dot--green" />המבנה תוקן</div>
                   </div>
                 )}
                 {f.visual === "build" && (
@@ -253,7 +253,7 @@ export default function Home() {
                     <div className="fv-build__block fv-build__block--1" />
                     <div className="fv-build__block fv-build__block--2" />
                     <div className="fv-build__block fv-build__block--3" />
-                    <div className="fv-build__label">מערכת ניהול</div>
+                    <div className="fv-build__label">בורד חדש</div>
                   </div>
                 )}
               </div>
@@ -266,15 +266,15 @@ export default function Home() {
       <section id="how" className="how">
         <div className="how__header" data-reveal>
           <span className="tag tag--dark">איך זה עובד</span>
-          <h2 className="big-title big-title--light">שתי דקות.<br/>אפס מטמיעים.<br/>Monday שעובד.</h2>
+          <h2 className="big-title big-title--light">שתי דקות.<br/>אפס הגדרות.<br/>Monday קריא.</h2>
         </div>
 
         <div className="timeline">
           <div className="timeline__line" />
           {[
             { num: "01", title: "חברו את Monday של הארגון", desc: "הכניסו API Token — וזהו. בלי התקנות, בלי הגדרות, בלי IT.", color: "var(--lime)" },
-            { num: "02", title: "בנו מערכת או סדרו קיימת", desc: "ניהול מוטבים, מעקב תוכניות, דוחות — תארו מה צריך או תנו ל-AnyDay לסרוק ולשפר.", color: "var(--orange)" },
-            { num: "03", title: "הפעילו ותנהלו", desc: "אוטומציות, דוחות לדירקטוריון, עדכונים — הכל בעברית, הכל במקום אחד.", color: "var(--cyan)" },
+            { num: "02", title: "הדשבורד נבנה לבד", desc: "AnyDay קוראת את הבורדים, מזהה מה חשוב ובונה תמונת מצב עם תובנות. אתם לא מגדירים כלום.", color: "var(--orange)" },
+            { num: "03", title: "פעלו מתוך הדשבורד", desc: "עדכנו סטטוסים, שלחו סיכומים, הקימו בורד חדש — הכל בעברית, והכל נכתב חזרה ל-Monday.", color: "var(--cyan)" },
           ].map((s, i) => (
             <div key={i} className="tl-step" data-reveal>
               <div className="tl-step__dot" style={{background: s.color}} />
@@ -296,9 +296,9 @@ export default function Home() {
         <div className="plans">
           {[
             { name: "סטארטר", price: "250", items: ["בניית בורדים בעברית","100 פעולות בחודש","בורד אחד"], cta: "להתחיל בחינם →", badge: "לנסות" },
-            { name: "צוות", price: "450", items: ["דוחות PDF לדירקטוריון","התראות חכמות","500 פעולות בחודש"], cta: "להתחיל →" },
-            { name: "ארגון", price: "750", items: ["אוטומציות מלאות","דשבורד אימפקט","2,000 פעולות בחודש","בורדים ללא הגבלה"], cta: "להתחיל →", pop: true },
-            { name: "רשת / קבוצה", price: "1,200", items: ["מספר עמותות","SSO + API","תמיכה ייעודית","SLA מותאם"], cta: "בואו נדבר →" },
+            { name: "צוות", price: "450", items: ["דוחות PDF להנהלה","התראות חכמות","500 פעולות בחודש"], cta: "להתחיל →" },
+            { name: "ארגון", price: "750", items: ["אוטומציות מלאות","דשבורד תובנות מלא","2,000 פעולות בחודש","בורדים ללא הגבלה"], cta: "להתחיל →", pop: true },
+            { name: "רשת / קבוצה", price: "1,200", items: ["מספר ארגונים","SSO + API","תמיכה ייעודית","SLA מותאם"], cta: "בואו נדבר →" },
           ].map((p, i) => (
             <div key={i} className={`plan ${p.pop ? "plan--pop" : ""}`} data-reveal>
               {(p.pop || p.badge) && <div className="plan__badge">{p.pop ? "פופולרי" : p.badge}</div>}
@@ -337,12 +337,12 @@ export default function Home() {
         </div>
         <div className="faq-list">
           {[
-            { q: "זה מתאים לעמותות קטנות?", a: "בדיוק בשביל זה. עמותה עם 3 אנשי צוות ו-5 בורדים — או רשת עם 50 בורדים. AnyDay מתאימה את עצמה לגודל הארגון." },
+            { q: "זה מתאים לארגון כמו שלנו?", a: "אם אתם עובדים עם Monday — כן. AnyDay קוראת את הבורד לפי טיפוסי העמודות ולא לפי התחום, ולכן משרד עורכי דין, חברת בנייה, בית ספר או עמותה מקבלים בדיוק את אותה תמונת מצב. צוות של 3 עם 5 בורדים או רשת עם 50 — אותו דבר." },
             { q: "מה צריך מהצד שלנו?", a: "API Token של Monday (מקבלים בשתי דקות) — וזהו. בלי התקנות, בלי הגדרות, בלי לשנות כלום בבורדים. AnyDay מתחברת ולומדת את המבנה לבד." },
-            { q: "אפשר לבנות מערכת ניהול מוטבים?", a: "כן. תארו מה אתם צריכים — AnyDay בונה בורד עם עמודות, קבוצות, אוטומציות ומעקב. מערכת מוכנה בדקות." },
-            { q: "יש לנו 30 בורדים בבלגן. זה עוזר?", a: "בדיוק בשביל זה. AnyDay סורקת את כל המבנה, מזהה כפילויות, עמודות ריקות ובעיות — ומציעה סדר מיידי." },
+            { q: "אנחנו כבר עובדים עם Monday שנים. מה זה מוסיף?", a: "בדיוק בשביל זה. ה-Monday שלכם כבר מכיל את הכל — AnyDay רק הופכת אותו לקריא: תמונת מצב במקום טבלאות, תובנות שעולות לבד, ופעולות שאפשר לעשות מכאן והן מתעדכנות חזרה בבורד." },
+            { q: "אפשר להקים בורד חדש מתוך AnyDay?", a: "כן. תארו במילים מה צריך — AnyDay מקימה בורד עם עמודות, קבוצות ואוטומציות, בלי לצאת מהמסך. זו נוחות בתוך המוצר, לא פרויקט הטמעה שאנחנו עושים בשבילכם." },
             { q: "ואם לא מתאים?", a: "7 ימי ניסיון חינם. ביטול בלחיצה אחת. בלי חוזה, בלי שיחת שימור, בלי התחייבות." },
-            { q: "הנתונים של המוטבים בטוחים?", a: "הצפנה מלאה, אנחנו לא שומרים נתונים ולא מאמנים מודלים עליהם. כל שאילתה רצה בזמן אמת ונמחקת. ואפשר לנתק בלחיצה." },
+            { q: "הנתונים שלנו בטוחים?", a: "הצפנה מלאה, אנחנו לא שומרים נתונים ולא מאמנים מודלים עליהם. כל שאילתה רצה בזמן אמת ונמחקת. ואפשר לנתק בלחיצה." },
           ].map((faq, i) => (
             <div key={i} className={`faq ${openFaq === i ? "faq--open" : ""}`} data-reveal
               onClick={() => setOpenFaq(openFaq === i ? null : i)}>
@@ -361,11 +361,11 @@ export default function Home() {
         <div className="final__bg" />
         <div className="final__content" data-reveal>
           <h2 className="final__title">
-            הארגון שלכם<br/>יכול לנהל<br/>הרבה יותר טוב.
+            ה-Monday שלכם<br/>כבר יודע הכל.<br/>עכשיו גם תראו.
           </h2>
-          <p className="final__accent">בנו מערכת ניהול חדשה או שפרו את הקיימת — בדקות, לא בשבועות.</p>
-          <p className="final__sub">ללא כרטיס אשראי · ללא מטמיע · ביטול בלחיצה</p>
-          <a href="/workspace" className="btn btn--lime btn--xl">בנו מערכת Monday לארגון →</a>
+          <p className="final__accent">מחברים את החשבון, והדשבורד נבנה לבד — בדקות, בלי הגדרה אחת.</p>
+          <p className="final__sub">ללא כרטיס אשראי · אפס הגדרות · ביטול בלחיצה</p>
+          <a href="/workspace" className="btn btn--lime btn--xl">חברו את ה-Monday שלכם →</a>
         </div>
       </section>
 
