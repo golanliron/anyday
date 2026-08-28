@@ -7,6 +7,7 @@ import { ModeShell, type Mode, type ShellTab } from "@/components/ui/ModeShell";
 import { loadBoard } from "@/lib/api-client";
 import DataEditPanel from "@/components/board/DataEditPanel";
 import { AutomationsPanel } from "@/components/board/AutomationsPanel";
+import { ReportPanel } from "@/components/board/BoardDashboard";
 import { SmartBuilder } from "@/components/builder/SmartBuilder";
 import type { MondayBoard, MondayItem } from "@/types";
 
@@ -1055,11 +1056,7 @@ function ActMode({ tab, boards, names, onBoardsChanged }: { tab: string; boards:
     return shell(<SmartBuilder existingBoards={boards.map((b) => b.name)} onBoardCreated={onBoardsChanged} />);
   }
 
-  if (tab === "reports") {
-    return shell(<ReportsPending />);
-  }
-
-  /* bulk / autos — need one loaded board */
+  /* bulk / autos / reports — need one loaded board */
   const picker = (
     <BoardPicker boards={boards} value={boardId} onPick={choose} busy={busy} />
   );
@@ -1068,7 +1065,7 @@ function ActMode({ tab, boards, names, onBoardsChanged }: { tab: string; boards:
       <>
         {picker}
         {err && <Notice tone="bad" title="שגיאה" body={err} />}
-        {!err && !busy && <Notice tone="calm" title="בחרו בורד" body="הפעולות במצב הזה נכתבות לבורד מסוים, ולכן צריך לבחור על איזה מהם לעבוד." />}
+        {!err && !busy && <Notice tone="calm" title="בחרו בורד" body={tab === "reports" ? "הדוח מופק מבורד מסוים." : "הפעולות במצב הזה נכתבות לבורד מסוים, ולכן צריך לבחור על איזה מהם לעבוד."} />}
       </>
     );
   }
@@ -1077,6 +1074,7 @@ function ActMode({ tab, boards, names, onBoardsChanged }: { tab: string; boards:
       {picker}
       {tab === "bulk" && <DataEditPanel board={loaded.board} items={loaded.items} apiToken="" boardId={boardId} pc={ACT} />}
       {tab === "autos" && <AutomationsPanel board={loaded.board} items={loaded.items} apiToken="" boardId={boardId} pc={ACT} />}
+      {tab === "reports" && <ReportPanel board={loaded.board} items={loaded.items} pc={ACT} />}
     </>
   );
 }
@@ -1110,21 +1108,6 @@ function ChatIdeas({ onPick }: { onPick: (q: string) => void }) {
         ))}
       </div>
     </div>
-  );
-}
-
-/* The four reports already exist, inside BoardDashboard's ReportPanel — which is
-   not exported, so this tab cannot render them yet. Rather than rebuild them, we
-   say so plainly and keep /workspace as the working route until the orchestrator
-   exports that component. See anyday-ops/reports/T6.md. */
-function ReportsPending() {
-  return (
-    <Notice
-      tone="calm"
-      title="ארבעת הדוחות עדיין נפתחים במסך הקודם"
-      body="דוח מנהלים, דוח שבועי, דוח למשקיעים ודוח KPIs כבר קיימים ועובדים — הם פשוט עוד לא הועברו ללשונית הזאת. עד שיועברו, הם זמינים במסך הבורדים."
-      action={{ href: "/workspace", label: "פתחו את מסך הבורדים" }}
-    />
   );
 }
 

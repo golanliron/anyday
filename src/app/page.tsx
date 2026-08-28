@@ -67,7 +67,7 @@ export default function Home() {
           {[["#features","יתרונות"],["#how","תהליך"],["#pricing","מחירים"]].map(([h,l]) => (
             <a key={h} href={h} className="nav__link">{l}</a>
           ))}
-          <a href="/workspace" className="nav__enter">כניסה →</a>
+          <a href="/app" className="nav__enter">כניסה →</a>
         </div>
         <button className="nav__burger" onClick={() => setMobileMenu(!mobileMenu)} aria-label="תפריט">
           <span className={mobileMenu ? "x" : ""} />
@@ -80,7 +80,7 @@ export default function Home() {
           {[["#features","יתרונות"],["#how","תהליך"],["#pricing","מחירים"]].map(([h,l],i) => (
             <a key={h} href={h} onClick={() => setMobileMenu(false)} className="mob__link" style={{animationDelay:`${i*.08}s`}}>{l}</a>
           ))}
-          <a href="/workspace" className="mob__cta">כניסה למערכת</a>
+          <a href="/app" className="mob__cta">כניסה למערכת</a>
         </div>
       )}
 
@@ -103,8 +103,8 @@ export default function Home() {
               מחברים את החשבון — ואוטומטית נבנה דשבורד עם תובנות, ועם פעולות שיוצאות החוצה וחוזרות ומתעדכנות בבורד עצמו. אפס הגדרות.
             </p>
             <div className="hero__btns reveal-up" style={{animationDelay:".5s"}}>
-              <a href="/workspace" className="btn btn--lime">חברו את ה-Monday שלכם →</a>
-              <a href="/workspace" className="btn btn--outline">ראו מה AnyDay מוצאת אצלכם</a>
+              <a href="/app" className="btn btn--lime">חברו את ה-Monday שלכם →</a>
+              <a href="/app" className="btn btn--outline">ראו מה AnyDay מוצאת אצלכם</a>
             </div>
             <p className="hero__audience reveal-up" style={{animationDelay:".6s"}}>למנכ״לים, מנהלי תפעול, ראשי צוותים ורכזי פרויקטים — במשרד עורכי דין, בחברת בנייה, בבית ספר או בעמותה</p>
           </div>
@@ -365,7 +365,7 @@ export default function Home() {
           </h2>
           <p className="final__accent">מחברים את החשבון, והדשבורד נבנה לבד — בדקות, בלי הגדרה אחת.</p>
           <p className="final__sub">ללא כרטיס אשראי · אפס הגדרות · ביטול בלחיצה</p>
-          <a href="/workspace" className="btn btn--lime btn--xl">חברו את ה-Monday שלכם →</a>
+          <a href="/app" className="btn btn--lime btn--xl">חברו את ה-Monday שלכם →</a>
         </div>
       </section>
 
