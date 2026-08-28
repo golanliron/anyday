@@ -1715,7 +1715,7 @@ ${chartsHtml}
 // ReportPanel - One-click management reports
 // ═══════════════════════════════════════════════════════
 
-function ReportPanel({ board, items, pc = "#FF2D87", ac = "var(--color-accent)", orgName = "" }: {
+export function ReportPanel({ board, items, pc = "#FF2D87", ac = "var(--color-accent)", orgName = "" }: {
   board: MondayBoard; items: MondayItem[]; pc?: string; ac?: string; orgName?: string;
 }) {
   const [reportType, setReportType] = useState<string>("management");
