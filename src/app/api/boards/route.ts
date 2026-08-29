@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { mondayQuery, requireMonday } from "@/lib/monday-server";
+import {
+  mondayQuery,
+  requireMonday,
+  isMondayAuthFailure,
+  MONDAY_REAUTH_MESSAGE,
+} from "@/lib/monday-server";
 
 const SEL_COOKIE = "anyday_selected_boards";
 
@@ -25,6 +30,17 @@ export async function GET() {
     const selected = (await cookies()).get(SEL_COOKIE)?.value?.split(",").filter(Boolean) || [];
     return NextResponse.json({ boards, selected });
   } catch (e: unknown) {
+    // A token that Monday itself rejects (HTTP 401) is a broken CONNECTION, not
+    // a broken service: answer 409 so the connect gate in /app catches it and
+    // offers a way back in. Decided on the status code alone — never on the
+    // wording of the message (RULES §1).
+    // The cookie is deliberately NOT cleared here: if Monday is the one having
+    // a bad day, deleting a valid token would be the real damage.
+    if (isMondayAuthFailure(e)) {
+      return NextResponse.json({ error: MONDAY_REAUTH_MESSAGE }, { status: 409 });
+    }
+    // Everything else — Monday down, network failure, GraphQL error — stays 502
+    // with the real message, so nobody is told to reconnect for no reason.
     return NextResponse.json({ error: e instanceof Error ? e.message : "שגיאה" }, { status: 502 });
   }
 }
