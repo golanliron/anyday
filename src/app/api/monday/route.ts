@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { mondayQuery as mondayQueryWithToken, requireMonday } from "@/lib/monday-server";
 
+/**
+ * Is this a shape we can hand to Monday as GraphQL `variables`?
+ *
+ * `variables` arrives from the browser, so it is checked rather than trusted.
+ * GraphQL wants a plain name→value map; an array, a string or null is not one.
+ * `undefined` is NOT passed here — a request that sends no `variables` keeps
+ * going out exactly as it does today (see the mutate branch).
+ */
+function isVariablesMap(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
 export async function POST(req: NextRequest) {
   try {
     // Resolve the token from the logged-in user's org — never from the client.
@@ -9,7 +21,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: guard.error }, { status: guard.status });
     }
     const apiToken = guard.token;
-    const mondayQuery = (query: string) => mondayQueryWithToken(query, apiToken);
+    /* `variables` is optional and forwarded untouched. Every existing call site
+       passes one argument, so `variables` is `undefined` there and
+       mondayQueryWithToken sends the very same `{ query }` body as before. */
+    const mondayQuery = (query: string, variables?: Record<string, unknown>) =>
+      mondayQueryWithToken(query, apiToken, variables);
 
     const body = await req.json();
     const { action, boardId } = body;
@@ -141,11 +157,19 @@ export async function POST(req: NextRequest) {
 
     // ── Single mutation ──
     if (action === "mutate") {
-      const { mutation } = body;
+      const { mutation, variables } = body;
       if (!mutation) {
         return NextResponse.json({ error: "חסרה מוטציה" }, { status: 400 });
       }
-      const data = await mondayQuery(mutation);
+      /* RULES §3: a value that came from the browser travels as a GraphQL
+         variable, never pasted into the query string — a name holding a quote
+         would otherwise rewrite the mutation itself. A malformed `variables` is
+         rejected out loud instead of being dropped silently, so the caller is
+         never told an operation ran with values it did not send. */
+      if (variables !== undefined && !isVariablesMap(variables)) {
+        return NextResponse.json({ error: "variables חייב להיות אובייקט" }, { status: 400 });
+      }
+      const data = await mondayQuery(mutation, variables);
       return NextResponse.json({ success: true, data });
     }
 
