@@ -3,16 +3,37 @@ import Anthropic from "@anthropic-ai/sdk";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+// הדוח ארוך (max_tokens: 6000) ולוקח קרוב לדקה. בלי התקרה הזאת בקשה
+// כזאת נחתכת בפריסה. ההזרמה שומרת על החיבור פעיל לכל אורכה.
+export const maxDuration = 300;
+export const runtime = "nodejs";
+
 export async function POST(req: NextRequest) {
+  let boardContext: {
+    boardName?: string;
+    itemsCount?: number;
+    columns?: string;
+    statusDistribution?: string;
+    sampleItems?: string;
+  } | null = null;
+  let reportType: string | undefined;
+  let orgName: string | undefined;
+
   try {
-    const { boardContext, reportType, orgName } = await req.json();
+    const body = await req.json();
+    boardContext = body?.boardContext ?? null;
+    reportType = body?.reportType;
+    orgName = body?.orgName;
+  } catch {
+    return NextResponse.json({ error: "בקשה לא תקינה" }, { status: 400 });
+  }
 
-    if (!boardContext) {
-      return NextResponse.json({ error: "חסרים נתוני בורד" }, { status: 400 });
-    }
+  if (!boardContext) {
+    return NextResponse.json({ error: "חסרים נתוני בורד" }, { status: 400 });
+  }
 
-    const reportPrompts: Record<string, string> = {
-      management: `צור דוח מנהלים מקצועי ומפורט מנתוני הבורד. הדוח חייב לכלול:
+  const reportPrompts: Record<string, string> = {
+    management: `צור דוח מנהלים מקצועי ומפורט מנתוני הבורד. הדוח חייב לכלול:
 
 ## מבנה הדוח:
 
@@ -38,7 +59,7 @@ export async function POST(req: NextRequest) {
 
 חשוב: השתמש במספרים, אחוזים, שמות ספציפיים. הדוח חייב להיות מוכן לשליחה לדירקטוריון כמו שהוא.`,
 
-      weekly: `צור דוח שבועי קצר וחד מנתוני הבורד:
+    weekly: `צור דוח שבועי קצר וחד מנתוני הבורד:
 
 ### סיכום שבועי
 - מה השתנה השבוע (הערכה לפי הנתונים)
@@ -48,7 +69,7 @@ export async function POST(req: NextRequest) {
 
 תהיה קצר, קולע, עם מספרים.`,
 
-      donors: `צור דוח למשקיעים/תורמים מנתוני הבורד:
+    donors: `צור דוח למשקיעים/תורמים מנתוני הבורד:
 
 ### דוח התקדמות למשקיעים
 
@@ -59,7 +80,7 @@ export async function POST(req: NextRequest) {
 
 הטון: מקצועי, אופטימי אבל כנה, מותאם למשקיעים שרוצים לראות ROI.`,
 
-      kpi: `צור דוח KPIs מנתוני הבורד:
+    kpi: `צור דוח KPIs מנתוני הבורד:
 
 חלץ 4-6 KPIs מרכזיים מהנתונים. לכל KPI:
 - **שם ה-KPI**
@@ -68,12 +89,12 @@ export async function POST(req: NextRequest) {
 - **המלצה** (מה לעשות)
 
 הצג בטבלה מסודרת. אחרי הטבלה תן 2-3 תובנות מרכזיות.`,
-    };
+  };
 
-    const type = reportType || "management";
-    const prompt = reportPrompts[type] || reportPrompts.management;
+  const type = reportType || "management";
+  const prompt = reportPrompts[type] || reportPrompts.management;
 
-    const systemPrompt = `אתה AnyDay - מייצר דוחות מקצועיים מנתוני Monday.com.
+  const systemPrompt = `אתה AnyDay - מייצר דוחות מקצועיים מנתוני Monday.com.
 ${orgName ? `שם הארגון: ${orgName}` : ""}
 
 ## כללים:
@@ -92,20 +113,74 @@ ${orgName ? `שם הארגון: ${orgName}` : ""}
 סטטוסים: ${boardContext.statusDistribution || "אין"}
 פריטים לדוגמה: ${boardContext.sampleItems || "אין"}`;
 
-    const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 6000,
-      system: systemPrompt,
-      messages: [{ role: "user", content: prompt }],
-    });
+  const encoder = new TextEncoder();
 
-    const textBlock = response.content.find(
-      (b): b is Anthropic.TextBlock => b.type === "text"
-    );
+  // כל שורה בתשובה היא אובייקט JSON יחיד (NDJSON):
+  //   {"type":"delta","text":"..."}  — עוד פיסת דוח
+  //   {"type":"error","error":"..."} — נפילה, גם אם כבר יצא טקסט
+  //   {"type":"done"}                — ורק אז הדוח שלם
+  // זרם שנקטע באמצע פשוט לא יכיל "done", ולכן הצד השני לא יציג אותו כשלם.
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const send = (obj: Record<string, unknown>) => {
+        controller.enqueue(encoder.encode(JSON.stringify(obj) + "\n"));
+      };
 
-    return NextResponse.json({ report: textBlock?.text || "לא הצלחתי ליצור דוח" });
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : "שגיאה";
-    return NextResponse.json({ error: msg }, { status: 500 });
-  }
+      try {
+        const messageStream = anthropic.messages.stream(
+          {
+            model: "claude-sonnet-4-6",
+            max_tokens: 6000,
+            system: systemPrompt,
+            messages: [{ role: "user", content: prompt }],
+          },
+          { signal: req.signal }
+        );
+
+        for await (const event of messageStream) {
+          if (
+            event.type === "content_block_delta" &&
+            event.delta.type === "text_delta" &&
+            event.delta.text
+          ) {
+            send({ type: "delta", text: event.delta.text });
+          }
+        }
+
+        const final = await messageStream.finalMessage();
+
+        if (final.stop_reason === "max_tokens") {
+          // הדוח נעצר בתקרת האורך — הוא חתוך, ואסור להציג אותו כשלם.
+          send({ type: "error", error: "הדוח נעצר באמצע כי הגיע לאורך המרבי" });
+          controller.close();
+          return;
+        }
+
+        send({ type: "done" });
+        controller.close();
+      } catch (e: unknown) {
+        if (req.signal.aborted) {
+          // המשתמשת עזבה את הדף — אין למי לדווח.
+          controller.close();
+          return;
+        }
+        const msg = e instanceof Error ? e.message : "שגיאה";
+        try {
+          send({ type: "error", error: msg });
+        } catch {
+          // הצד השני כבר לא מקשיב.
+        }
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    status: 200,
+    headers: {
+      "Content-Type": "application/x-ndjson; charset=utf-8",
+      "Cache-Control": "no-store, no-transform",
+      "X-Accel-Buffering": "no",
+    },
+  });
 }
