@@ -112,18 +112,40 @@ function DataEditPanelInner({ board, items, apiToken, boardId, pc = "#FF2D87", a
     }
   }
 
+  /* מזהה הפריט עובר כמשתנה GraphQL ולא בהדבקה לתוך המוטציה (RULES §3):
+     ערך שמגיע מהדפדפן לא ייכנס לעולם למחרוזת השאילתה. */
+  const ARCHIVE_MUTATION = "mutation ($itemId: ID!) { archive_item(item_id: $itemId) { id } }";
+
   /* הפעולה נשארת archive_item — הפיכה מתוך Monday. אין כאן מחיקה. */
   async function handleArchive(itemId: string) {
     setDeletingItem(itemId);
     try {
-      await fetch("/api/monday", {
+      const res = await fetch("/api/monday", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "mutate", apiToken, mutation: "mutation { archive_item(item_id: " + itemId + ") { id } }" }),
+        body: JSON.stringify({
+          action: "mutate",
+          apiToken,
+          mutation: ARCHIVE_MUTATION,
+          variables: { itemId },
+        }),
       });
+      /* התשובה נבדקת לפני שמוצגת הצלחה. סטטוס תקין לבדו לא מספיק: Monday
+         מחזיר לפעמים 200 ובתוכו errors, ולכן נבדק גם גוף התשובה. אם משהו
+         נכשל — נאמר שנכשל, והשורה נשארת בדיוק במקומה. */
+      const payload = await res.json().catch(() => null);
+      const serverError =
+        payload && typeof payload.error === "string" ? payload.error : null;
+      const graphqlErrors =
+        (Array.isArray(payload?.errors) && payload.errors.length > 0) ||
+        (Array.isArray(payload?.data?.errors) && payload.data.errors.length > 0);
+      if (!res.ok || !payload || serverError || graphqlErrors || payload.success !== true) {
+        showToast(serverError || "הארכוב נכשל. הפריט נשאר בבורד.");
+        return;
+      }
       showToast("הועבר לארכיון");
     } catch {
-      showToast("שגיאה");
+      showToast("הארכוב נכשל. הפריט נשאר בבורד.");
     } finally {
       setDeletingItem(null);
       setPendingArchive(null);
