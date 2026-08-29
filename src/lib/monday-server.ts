@@ -6,11 +6,58 @@ import { getOrgContext, getMondayToken } from "./session";
 const MONDAY_API = "https://api.monday.com/v2";
 
 /**
+ * A failed Monday HTTP call, carrying the HTTP status as DATA.
+ *
+ * Why a class and not just an Error: callers need to tell "Monday rejected the
+ * credentials" apart from "Monday is down", and the only trustworthy signal for
+ * that is the HTTP status code. Parsing the status back out of the message text
+ * would be a hidden word-list (RULES §1) and would break the moment the message
+ * is reworded or translated.
+ *
+ * The `message` is intentionally unchanged from what this function threw
+ * before, so every existing caller keeps behaving exactly as it did.
+ */
+export class MondayApiError extends Error {
+  /** structural brand — survives duplicate module instances, unlike instanceof */
+  readonly isMondayApiError = true;
+  readonly status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "MondayApiError";
+    this.status = status;
+  }
+}
+
+/**
+ * Did Monday itself reject the credentials?
+ *
+ * Decided purely by the HTTP status Monday returned (401 = Not Authenticated),
+ * never by looking for words inside the error message. Anything else — 5xx, a
+ * network failure, a GraphQL-level error — is NOT an auth failure and must keep
+ * surfacing as a real error, so a user whose Monday is merely down is never
+ * told to reconnect a perfectly good connection.
+ */
+export function isMondayAuthFailure(e: unknown): boolean {
+  return (
+    typeof e === "object" &&
+    e !== null &&
+    (e as { isMondayApiError?: unknown }).isMondayApiError === true &&
+    (e as { status?: unknown }).status === 401
+  );
+}
+
+/** The one wording for "the Monday connection is no longer valid" (see requireMonday). */
+export const MONDAY_REAUTH_MESSAGE = "החיבור ל-Monday פג. חברו מחדש.";
+
+/**
  * Run a Monday GraphQL request.
  *
  * ALWAYS pass user-supplied data through `variables` rather than interpolating
  * it into the query string: a name/status/id containing a quote can otherwise
  * rewrite the query itself (and this token has write + delete rights).
+ *
+ * On an HTTP failure it throws a {@link MondayApiError} — still an Error with
+ * the same message as before, plus the status code for callers that care.
  */
 export async function mondayQuery(
   query: string,
@@ -26,7 +73,7 @@ export async function mondayQuery(
     },
     body: JSON.stringify(variables ? { query, variables } : { query }),
   });
-  if (!res.ok) throw new Error(`Monday API error (${res.status})`);
+  if (!res.ok) throw new MondayApiError(res.status, `Monday API error (${res.status})`);
   const json = await res.json();
   if (json.errors?.length) throw new Error(json.errors[0].message);
   return json.data;
@@ -93,6 +140,6 @@ export async function requireMonday(): Promise<MondayGuardResult> {
     return { ok: false, status: 409, error: "Monday לא מחובר. חברו את החשבון תחילה." };
   const token = await getMondayToken(ctx.orgId);
   if (!token)
-    return { ok: false, status: 409, error: "החיבור ל-Monday פג. חברו מחדש." };
+    return { ok: false, status: 409, error: MONDAY_REAUTH_MESSAGE };
   return { ok: true, token, orgId: ctx.orgId };
 }
