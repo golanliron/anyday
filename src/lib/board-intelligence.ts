@@ -374,7 +374,14 @@ export function parseBoardDate(text: string): { at: number; iso: string } | null
 
 /** The timeline of ONE record. null = this board has no date column. */
 export function timeline(board: Board, item: Item): Widget | null {
-  const dateCols = board.columns.filter((c) => isDate(c.type));
+  // `creation_log` and `last_updated` are Monday's own bookkeeping COLUMN TYPES:
+  // they exist on every board and on every record, so they would flood the
+  // timeline with noise instead of telling the record's story. Excluded here
+  // only — `isDate` itself still recognises them for capabilities(). The filter
+  // is by column TYPE, never by column name or by the text inside it.
+  const META_DATE_TYPES = ["creation_log", "last_updated"];
+  const dateCols = board.columns.filter((c) => isDate(c.type) && !META_DATE_TYPES.includes(c.type));
+  // A board whose only date-ish columns are those meta types has no timeline.
   if (!dateCols.length) return null;
 
   const stages = dateCols
