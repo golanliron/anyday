@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { requireMonday } from "@/lib/monday-server";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 export async function POST(req: NextRequest) {
+  // מי שמחוברת ל-Monday היא בדיוק מי שרשאית להשתמש בכלי הזה. אותו שער
+  // בדיוק שכל נתיב אחר שנוגע ב-Monday עובר דרכו — לא מנגנון שני לתחזק.
+  // בלעדיו כל מי שיודע את הכתובת שורף את מפתח ה-AI של השרת.
+  const guard = await requireMonday();
+  if (!guard.ok) return NextResponse.json({ error: guard.error }, { status: guard.status });
+
   try {
     const { message, boardContext } = await req.json();
 
