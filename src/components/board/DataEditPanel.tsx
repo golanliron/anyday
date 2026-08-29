@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Component, type ReactNode } from "react";
+import { useState, useEffect, useRef, Component, type ReactNode } from "react";
 import { changeColumnValue, changeSimpleValue, createItem } from "@/lib/api-client";
 import type { MondayBoard, MondayItem } from "@/types";
 
@@ -40,6 +40,28 @@ function DataEditPanelInner({ board, items, apiToken, boardId, pc = "#FF2D87", a
   const [searchQuery, setSearchQuery] = useState("");
   const [toast, setToast] = useState<string | null>(null);
   const [deletingItem, setDeletingItem] = useState<string | null>(null);
+  /* ארכוב כותב לבורד האמיתי, לכן הוא דו-שלבי: לחיצה ראשונה רק שואלת,
+     רק השנייה שולחת בקשה. אותו דפוס כמו כפתור הניתוק בראש המסך. */
+  const [pendingArchive, setPendingArchive] = useState<string | null>(null);
+  const confirmRef = useRef<HTMLDivElement | null>(null);
+
+  /* שורה לא נשארת דרוכה: כל לחיצה מחוץ לבועת האישור — שורה אחרת, תא
+     לעריכה, הרקע — או Escape, מבטלת את המתנה לאישור. */
+  useEffect(() => {
+    if (!pendingArchive) return;
+    function onPointerDown(e: Event) {
+      const t = e.target;
+      if (confirmRef.current && t instanceof Node && confirmRef.current.contains(t)) return;
+      setPendingArchive(null);
+    }
+    function onKeyDown(e: KeyboardEvent) { if (e.key === "Escape") setPendingArchive(null); }
+    document.addEventListener("pointerdown", onPointerDown, true);
+    document.addEventListener("keydown", onKeyDown, true);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      document.removeEventListener("keydown", onKeyDown, true);
+    };
+  }, [pendingArchive]);
 
   const editableCols = board.columns.filter(c =>
     c.type !== "name" && ["color", "text", "long-text", "numeric", "numbers", "dropdown", "email", "phone", "date", "checkbox"].includes(c.type)
@@ -90,7 +112,8 @@ function DataEditPanelInner({ board, items, apiToken, boardId, pc = "#FF2D87", a
     }
   }
 
-  async function handleDelete(itemId: string) {
+  /* הפעולה נשארת archive_item — הפיכה מתוך Monday. אין כאן מחיקה. */
+  async function handleArchive(itemId: string) {
     setDeletingItem(itemId);
     try {
       await fetch("/api/monday", {
@@ -103,6 +126,7 @@ function DataEditPanelInner({ board, items, apiToken, boardId, pc = "#FF2D87", a
       showToast("שגיאה");
     } finally {
       setDeletingItem(null);
+      setPendingArchive(null);
     }
   }
 
@@ -126,7 +150,7 @@ function DataEditPanelInner({ board, items, apiToken, boardId, pc = "#FF2D87", a
         {"\u05e2\u05e8\u05d9\u05db\u05ea \u05d4\u05d1\u05d5\u05e8\u05d3"}
       </h3>
       <p style={{ fontSize: 12, color: ac, marginBottom: 14, lineHeight: 1.5 }}>
-        {"\u05d4\u05d8\u05d1\u05dc\u05d4 \u05d4\u05de\u05dc\u05d0\u05d4. \u05dc\u05d7\u05e6\u05d5 \u05e2\u05dc \u05ea\u05d0 \u05dc\u05e2\u05e8\u05d9\u05db\u05d4, \u05e4\u05d7 \u05dc\u05d0\u05e8\u05db\u05d9\u05d5\u05df."}
+        {"הטבלה המלאה. לחצו על תא לעריכה. הכפתור בסוף השורה מעביר לארכיון, אחרי אישור."}
       </p>
       {toast && (<div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", zIndex: 999, background: "var(--color-accent)", color: "var(--color-bg)", padding: "10px 24px", borderRadius: 12, fontSize: 13, fontWeight: 600, boxShadow: "0 8px 30px rgba(0,0,0,0.2)" }}>{toast}</div>)}
       <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
@@ -145,8 +169,8 @@ function DataEditPanelInner({ board, items, apiToken, boardId, pc = "#FF2D87", a
           <tbody>
             {filteredItems.slice(0, 100).map((item, idx) => (<tr key={item.id} style={{ background: idx % 2 === 0 ? "var(--color-surf)" : "rgba(255,255,255,0.02)" }}>
               <td style={{ padding: "8px 10px", fontWeight: 600, color: "var(--color-text)", borderBottom: "1px solid rgba(255,255,255,0.05)", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", borderRight: "3px solid var(--color-accent)" }}>{item.name}</td>
-              {editableCols.map(col => { const cv = (item.column_values || []).find(v => v.id === col.id); const value = cv?.text || ""; const isEditing = editingCell?.itemId === item.id && editingCell?.colId === col.id; const wasSaved = savedCells.has(item.id + "-" + col.id); const isStatus = col.type === "color"; return (<td key={col.id} style={{ padding: "4px 6px", borderBottom: "1px solid rgba(255,255,255,0.05)", position: "relative" }}>{isEditing ? (isStatus ? (<div style={{ display: "flex", flexDirection: "column", gap: 2, position: "absolute", top: 0, right: 0, zIndex: 10, background: "var(--color-surf)", border: "1.5px solid var(--color-accent)", borderRadius: 8, padding: 6, minWidth: 120, boxShadow: "0 4px 16px rgba(0,0,0,0.12)" }}>{(statusOptions[col.id] || []).map(opt => (<button key={opt} onClick={() => handleSave(item.id, col.id, opt)} disabled={saving} style={{ background: opt === value ? "var(--color-accent)" : "transparent", color: opt === value ? "var(--color-bg)" : "var(--color-text)", border: "none", borderRadius: 4, padding: "4px 8px", fontSize: 11, fontWeight: 600, cursor: saving ? "wait" : "pointer", textAlign: "right" }}>{opt}</button>))}<button onClick={() => setEditingCell(null)} style={{ background: "none", border: "none", fontSize: 10, color: "#E17055", cursor: "pointer", fontWeight: 600 }}>{"\u05d1\u05d9\u05d8\u05d5\u05dc"}</button></div>) : (<input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") handleSave(item.id, col.id, editValue); if (e.key === "Escape") setEditingCell(null); }} onBlur={() => { if (editValue !== value) handleSave(item.id, col.id, editValue); else setEditingCell(null); }} style={{ width: "100%", background: "var(--color-surf)", border: "1.5px solid var(--color-accent)", borderRadius: 4, padding: "4px 6px", fontSize: 12, outline: "none", color: "var(--color-text)" }} />)) : (<div onClick={() => { setEditingCell({ itemId: item.id, colId: col.id }); setEditValue(value); }} style={{ cursor: "pointer", padding: "4px 6px", borderRadius: 4, background: isStatus && value ? "rgba(212,255,43,0.06)" : "transparent", border: wasSaved ? "1.5px solid #00B894" : "1.5px solid transparent", color: value ? "var(--color-text)" : "var(--color-muted2)", fontWeight: isStatus ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 110, fontSize: 12 }}>{value || "\u2014"}</div>)}</td>); })}
-              <td style={{ padding: "4px", borderBottom: "1px solid rgba(255,255,255,0.05)", textAlign: "center" }}><button onClick={() => handleDelete(item.id)} disabled={deletingItem === item.id} style={{ background: "none", border: "none", cursor: "pointer", padding: 2, color: "#CCC", transition: "color 0.15s" }} onMouseEnter={e => (e.currentTarget.style.color = "#E17055")} onMouseLeave={e => (e.currentTarget.style.color = "#CCC")} title={"\u05d0\u05e8\u05db\u05d9\u05d5\u05df"}>{deletingItem === item.id ? (<span style={{ fontSize: 10 }}>...</span>) : (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>)}</button></td>
+              {editableCols.map(col => { const cv = (item.column_values || []).find(v => v.id === col.id); const value = cv?.text || ""; const isEditing = editingCell?.itemId === item.id && editingCell?.colId === col.id; const wasSaved = savedCells.has(item.id + "-" + col.id); const isStatus = col.type === "color"; return (<td key={col.id} style={{ padding: "4px 6px", borderBottom: "1px solid rgba(255,255,255,0.05)", position: "relative" }}>{isEditing ? (isStatus ? (<div style={{ display: "flex", flexDirection: "column", gap: 2, position: "absolute", top: 0, right: 0, zIndex: 10, background: "var(--color-surf)", border: "1.5px solid var(--color-accent)", borderRadius: 8, padding: 6, minWidth: 120, boxShadow: "0 4px 16px rgba(0,0,0,0.12)" }}>{(statusOptions[col.id] || []).map(opt => (<button key={opt} onClick={() => handleSave(item.id, col.id, opt)} disabled={saving} style={{ background: opt === value ? "var(--color-accent)" : "transparent", color: opt === value ? "var(--color-bg)" : "var(--color-text)", border: "none", borderRadius: 4, padding: "4px 8px", fontSize: 11, fontWeight: 600, cursor: saving ? "wait" : "pointer", textAlign: "right" }}>{opt}</button>))}<button onClick={() => setEditingCell(null)} style={{ background: "none", border: "none", fontSize: 10, color: "#E17055", cursor: "pointer", fontWeight: 600 }}>{"\u05d1\u05d9\u05d8\u05d5\u05dc"}</button></div>) : (<input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") handleSave(item.id, col.id, editValue); if (e.key === "Escape") setEditingCell(null); }} onBlur={() => { if (editValue !== value) handleSave(item.id, col.id, editValue); else setEditingCell(null); }} style={{ width: "100%", background: "var(--color-surf)", border: "1.5px solid var(--color-accent)", borderRadius: 4, padding: "4px 6px", fontSize: 12, outline: "none", color: "var(--color-text)" }} />)) : (<div onClick={() => { setPendingArchive(null); setEditingCell({ itemId: item.id, colId: col.id }); setEditValue(value); }} style={{ cursor: "pointer", padding: "4px 6px", borderRadius: 4, background: isStatus && value ? "rgba(212,255,43,0.06)" : "transparent", border: wasSaved ? "1.5px solid #00B894" : "1.5px solid transparent", color: value ? "var(--color-text)" : "var(--color-muted2)", fontWeight: isStatus ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 110, fontSize: 12 }}>{value || "\u2014"}</div>)}</td>); })}
+              <td style={{ padding: "4px", borderBottom: "1px solid rgba(255,255,255,0.05)", textAlign: "center", position: "relative" }}>{pendingArchive === item.id ? (<div ref={confirmRef} style={{ position: "absolute", top: 0, insetInlineEnd: 0, zIndex: 20, display: "flex", alignItems: "center", gap: 6, background: "var(--color-surf)", border: "1.5px solid var(--color-accent)", borderRadius: 8, padding: "4px 8px", boxShadow: "0 4px 16px rgba(0,0,0,0.18)", whiteSpace: "nowrap" }}><span style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text)" }}>{"להעביר לארכיון?"}</span><button onClick={() => handleArchive(item.id)} disabled={deletingItem === item.id} style={{ background: "var(--color-accent)", color: "var(--color-bg)", border: "none", borderRadius: 6, padding: "3px 10px", fontSize: 11, fontWeight: 700, cursor: deletingItem === item.id ? "wait" : "pointer", fontFamily: "inherit" }}>{deletingItem === item.id ? "מעבירים…" : "כן"}</button><button onClick={() => setPendingArchive(null)} disabled={deletingItem === item.id} style={{ background: "none", border: "1px solid rgba(255,255,255,0.15)", color: "var(--color-text2)", borderRadius: 6, padding: "3px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{"ביטול"}</button></div>) : (<button onClick={() => setPendingArchive(item.id)} disabled={deletingItem === item.id} style={{ background: "none", border: "none", cursor: "pointer", padding: 2, color: "#CCC", transition: "color 0.15s" }} onMouseEnter={e => (e.currentTarget.style.color = "#E17055")} onMouseLeave={e => (e.currentTarget.style.color = "#CCC")} title={"העברה לארכיון"} aria-label={"העברה לארכיון"}>{deletingItem === item.id ? (<span style={{ fontSize: 10 }}>...</span>) : (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>)}</button>)}</td>
             </tr>))}
           </tbody>
         </table>
