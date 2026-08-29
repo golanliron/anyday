@@ -1463,7 +1463,7 @@ function DashboardPanel({ board, items, pc = "#FF2D87", ac = "var(--color-accent
 // AutomationsPanel is now imported from ./AutomationsPanel.tsx
 
 
-function ImpactPanel({ board, items, pc = "#FF2D87", ac = "var(--color-accent)" }: { board: MondayBoard; items: MondayItem[]; pc?: string; ac?: string }) {
+export function ImpactPanel({ board, items, pc = "#FF2D87", ac = "var(--color-accent)" }: { board: MondayBoard; items: MondayItem[]; pc?: string; ac?: string }) {
   const [exporting, setExporting] = useState(false);
   const [selectedCols, setSelectedCols] = useState<Set<string>>(new Set());
 
@@ -1979,7 +1979,7 @@ interface Alert {
   items: string[];
 }
 
-function AlertsPanel({ board, items, pc = "#FF2D87", ac = "var(--color-accent)", onAskAI }: {
+export function AlertsPanel({ board, items, pc = "#FF2D87", ac = "var(--color-accent)", onAskAI }: {
   board: MondayBoard; items: MondayItem[]; pc?: string; ac?: string; onAskAI?: (question: string) => void;
 }) {
   // Analyze board for alerts
