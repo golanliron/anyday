@@ -4,7 +4,7 @@ import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import * as BI from "@/lib/board-intelligence";
 import { ModeShell, type Mode, type ShellTab } from "@/components/ui/ModeShell";
-import { loadBoard } from "@/lib/api-client";
+import { loadBoard, disconnectMonday, getMondayStatus } from "@/lib/api-client";
 import DataEditPanel from "@/components/board/DataEditPanel";
 import { AutomationsPanel } from "@/components/board/AutomationsPanel";
 import { AlertsPanel, ImpactPanel, ReportPanel } from "@/components/board/BoardDashboard";
@@ -125,7 +125,11 @@ function AppShell() {
       .then(async (r) => ({ status: r.status, body: (await r.json().catch(() => ({}))) as BoardsReply }))
       .then(({ status, body }) => {
         if (body.boards) {
-          setBoards(body.boards.filter((b) => b.items > 0));
+          /* An EMPTY board is still a board. "בניית בורד" creates one that is
+             born with zero items, so filtering those out made the tab produce
+             something the user could never reach again. Everything is listed;
+             the screens say plainly when a board has no records yet. */
+          setBoards(body.boards);
           if (body.selected?.length) { setActive(body.selected); setReady(true); }
           setGate({ kind: "open" });
           return;
@@ -160,11 +164,19 @@ function AppShell() {
   /* Switching mode lands on that mode's first tab — a tab id is only valid
      inside its own mode. */
   function goMode(m: Mode) { setMode(m); setTab(TABS[m][0].id); }
+  /* After a disconnect there is no Monday behind the screens any more, so the
+     whole session is wound back to the state /api/boards would report on a
+     fresh visit: the connect gate T11 built - never a blank screen. */
+  function handleDisconnected() {
+    setBoards([]); setActive([]); setReady(false); setGate({ kind: "connect" });
+  }
   /* Called after "בניית בורד" creates one, so it shows up in the board picker
      without a page reload. */
   async function reloadBoards() {
     const d = await fetch("/api/boards", { cache: "no-store" }).then((r) => r.json());
-    if (d.boards) setBoards(d.boards.filter((b: BoardOpt) => b.items > 0));
+    /* No items>0 filter here either - a board that was just built is empty by
+       definition, and this reload exists precisely to surface it. */
+    if (d.boards) setBoards(d.boards as BoardOpt[]);
   }
 
   if (gate.kind === "checking") return <GateFrame><Spinner label={"בודקים חיבור..."} /></GateFrame>;
@@ -172,15 +184,19 @@ function AppShell() {
   if (gate.kind === "error") return <GateFrame><ErrBox msg={gate.msg} /></GateFrame>;
   if (!ready) return <Onboard boards={boards} onStart={begin} />;
 
-  const activeNames = boards.filter((b) => active.includes(b.id)).map((b) => b.name);
+  const activeBoards = boards.filter((b) => active.includes(b.id));
+  const activeNames = activeBoards.map((b) => b.name);
+  /* Every board on the roof is still empty - the dashboard is not broken, it
+     simply has nothing to count yet, and has to say so. */
+  const activeAllEmpty = activeBoards.length > 0 && activeBoards.every((b) => b.items === 0);
 
   return (
-    <ModeShell mode={mode} onModeChange={goMode} tabs={TABS[mode]} tab={tab} onTabChange={setTab} aside={<ShellAside />}>
+    <ModeShell mode={mode} onModeChange={goMode} tabs={TABS[mode]} tab={tab} onTabChange={setTab} aside={<ShellAside onDisconnected={handleDisconnected} />}>
       {mode === "manage" ? (
         <>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 250px", maxWidth: 1260, margin: "0 auto", gap: 18, padding: "20px 20px 90px" }}>
             <main style={{ minWidth: 0 }}>
-              {tab === "dash" && <Dashboard key={active.join()} names={activeNames} />}
+              {tab === "dash" && <Dashboard key={active.join()} names={activeNames} empty={activeAllEmpty} />}
               {tab === "people" && <People />}
               {tab === "insights" && (
                 <>
@@ -204,15 +220,65 @@ function AppShell() {
   );
 }
 
-/* ===== right-hand slot of the top bar ===== */
-function ShellAside() {
+/* ===== right-hand slot of the top bar =====
+   Two things /workspace had and the roof did not: WHICH Monday account you are
+   looking at, and a way out of it. The home page promises "אפשר לנתק בלחיצה",
+   so the roof has to keep that promise before the old screen can close. */
+function ShellAside({ onDisconnected }: { onDisconnected: () => void }) {
   const synced = useSyncTime();
+  /* Same source /workspace uses - GET /api/monday/status via api-client. No new
+     route: the account name is already in that answer. */
+  const [account, setAccount] = useState<string | null>(null);
+  /* Disconnecting is reversible but surprising, so it is a two-step: the button
+     turns into an explicit confirm, and only the second click writes anything. */
+  const [asking, setAsking] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    getMondayStatus()
+      .then((st) => { if (alive) setAccount(st.accountName ?? null); })
+      .catch(() => { /* the name is a nicety - its absence must not break the bar */ });
+    return () => { alive = false; };
+  }, []);
+
+  async function confirmDisconnect() {
+    setBusy(true);
+    try { await disconnectMonday(); onDisconnected(); }
+    finally { setBusy(false); setAsking(false); }
+  }
+
   return (
     <>
       <div style={{ display: "flex", alignItems: "center", gap: 6 }} title={`מסונכרן עם Monday · ${synced}`}>
         <span style={{ width: 6, height: 6, borderRadius: "50%", background: C.teal }} />
         <span style={{ fontSize: 10.5, color: "#9E9CB2" }}>מסונכרן {synced}</span>
       </div>
+      <div
+        style={{ fontSize: 11.5, fontWeight: 600, color: C.muted, maxWidth: 170, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", borderInlineStart: "1px solid #ECEBF5", paddingInlineStart: 12 }}
+        title={account ? `מחוברים לחשבון ${account} ב-Monday` : "מחוברים ל-Monday"}
+      >
+        <span style={{ color: C.teal, marginInlineEnd: 5 }}>●</span>{account || "מחובר ל-Monday"}
+      </div>
+      {asking ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+          <span style={{ fontSize: 11.5, color: C.ink }}>לנתק את Monday?</span>
+          <button
+            onClick={confirmDisconnect} disabled={busy}
+            style={{ border: "none", background: C.coral, color: "#fff", borderRadius: 9, padding: "5px 11px", fontSize: 11.5, fontWeight: 700, cursor: busy ? "wait" : "pointer", fontFamily: "inherit" }}
+          >{busy ? "מנתקים…" : "כן, נתקו"}</button>
+          <button
+            onClick={() => setAsking(false)} disabled={busy}
+            style={{ border: "1px solid #E6E4F0", background: "#fff", color: C.muted, borderRadius: 9, padding: "5px 11px", fontSize: 11.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+          >{"ביטול"}</button>
+        </div>
+      ) : (
+        <button
+          onClick={() => setAsking(true)}
+          title="מנתקים את החיבור ל-Monday. הנתונים ב-Monday לא משתנים, ואפשר להתחבר שוב."
+          style={{ border: "1px solid #E6E4F0", background: "#fff", color: C.muted, borderRadius: 9, padding: "5px 12px", fontSize: 11.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+        >{"נתק"}</button>
+      )}
       <div style={{ fontSize: 13, fontWeight: 600, color: C.muted, borderInlineStart: "1px solid #ECEBF5", paddingInlineStart: 12 }}>שלום, לירון</div>
     </>
   );
@@ -308,7 +374,7 @@ function Onboard({ boards, onStart }: { boards: BoardOpt[]; onStart: (ids: strin
           {shown.slice(0, 30).map((b, i) => { const on = sel.includes(b.id), dis = !on && sel.length >= 2, c = pick(i);
             return <button key={b.id} onClick={() => toggle(b.id)} disabled={dis} style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 14px", borderRadius: 15, border: `2px solid ${on ? c.fg : "transparent"}`, background: on ? c.bg : C.panel, cursor: dis ? "not-allowed" : "pointer", opacity: dis ? .4 : 1, textAlign: "right", fontFamily: "inherit", boxShadow: on ? `0 8px 20px -10px ${c.fg}` : "0 2px 8px rgba(60,50,120,.05)" }}>
               <span style={{ width: 30, height: 30, borderRadius: 10, background: c.bg, color: c.fg, display: "grid", placeItems: "center", fontSize: 15, flexShrink: 0 }}>📋</span>
-              <span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 13.5, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.name}</span><span style={{ fontSize: 11.5, color: C.muted }}>{b.items} פריטים</span></span>
+              <span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 13.5, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.name}</span><span style={{ fontSize: 11.5, color: C.muted }}>{b.items ? `${b.items} פריטים` : "עדיין בלי רשומות"}</span></span>
             </button>;
           })}
         </div>
@@ -488,7 +554,7 @@ function DotProfile({ d, entity, onClose }: { d: Dot; entity: string; onClose: (
 }
 
 /* ===== dashboard (charts fallback) ===== */
-function Dashboard({ names }: { names: string[] }) {
+function Dashboard({ names, empty = false }: { names: string[]; empty?: boolean }) {
   const [d, setD] = useState<{ kpis: KPI[]; charts: Widget[]; attention: { count: number; items: { name: string; why: string; board: string }[] }; coverage?: Cov; source: string } | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const load = () => { setD(null); setErr(null);
@@ -506,6 +572,14 @@ function Dashboard({ names }: { names: string[] }) {
         <h1 style={{ fontSize: 23, fontWeight: 800, margin: "0 0 2px" }}>הלוח של {names.join(" · ")}</h1>
         <p style={{ fontSize: 13, color: C.muted, margin: 0 }}>מתעדכן חי מ-Monday{d.coverage?.truncated ? ` · ${d.coverage.note}` : ""}</p>
       </div>
+      {/* A board with no rows is not a broken board - say it plainly instead of
+          showing a grid of zeros with no explanation. */}
+      {empty && (
+        <div style={{ background: C.panel, border: "1px solid #ECEBF5", borderInlineStart: `4px solid ${C.grape}`, borderRadius: 16, padding: "14px 18px", marginBottom: 16 }}>
+          <div style={{ fontSize: 14.5, fontWeight: 800, marginBottom: 4 }}>{"אין עדיין רשומות בבורד הזה"}</div>
+          <p style={{ fontSize: 13, color: C.muted, lineHeight: 1.7, margin: 0 }}>{"הבורד ריק, ולכן אין מה להציג על הלוח. הוסיפו לו רשומות ב-Monday, והלוח יתמלא מיד."}</p>
+        </div>
+      )}
       {/* KPI tiles — colorful, animated numbers */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 12, marginBottom: 16 }}>
         {d.kpis.map((k, i) => <KpiTile key={i} k={k} i={i} />)}
@@ -1236,9 +1310,31 @@ function ActMode({ tab, boards, names, onBoardsChanged }: { tab: string; boards:
       </>
     );
   }
+  /* A board with no rows loads perfectly well - a board that "בניית בורד" just
+     created IS this. It must not look broken, and it must not be a dead end:
+     "עריכה קבוצתית" is the screen that can add the first record, so it stays
+     open with a line explaining the empty table. Automations and reports have
+     genuinely nothing to work on, so they say so instead of drawing an empty
+     tool that looks like a bug. */
+  const isEmpty = !loaded.items.length;
+  if (isEmpty && tab !== "bulk") {
+    return shell(
+      <>
+        {picker}
+        <Notice
+          tone="calm"
+          title="הבורד עדיין ריק"
+          body={tab === "reports"
+            ? "אין בו רשומות, ולכן אין ממה להפיק דוח. הוסיפו רשומות בלשונית עריכה קבוצתית, וחזרו לכאן."
+            : "אין בו רשומות, ולכן אין על מה להריץ אוטומציה. הוסיפו רשומות בלשונית עריכה קבוצתית, וחזרו לכאן."}
+        />
+      </>
+    );
+  }
   return shell(
     <>
       {picker}
+      {isEmpty && <div style={{ marginBottom: 12 }}><Notice tone="calm" title="הבורד עדיין ריק" body="אין בו רשומות. הוסיפו את הראשונה בשדה ״+ פריט חדש״ שלמטה, והיא תיכתב ישירות ל-Monday." /></div>}
       {tab === "bulk" && <DataEditPanel board={loaded.board} items={loaded.items} apiToken="" boardId={boardId} pc={ACT} />}
       {tab === "autos" && <AutomationsPanel board={loaded.board} items={loaded.items} apiToken="" boardId={boardId} pc={ACT} />}
       {tab === "reports" && <ReportPanel board={loaded.board} items={loaded.items} pc={ACT} />}
@@ -1255,7 +1351,7 @@ function BoardPicker({ boards, value, onPick, busy }: { boards: BoardOpt[]; valu
         style={{ flex: "1 1 240px", maxWidth: 420, border: "1px solid #E6E4F0", borderRadius: 10, padding: "9px 12px", fontSize: 13.5, fontFamily: "inherit", background: "#fff", color: C.ink }}
       >
         <option value="">— בחרו —</option>
-        {boards.map((b) => <option key={b.id} value={b.id}>{b.name} ({b.items})</option>)}
+        {boards.map((b) => <option key={b.id} value={b.id}>{b.items ? `${b.name} (${b.items})` : `${b.name} (ריק)`}</option>)}
       </select>
       {busy && <span style={{ fontSize: 12.5, color: C.muted }}>טוען…</span>}
     </div>
