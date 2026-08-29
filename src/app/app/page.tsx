@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import * as BI from "@/lib/board-intelligence";
 import { ModeShell, type Mode, type ShellTab } from "@/components/ui/ModeShell";
@@ -71,6 +71,21 @@ interface BoardInfo { id: string; name: string; columns: BoardCol[] }
 /** How much of the board the numbers are actually based on (see board-fetch). */
 interface Cov { loaded: number; total: number; truncated: boolean; note: string }
 
+/** What GET /api/boards answers with: boards, or an error carried by a status. */
+interface BoardsReply { boards?: BoardOpt[]; selected?: string[]; error?: string }
+/**
+ * Which of /app's entry screens the visitor is owed right now.
+ *  checking - the first answer from /api/boards has not arrived yet
+ *  open     - there is a Monday connection; the normal screens take over
+ *  connect  - no connection: show the connect gate, not an empty picker
+ *  error    - something else broke; say so instead of blaming the connection
+ */
+type GateState =
+  | { kind: "checking" }
+  | { kind: "open" }
+  | { kind: "connect" }
+  | { kind: "error"; msg: string };
+
 export default function AppPage() {
   // useSearchParams needs a Suspense boundary for the statically-rendered shell.
   return (
@@ -94,11 +109,30 @@ function AppShell() {
   const [mode, setMode] = useState<Mode>(() => readMode(params.get("mode")));
   const [tab, setTab] = useState<string>(() => readTab(readMode(params.get("mode")), params.get("tab")));
   const [chatOpen, setChatOpen] = useState(false);
+  /* /app is the front door now, so the answer from /api/boards can no longer be
+     dropped on the floor: without a Monday connection it is the ONLY thing that
+     knows a gate has to be shown. Kept as "checking" until the first answer, so
+     nobody is left staring at a board picker that was never going to fill. */
+  const [gate, setGate] = useState<GateState>({ kind: "checking" });
 
   useEffect(() => {
-    fetch("/api/boards", { cache: "no-store" }).then((r) => r.json()).then((d) => {
-      if (d.boards) { setBoards(d.boards.filter((b: BoardOpt) => b.items > 0)); if (d.selected?.length) { setActive(d.selected); setReady(true); } }
-    });
+    fetch("/api/boards", { cache: "no-store" })
+      .then(async (r) => ({ status: r.status, body: (await r.json().catch(() => ({}))) as BoardsReply }))
+      .then(({ status, body }) => {
+        if (body.boards) {
+          setBoards(body.boards.filter((b) => b.items > 0));
+          if (body.selected?.length) { setActive(body.selected); setReady(true); }
+          setGate({ kind: "open" });
+          return;
+        }
+        /* 401 = nobody signed in yet, 409 = signed in but Monday is not
+           connected (or its token expired). Those two, and only those two, are
+           answered by the connect gate. The HTTP STATUS decides - never the
+           wording of the message, which is free to change or be translated. */
+        if (status === 401 || status === 409) { setGate({ kind: "connect" }); return; }
+        setGate({ kind: "error", msg: body.error || "לא הצלחנו לטעון את הבורדים." });
+      })
+      .catch(() => setGate({ kind: "error", msg: "לא הצלחנו לפנות לשרת. בדקו את החיבור לרשת ונסו שוב." }));
   }, []);
 
   /* Mirror mode+tab into the address bar. replaceState keeps it a client-side
@@ -128,6 +162,9 @@ function AppShell() {
     if (d.boards) setBoards(d.boards.filter((b: BoardOpt) => b.items > 0));
   }
 
+  if (gate.kind === "checking") return <GateFrame><Spinner label={"בודקים חיבור..."} /></GateFrame>;
+  if (gate.kind === "connect") return <ConnectGate />;
+  if (gate.kind === "error") return <GateFrame><ErrBox msg={gate.msg} /></GateFrame>;
   if (!ready) return <Onboard boards={boards} onStart={begin} />;
 
   const activeNames = boards.filter((b) => active.includes(b.id)).map((b) => b.name);
@@ -203,6 +240,39 @@ function BoardRail({ boards, active, setActive }: { boards: BoardOpt[]; active: 
         })}
       </div>
     </aside>
+  );
+}
+
+/* ===== the connect gate =====
+   State 3, the one /app never had: /api/boards answered "not connected".
+   Both ways into Monday are offered here - the OAuth flow, and /welcome for
+   whoever pastes a personal token - because /welcome is still the only route
+   for a personal token and must not be cut off. */
+function GateFrame({ children }: { children: ReactNode }) {
+  return (
+    <div dir="rtl" style={{ minHeight: "100vh", background: C.bg, fontFamily: "Rubik, Assistant, Heebo, system-ui, sans-serif", color: C.ink, display: "grid", placeItems: "center", padding: 24 }}>
+      <div style={{ width: "100%", maxWidth: 520 }}>{children}</div>
+    </div>
+  );
+}
+
+function ConnectGate() {
+  return (
+    <GateFrame>
+      <div style={{ background: C.panel, borderRadius: 22, padding: "38px 30px 30px", textAlign: "center", boxShadow: "0 18px 50px -28px rgba(60,50,120,.45)" }}>
+        <div style={{ width: 56, height: 56, borderRadius: 18, background: `linear-gradient(135deg,${C.grape},${C.coral})`, color: "#fff", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 26, margin: "0 auto 16px" }}>A</div>
+        <h1 style={{ fontSize: 24.5, fontWeight: 800, margin: "0 0 9px", lineHeight: 1.4 }}>{"מחברים את Monday, ומקבלים לוח"}</h1>
+        <p style={{ fontSize: 14.5, color: C.muted, margin: "0 0 26px", lineHeight: 1.75 }}>{"AnyDay קוראת את הבורדים שכבר יש לכם ובונה מהם לוח קריא. אפס הגדרות."}</p>
+        <button
+          onClick={() => { window.location.href = "/api/monday-oauth/authorize?return_to=/app"; }}
+          style={{ width: "100%", background: `linear-gradient(135deg,${C.grape},${C.coral})`, color: "#fff", border: "none", borderRadius: 15, padding: "15px", fontSize: 16.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}
+        >{"התחברו ל-Monday"}</button>
+        <a
+          href="/welcome"
+          style={{ display: "block", marginTop: 16, fontSize: 13, color: C.muted, textDecoration: "underline", fontFamily: "inherit" }}
+        >{"יש לכם טוקן אישי? התחברו כאן"}</a>
+      </div>
+    </GateFrame>
   );
 }
 
