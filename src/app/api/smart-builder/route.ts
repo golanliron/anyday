@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
-import { getOrgContext } from "@/lib/session";
-import { isSupabaseServerConfigured } from "@/lib/supabase-server";
+import { requireMonday } from "@/lib/monday-server";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -12,11 +11,12 @@ interface Message {
 
 export async function POST(req: NextRequest) {
   try {
-    // Require login once Supabase is configured (keeps the builder tenant-scoped).
-    if (isSupabaseServerConfigured()) {
-      const ctx = await getOrgContext();
-      if (!ctx) return NextResponse.json({ error: "יש להתחבר כדי להמשיך" }, { status: 401 });
-    }
+    // היה כאן שער חלקי: דרש התחברות רק אם Supabase מוגדר, כלומר בפריסה
+    // בלי Supabase הבונה היה פתוח לכולם. requireMonday הוא אותו שער
+    // עצמו ועוד — הוא מכיל את בדיקת ההתחברות, ומוסיף עליה את הדרישה
+    // שיהיה חיבור Monday פעיל. בונה בורדים בלי Monday אין בו טעם ממילא.
+    const guard = await requireMonday();
+    if (!guard.ok) return NextResponse.json({ error: guard.error }, { status: guard.status });
 
     const { messages, existingBoards } = await req.json();
 
