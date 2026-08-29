@@ -36,7 +36,8 @@ export async function POST(req: NextRequest) {
       }
 
       const data = await mondayQuery(
-        `query { boards(ids:[${boardId}]) { id name description items_count columns { id title type } items_page(limit:100) { items { id name column_values { id text column { title type } } } } } }`
+        `query ($boardId: ID!) { boards(ids:[$boardId]) { id name description items_count columns { id title type } items_page(limit:100) { items { id name column_values { id text column { title type } } } } } }`,
+        { boardId }
       );
 
       const board = data.boards?.[0];
@@ -60,7 +61,8 @@ export async function POST(req: NextRequest) {
 
       // Fetch all items
       const boardData = await mondayQuery(
-        `query { boards(ids:[${boardId}]) { groups { id title } items_page(limit:500) { items { id name column_values { id text value column { title type } } } } } }`
+        `query ($boardId: ID!) { boards(ids:[$boardId]) { groups { id title } items_page(limit:500) { items { id name column_values { id text value column { title type } } } } } }`,
+        { boardId }
       );
       const allItems = boardData.boards?.[0]?.items_page?.items || [];
       const groups = boardData.boards?.[0]?.groups || [];
@@ -86,15 +88,24 @@ export async function POST(req: NextRequest) {
         try {
           if (actionType === "change_status") {
             const { columnId, newValue } = actionConfig;
-            const valueJson = JSON.stringify({ label: newValue }).replace(/"/g, '\\"');
+            /* `value` is a JSON scalar: Monday wants the JSON *encoded as a
+               string*, which is exactly what the old query built by hand —
+               only now without the fragile double-escaping. */
             await mondayQuery(
-              `mutation { change_column_value(board_id:${boardId}, item_id:${item.id}, column_id:"${columnId}", value:"${valueJson}") { id } }`
+              `mutation ($boardId: ID!, $itemId: ID!, $columnId: String!, $value: JSON!) { change_column_value(board_id: $boardId, item_id: $itemId, column_id: $columnId, value: $value) { id } }`,
+              {
+                boardId,
+                itemId: item.id,
+                columnId: String(columnId),
+                value: JSON.stringify({ label: newValue }),
+              }
             );
             results.push(`${item.name}: סטטוס שונה ל-${newValue}`);
           } else if (actionType === "move_to_group") {
             const { groupId } = actionConfig;
             await mondayQuery(
-              `mutation { move_item_to_group(item_id:${item.id}, group_id:"${groupId}") { id } }`
+              `mutation ($itemId: ID!, $groupId: String!) { move_item_to_group(item_id: $itemId, group_id: $groupId) { id } }`,
+              { itemId: item.id, groupId: String(groupId) }
             );
             const groupName = groups.find((g: { id: string; title: string }) => g.id === groupId)?.title || groupId;
             results.push(`${item.name}: הועבר ל-${groupName}`);
@@ -106,17 +117,19 @@ export async function POST(req: NextRequest) {
               userId = meRes?.me?.id;
             }
             if (userId) {
-              const escapedText = (text || "התראה").replace(/"/g, '\\"');
               await mondayQuery(
-                `mutation { create_notification(user_id:${userId}, target_id:${item.id}, text:"${escapedText}", target_type:Project) { text } }`
+                `mutation ($userId: ID!, $targetId: ID!, $text: String!) { create_notification(user_id: $userId, target_id: $targetId, text: $text, target_type: Project) { text } }`,
+                { userId, targetId: item.id, text: String(text || "התראה") }
               );
               results.push(`${item.name}: נשלחה התראה`);
             } else {
               results.push(`${item.name}: לא נמצא משתמש`);
             }
           } else if (actionType === "archive") {
+            // stays archive_item — never delete_item
             await mondayQuery(
-              `mutation { archive_item(item_id:${item.id}) { id } }`
+              `mutation ($itemId: ID!) { archive_item(item_id: $itemId) { id } }`,
+              { itemId: item.id }
             );
             results.push(`${item.name}: הועבר לארכיון`);
           } else if (actionType === "send_email") {
@@ -128,7 +141,8 @@ export async function POST(req: NextRequest) {
               const uid = meRes?.me?.id;
               if (uid) {
                 await mondayQuery(
-                  `mutation { create_notification(user_id:${uid}, target_id:${item.id}, text:"${emailText.replace(/"/g, '\\"')}", target_type:Project) { text } }`
+                  `mutation ($userId: ID!, $targetId: ID!, $text: String!) { create_notification(user_id: $userId, target_id: $targetId, text: $text, target_type: Project) { text } }`,
+                  { userId: uid, targetId: item.id, text: emailText }
                 );
               }
               results.push(`${item.name}: נשלחה התראת מייל`);
@@ -138,10 +152,13 @@ export async function POST(req: NextRequest) {
           } else if (actionType === "create_item") {
             const { itemName, groupId: gId } = actionConfig;
             if (itemName) {
-              const escaped = itemName.replace(/"/g, '\\"');
-              const groupClause = gId ? `, group_id:"${gId}"` : "";
+              /* The optional group is switched on/off by a FIXED fragment; the
+                 group id itself still travels as a variable. */
+              const groupDecl = gId ? ", $groupId: String!" : "";
+              const groupClause = gId ? ", group_id: $groupId" : "";
               await mondayQuery(
-                `mutation { create_item(board_id:${boardId}, item_name:"${escaped}"${groupClause}) { id } }`
+                `mutation ($boardId: ID!, $itemName: String!${groupDecl}) { create_item(board_id: $boardId, item_name: $itemName${groupClause}) { id } }`,
+                { boardId, itemName: String(itemName), ...(gId ? { groupId: String(gId) } : {}) }
               );
               results.push(`נוצר פריט: ${itemName}`);
             }
@@ -176,7 +193,8 @@ export async function POST(req: NextRequest) {
     // ── Get groups for a board ──
     if (action === "groups") {
       const data = await mondayQuery(
-        `query { boards(ids:[${boardId}]) { groups { id title color } } }`
+        `query ($boardId: ID!) { boards(ids:[$boardId]) { groups { id title color } } }`,
+        { boardId }
       );
       return NextResponse.json({ groups: data.boards?.[0]?.groups || [] });
     }
@@ -195,9 +213,9 @@ export async function POST(req: NextRequest) {
       if (!boardId || !itemId || !columnId) {
         return NextResponse.json({ error: "missing params" }, { status: 400 });
       }
-      const valueJson = JSON.stringify(value).replace(/"/g, '\\"');
       const data = await mondayQuery(
-        `mutation { change_column_value(board_id:${boardId}, item_id:${itemId}, column_id:"${columnId}", value:"${valueJson}") { id } }`
+        `mutation ($boardId: ID!, $itemId: ID!, $columnId: String!, $value: JSON!) { change_column_value(board_id: $boardId, item_id: $itemId, column_id: $columnId, value: $value) { id } }`,
+        { boardId, itemId, columnId: String(columnId), value: JSON.stringify(value) }
       );
       return NextResponse.json({ success: true, data });
     }
@@ -208,9 +226,9 @@ export async function POST(req: NextRequest) {
       if (!boardId || !itemId || !columnId) {
         return NextResponse.json({ error: "missing params" }, { status: 400 });
       }
-      const escaped = String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
       const data = await mondayQuery(
-        `mutation { change_simple_column_value(board_id:${boardId}, item_id:${itemId}, column_id:"${columnId}", value:"${escaped}") { id } }`
+        `mutation ($boardId: ID!, $itemId: ID!, $columnId: String!, $value: String!) { change_simple_column_value(board_id: $boardId, item_id: $itemId, column_id: $columnId, value: $value) { id } }`,
+        { boardId, itemId, columnId: String(columnId), value: String(value) }
       );
       return NextResponse.json({ success: true, data });
     }
@@ -221,10 +239,11 @@ export async function POST(req: NextRequest) {
       if (!boardId || !itemName) {
         return NextResponse.json({ error: "missing params" }, { status: 400 });
       }
-      const escaped = itemName.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-      const groupClause = groupId ? `, group_id:"${groupId}"` : "";
+      const groupDecl = groupId ? ", $groupId: String!" : "";
+      const groupClause = groupId ? ", group_id: $groupId" : "";
       const data = await mondayQuery(
-        `mutation { create_item(board_id:${boardId}, item_name:"${escaped}"${groupClause}) { id name } }`
+        `mutation ($boardId: ID!, $itemName: String!${groupDecl}) { create_item(board_id: $boardId, item_name: $itemName${groupClause}) { id name } }`,
+        { boardId, itemName: String(itemName), ...(groupId ? { groupId: String(groupId) } : {}) }
       );
       return NextResponse.json({ success: true, item: data.create_item });
     }
@@ -236,11 +255,11 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "חסר שם בורד" }, { status: 400 });
       }
       const kind = boardKind === "private" ? "private" : "public";
-      const escapedName = boardName.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 
       // 1. Create the board
       const boardData = await mondayQuery(
-        `mutation { create_board(board_name:"${escapedName}", board_kind:${kind}) { id } }`
+        `mutation ($boardName: String!, $boardKind: BoardKind!) { create_board(board_name: $boardName, board_kind: $boardKind) { id } }`,
+        { boardName: String(boardName), boardKind: kind }
       );
       const newBoardId = boardData.create_board?.id;
       if (!newBoardId) {
@@ -254,11 +273,15 @@ export async function POST(req: NextRequest) {
       if (columns && Array.isArray(columns)) {
         for (let i = 0; i < columns.length; i++) {
           const col = columns[i];
-          const colTitle = (col.title || `עמודה ${i + 1}`).replace(/"/g, '\\"');
+          const colTitle = col.title || `עמודה ${i + 1}`;
           const colType = col.type || "text";
           try {
+            /* column_type is an enum that also arrived from the browser, so it
+               travels as a ColumnType variable too — an unknown type now fails
+               loudly instead of being pasted into the query. */
             const colData = await mondayQuery(
-              `mutation { create_column(board_id:${newBoardId}, title:"${colTitle}", column_type:${colType}) { id } }`
+              `mutation ($boardId: ID!, $title: String!, $columnType: ColumnType!) { create_column(board_id: $boardId, title: $title, column_type: $columnType) { id } }`,
+              { boardId: newBoardId, title: String(colTitle), columnType: String(colType) }
             );
             columnMap[i] = colData.create_column?.id || "";
             results.push(`עמודה: ${col.title} (${colType})`);
@@ -273,10 +296,11 @@ export async function POST(req: NextRequest) {
       if (groups && Array.isArray(groups)) {
         for (let i = 0; i < groups.length; i++) {
           const grp = groups[i];
-          const grpName = (grp.title || `קבוצה ${i + 1}`).replace(/"/g, '\\"');
+          const grpName = grp.title || `קבוצה ${i + 1}`;
           try {
             const grpData = await mondayQuery(
-              `mutation { create_group(board_id:${newBoardId}, group_name:"${grpName}") { id } }`
+              `mutation ($boardId: ID!, $groupName: String!) { create_group(board_id: $boardId, group_name: $groupName) { id } }`,
+              { boardId: newBoardId, groupName: String(grpName) }
             );
             groupMap[i] = grpData.create_group?.id || "";
             results.push(`קבוצה: ${grp.title}`);
@@ -289,13 +313,14 @@ export async function POST(req: NextRequest) {
       // 4. Create items
       if (items && Array.isArray(items)) {
         for (const item of items) {
-          const itemName = (item.name || "פריט חדש").replace(/"/g, '\\"');
-          const groupClause = item.group_index !== undefined && groupMap[item.group_index]
-            ? `, group_id:"${groupMap[item.group_index]}"`
-            : "";
+          const itemName = item.name || "פריט חדש";
+          const gid = item.group_index !== undefined ? groupMap[item.group_index] : "";
+          const groupDecl = gid ? ", $groupId: String!" : "";
+          const groupClause = gid ? ", group_id: $groupId" : "";
           try {
             await mondayQuery(
-              `mutation { create_item(board_id:${newBoardId}, item_name:"${itemName}"${groupClause}) { id } }`
+              `mutation ($boardId: ID!, $itemName: String!${groupDecl}) { create_item(board_id: $boardId, item_name: $itemName${groupClause}) { id } }`,
+              { boardId: newBoardId, itemName: String(itemName), ...(gid ? { groupId: gid } : {}) }
             );
             results.push(`פריט: ${item.name}`);
           } catch (err) {
