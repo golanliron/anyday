@@ -1722,6 +1722,7 @@ export function ReportPanel({ board, items, pc = "#FF2D87", ac = "var(--color-ac
   const [report, setReport] = useState<string>("");
   const [generating, setGenerating] = useState(false);
   const [generated, setGenerated] = useState(false);
+  const [streamError, setStreamError] = useState<string>("");
 
   function buildBoardContext() {
     const statusDist: Record<string, number> = {};
@@ -1749,6 +1750,7 @@ export function ReportPanel({ board, items, pc = "#FF2D87", ac = "var(--color-ac
     setGenerating(true);
     setReport("");
     setGenerated(false);
+    setStreamError("");
     try {
       const res = await fetch("/api/report", {
         method: "POST",
@@ -1759,15 +1761,61 @@ export function ReportPanel({ board, items, pc = "#FF2D87", ac = "var(--color-ac
           orgName,
         }),
       });
-      const data = await res.json();
-      if (data.error) {
-        setReport(`שגיאה: ${data.error}`);
-      } else {
-        setReport(data.report);
+
+      // שגיאה שקרתה לפני שההזרמה התחילה חוזרת כ-JSON רגיל.
+      if (!res.ok || !res.body) {
+        let msg = "שגיאה בחיבור לשרת";
+        try {
+          const data = await res.json();
+          if (data?.error) msg = data.error;
+        } catch { /* לא JSON — נשארים עם הודעת ברירת המחדל */ }
+        setStreamError(msg);
+        return;
+      }
+
+      // הזרם הוא NDJSON: שורה = אובייקט. אוספים לחוצץ, כי פיסה מהרשת
+      // יכולה להיחתך באמצע שורה.
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let text = "";
+      let finished = false;
+      let failure = "";
+
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (value) buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        let grew = false;
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          let ev: { type?: string; text?: string; error?: string };
+          try { ev = JSON.parse(line); } catch { continue; }
+          if (ev.type === "delta" && ev.text) {
+            text += ev.text;
+            grew = true;
+          } else if (ev.type === "error") {
+            failure = ev.error || "שגיאה";
+          } else if (ev.type === "done") {
+            finished = true;
+          }
+        }
+        // ציור אחד לכל פיסה שהגיעה מהרשת, לא אחד לכל מילה.
+        if (grew) setReport(text);
+        if (done) break;
+      }
+
+      if (failure) {
+        setStreamError(failure);
+      } else if (finished) {
         setGenerated(true);
+      } else {
+        // הזרם נגמר בלי סימן סיום — מה שהתקבל חלקי, ואסור להציג אותו כשלם.
+        setStreamError("החיבור נקטע לפני שהדוח הסתיים");
       }
     } catch {
-      setReport("שגיאה בחיבור לשרת");
+      setStreamError("שגיאה בחיבור לשרת");
     } finally {
       setGenerating(false);
     }
@@ -1876,7 +1924,7 @@ export function ReportPanel({ board, items, pc = "#FF2D87", ac = "var(--color-ac
       {/* Report type selector */}
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 18 }}>
         {reportTypes.map(rt => (
-          <button key={rt.id} onClick={() => { setReportType(rt.id); setGenerated(false); setReport(""); }} style={{
+          <button key={rt.id} onClick={() => { setReportType(rt.id); setGenerated(false); setReport(""); setStreamError(""); }} style={{
             padding: "12px 14px", borderRadius: 12, cursor: "pointer",
             border: `1.5px solid ${reportType === rt.id ? pc : hexToRgba(pc, 0.1)}`,
             background: reportType === rt.id ? hexToRgba(pc, 0.08) : "var(--color-surf)",
@@ -1910,7 +1958,7 @@ export function ReportPanel({ board, items, pc = "#FF2D87", ac = "var(--color-ac
         {generating ? (
           <>
             <Spinner size={14} color="var(--color-text)" />
-            מייצר דוח...
+            {report ? "כותב את הדוח..." : "מכין את הדוח..."}
           </>
         ) : (
           <>
@@ -1921,6 +1969,36 @@ export function ReportPanel({ board, items, pc = "#FF2D87", ac = "var(--color-ac
           </>
         )}
       </button>
+
+      {/* משפט המתנה — עד שהתו הראשון מגיע, המסך לא נראה תקוע */}
+      {generating && !report && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8, marginBottom: 12,
+          padding: "10px 12px", borderRadius: 10,
+          background: hexToRgba(pc, 0.05), border: `1px solid ${hexToRgba(pc, 0.1)}`,
+          fontSize: 12, color: ac, lineHeight: 1.5,
+        }}>
+          <Spinner size={12} color={pc} />
+          <span>מכינים את הדוח — זה לוקח כדקה. הטקסט יתחיל להופיע כאן תוך כמה שניות.</span>
+        </div>
+      )}
+
+      {/* הדוח נקטע — אסור שייראה שלם */}
+      {streamError && (
+        <div style={{
+          marginBottom: 12, padding: "10px 12px", borderRadius: 10,
+          background: "rgba(220,38,38,0.06)", border: "1px solid rgba(220,38,38,0.25)",
+          fontSize: 12, color: "#DC2626", lineHeight: 1.6,
+        }}>
+          <div style={{ fontWeight: 700, marginBottom: 2 }}>הדוח לא הושלם</div>
+          <div>{streamError}</div>
+          {report && (
+            <div style={{ marginTop: 4 }}>
+              מה שמופיע למטה הוא חלק מהדוח בלבד — אל תשלחו אותו כמו שהוא. אפשר לנסות שוב.
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Report preview */}
       {report && (
