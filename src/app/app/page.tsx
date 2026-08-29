@@ -10,6 +10,7 @@ import { AutomationsPanel } from "@/components/board/AutomationsPanel";
 import { AlertsPanel, ImpactPanel, ReportPanel } from "@/components/board/BoardDashboard";
 import { SmartBuilder } from "@/components/builder/SmartBuilder";
 import type { MondayBoard, MondayItem } from "@/types";
+import { parseDelimited, headRow, normKey, looksLikeHeader } from "@/lib/sheet-to-board";
 
 /* ===== "לוח חי" palette — colorful, energetic, NOT flat purple ===== */
 const C = {
@@ -805,62 +806,9 @@ interface ImportOutcome {
   failures: { name: string; reason: string }[]; error?: string;
 }
 
-/** Which delimiter this file uses — counted on the first line, outside quotes. */
-function sniffDelimiter(text: string): string {
-  const counts: Record<string, number> = { ",": 0, "\t": 0, ";": 0 };
-  let quoted = false;
-  for (const ch of text) {
-    if (ch === "\"") { quoted = !quoted; continue; }
-    if (quoted) continue;
-    if (ch === "\n") break;
-    if (ch in counts) counts[ch]++;
-  }
-  return Object.keys(counts).reduce((a, b) => (counts[b] > counts[a] ? b : a), ",");
-}
-
-/**
- * A real spreadsheet export is not "split on comma": a cell may hold the
- * delimiter or a line break inside quotes, and a quote inside a quoted cell is
- * written twice. Splitting naively turns one such row into two broken records.
- * This walks the text character by character instead, so a name with a comma
- * stays one name.
- */
-function parseDelimited(text: string): string[][] {
-  const src = text.replace(/^\uFEFF/, "");   // Excel writes a BOM before the first title
-  const delim = sniffDelimiter(src);
-  const rows: string[][] = [];
-  let row: string[] = [], cell = "", quoted = false, started = false;
-  const endCell = () => { row.push(cell.trim()); cell = ""; started = false; };
-  for (let i = 0; i < src.length; i++) {
-    const ch = src[i];
-    if (quoted) {
-      if (ch !== "\"") { cell += ch; continue; }
-      if (src[i + 1] === "\"") { cell += "\""; i++; } else quoted = false;
-      continue;
-    }
-    if (ch === "\"" && !started) { quoted = true; started = true; continue; }
-    if (ch === delim) { endCell(); continue; }
-    if (ch === "\n") { endCell(); rows.push(row); row = []; continue; }
-    if (ch === "\r") continue;
-    cell += ch; started = true;
-  }
-  endCell(); rows.push(row);
-  return rows;
-}
-
-/**
- * The first row, widened to the widest row in the file. A row further down may
- * carry more cells than the title row does; without this those cells would be
- * dropped without anyone being told, which is the bug this whole screen exists
- * to end. Widened, they show up in the mapping as unnamed columns.
- */
-function headRow(rows: string[][]): string[] {
-  const width = rows.reduce((m, r) => Math.max(m, r.length), 0);
-  return Array.from({ length: width }, (_, i) => rows[0][i] || "");
-}
-
-/** Forgiving comparison of two column names: spacing and case are ignored. */
-const normKey = (s: string) => (s || "").replace(/\s+/g, " ").trim().toLowerCase();
+/* The delimited-file reader that used to live here now lives in
+   `@/lib/sheet-to-board`, unchanged, so /sheet can read a file with exactly
+   the same rules this screen has always used. This screen imports it. */
 
 /** The board columns a file column may be sent to, plus the record name itself. */
 function importTargets(cols: BoardCol[]): BoardCol[] {
@@ -869,12 +817,6 @@ function importTargets(cols: BoardCol[]): BoardCol[] {
     { id: NAME_TARGET, title: nameCol?.title || "שם הרשומה", type: "name" },
     ...cols.filter((c) => !UNWRITABLE.includes(c.type)),
   ];
-}
-
-/** First row = titles? Only if it names at least one real column of this board. */
-function looksLikeHeader(first: string[], targets: BoardCol[]): boolean {
-  const titles = new Set(targets.map((t) => normKey(t.title)));
-  return first.some((c) => c && titles.has(normKey(c)));
 }
 
 /** The proposed mapping — a proposal only; the user sees it and may change it. */
