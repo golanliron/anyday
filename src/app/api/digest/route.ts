@@ -49,6 +49,7 @@ import { createHash, timingSafeEqual } from "crypto";
 import { requireMonday } from "@/lib/monday-server";
 import { fetchBoards, parseBoardIds, coverage, type FetchedBoard } from "@/lib/board-fetch";
 import { renderDigest, digestSection } from "@/lib/digest-email";
+import { sendEmail } from "@/lib/send-email";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -122,28 +123,27 @@ function parseRecipients(raw: string | null | undefined): string[] {
 /* ------------------------------------------------------------------- send */
 
 /**
- * Sending goes through the EXISTING `/api/send-email` route, so Resend stays
- * integrated in exactly one place and there is one API key, not two.
- * When a scheduler calls this route there is still an incoming request, so the
- * origin is available; `ANYDAY_BASE_URL` overrides it for any deployment where
- * the public host differs from the internal one.
+ * Sending goes through `sendEmail()` from `@/lib/send-email` — the SAME code
+ * `/api/send-email` runs, called DIRECTLY. Resend stays integrated in exactly
+ * one place and there is one API key, not two.
+ *
+ * It used to be an HTTP call to `/api/send-email`. That is what stopped that
+ * route from being closed to the public (reports/B6.md): a server-to-server
+ * fetch carries no cookie, so the login gate could not tell the digest apart
+ * from an attacker. Passing a cookie along was no answer either — Vercel Cron
+ * calls this route with `Authorization: Bearer` and no cookie at all.
+ *
+ * Calling the function removes the network hop entirely: the gate now protects
+ * the outside world, and the digest simply never passes through it. It also
+ * makes `ANYDAY_BASE_URL` irrelevant on this path, and with it the risk in
+ * reports/T8.md that Vercel's deployment protection blocks the internal call.
  */
-async function sendDigest(origin: string, to: string[], subject: string, html: string) {
-  const payload: Record<string, unknown> = { to, subject, html };
+async function sendDigest(to: string[], subject: string, html: string) {
   const from = (process.env.DIGEST_FROM || "").trim();
-  if (from) payload.from = from;
 
-  const res = await fetch(`${origin}/api/send-email`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-    cache: "no-store",
-  });
-  const raw = await res.text();
-  let data: { id?: string; error?: string } = {};
-  try { data = JSON.parse(raw) as typeof data; } catch { /* keep raw below */ }
-  if (!res.ok) throw new Error(data.error || `שליחת המייל נכשלה (${res.status}) ${raw.slice(0, 200)}`);
-  return data.id || null;
+  const result = await sendEmail({ to, subject, html, from: from || undefined });
+  if (!result.ok) throw new Error(result.error);
+  return result.id || null;
 }
 
 /* ----------------------------------------------------------------- handler */
@@ -199,8 +199,7 @@ async function handle(req: NextRequest, params: Params) {
   }
 
   try {
-    const origin = (process.env.ANYDAY_BASE_URL || "").trim() || req.nextUrl.origin;
-    const id = await sendDigest(origin, to, digest.subject, digest.html);
+    const id = await sendDigest(to, digest.subject, digest.html);
     return NextResponse.json({ sent: true, id, to, subject: digest.subject, coverage: cov });
   } catch (e: unknown) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "שליחה נכשלה" }, { status: 502 });

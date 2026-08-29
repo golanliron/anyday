@@ -1,39 +1,29 @@
+/**
+ * /api/send-email — a thin wrapper: the gate, then the function.
+ *
+ * The sending itself now lives in `src/lib/send-email.ts` (moved verbatim), so
+ * `/api/digest` can send without going through this route — and therefore
+ * without having to get past this gate with no cookie in hand.
+ */
+
 import { NextRequest, NextResponse } from "next/server";
+import { requireMonday } from "@/lib/monday-server";
+import { sendEmail } from "@/lib/send-email";
 
 export async function POST(req: NextRequest) {
+  // מי שמחוברת ל-Monday היא בדיוק מי שרשאית לשלוח. אותו שער בדיוק שכל נתיב
+  // אחר עובר דרכו — לא מנגנון שני לתחזק. בלעדיו כל מי שיודע את הכתובת יכול
+  // להציף מיילים על חשבון מפתח ה-Resend שלנו.
+  const guard = await requireMonday();
+  if (!guard.ok) return NextResponse.json({ error: guard.error }, { status: guard.status });
+
   try {
     const { to, subject, html, from } = await req.json();
 
-    if (!to || !subject) {
-      return NextResponse.json({ error: "missing to/subject" }, { status: 400 });
-    }
+    const result = await sendEmail({ to, subject, html, from });
+    if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
 
-    const resendKey = process.env.RESEND_API_KEY;
-    if (!resendKey) {
-      return NextResponse.json({ error: "RESEND_API_KEY not configured" }, { status: 500 });
-    }
-
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + resendKey,
-      },
-      body: JSON.stringify({
-        from: from || "AnyDay <noreply@resend.dev>",
-        to: Array.isArray(to) ? to : [to],
-        subject,
-        html: html || '<div dir="rtl" style="font-family:sans-serif">' + subject + "</div>",
-      }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      return NextResponse.json({ error: data.message || "email send failed" }, { status: res.status });
-    }
-
-    return NextResponse.json({ success: true, id: data.id });
+    return NextResponse.json({ success: true, id: result.id });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "error";
     return NextResponse.json({ error: msg }, { status: 500 });
