@@ -7,7 +7,7 @@ import { ModeShell, type Mode, type ShellTab } from "@/components/ui/ModeShell";
 import { loadBoard } from "@/lib/api-client";
 import DataEditPanel from "@/components/board/DataEditPanel";
 import { AutomationsPanel } from "@/components/board/AutomationsPanel";
-import { ReportPanel } from "@/components/board/BoardDashboard";
+import { AlertsPanel, ImpactPanel, ReportPanel } from "@/components/board/BoardDashboard";
 import { SmartBuilder } from "@/components/builder/SmartBuilder";
 import type { MondayBoard, MondayItem } from "@/types";
 
@@ -115,6 +115,10 @@ function AppShell() {
      knows a gate has to be shown. Kept as "checking" until the first answer, so
      nobody is left staring at a board picker that was never going to fill. */
   const [gate, setGate] = useState<GateState>({ kind: "checking" });
+  /* The bubble's chat engine lives here, not inside the bubble, so a section of
+     "תובנות" can hand it a question — the same move /workspace made when an
+     alert asked the AI what to do. */
+  const fabChat = useChat();
 
   useEffect(() => {
     fetch("/api/boards", { cache: "no-store" })
@@ -178,11 +182,20 @@ function AppShell() {
             <main style={{ minWidth: 0 }}>
               {tab === "dash" && <Dashboard key={active.join()} names={activeNames} />}
               {tab === "people" && <People />}
-              {tab === "insights" && <Insights key={active.join()} names={activeNames} />}
+              {tab === "insights" && (
+                <>
+                  <Insights key={active.join()} names={activeNames} />
+                  <BoardScans
+                    key={`scan-${active.join()}`}
+                    boards={boards.filter((b) => active.includes(b.id))}
+                    onAskAI={(q) => { setChatOpen(true); void fabChat.send(q); }}
+                  />
+                </>
+              )}
             </main>
             <BoardRail boards={boards} active={active} setActive={setActiveBoards} />
           </div>
-          <ChatFab open={chatOpen} setOpen={setChatOpen} tab={tab} names={activeNames} />
+          <ChatFab chat={fabChat} open={chatOpen} setOpen={setChatOpen} tab={tab} names={activeNames} />
         </>
       ) : (
         <ActMode tab={tab} boards={boards} names={activeNames} onBoardsChanged={reloadBoards} />
@@ -1079,6 +1092,90 @@ function Insights({ names }: { names: string[] }) {
   );
 }
 
+/* ===== "תובנות" · the two board scans =====
+   The discoveries above are computed on the server across every selected board.
+   These two are not: they read ONE loaded board — its columns and its items —
+   so this section loads that board itself.
+
+   They are SECTIONS of "תובנות", not tabs. The eight tab names and the mode
+   switch are locked by Meytal; nothing here adds to them. "תובנות" sits in
+   "ניהול", so both get the purple accent, never the pink of "פעולות".
+
+   Both are folded into <details> because together they are far longer than the
+   discoveries they sit under. The hygiene scan opens by default — it is the one
+   that can tell you something is wrong; the impact report is an export tool and
+   waits to be asked for. */
+function BoardScans({ boards, onAskAI }: { boards: BoardOpt[]; onAskAI: (q: string) => void }) {
+  const [boardId, setBoardId] = useState(boards[0]?.id ?? "");
+  const [loaded, setLoaded] = useState<{ id: string; board: MondayBoard; items: MondayItem[] } | null>(null);
+  const [err, setErr] = useState<{ id: string; msg: string } | null>(null);
+
+  /* No setState in the body of this effect: the load is started here and every
+     answer lands in a callback, so a stale board is recognised by its id rather
+     than cleared up front. */
+  useEffect(() => {
+    if (!boardId) return;
+    let alive = true;
+    loadBoard(boardId)
+      .then((d) => { if (alive) setLoaded({ id: boardId, board: d.board, items: d.items }); })
+      .catch((e) => { if (alive) setErr({ id: boardId, msg: e instanceof Error ? e.message : "לא הצלחנו לטעון את הבורד" }); });
+    return () => { alive = false; };
+  }, [boardId]);
+
+  const ready = loaded && loaded.id === boardId ? loaded : null;
+  const failed = err && err.id === boardId ? err : null;
+  const busy = Boolean(boardId) && !ready && !failed;
+
+  const head = (
+    <div style={{ marginTop: 26, marginBottom: 14 }}>
+      <h2 style={{ fontSize: 18, fontWeight: 800, margin: "0 0 2px" }}>סריקות על בורד אחד</h2>
+      <p style={{ fontSize: 12.5, color: C.muted, margin: 0 }}>שתי הסריקות האלה קוראות בורד אחד לעומק — בחרו על איזה.</p>
+    </div>
+  );
+
+  if (!boardId) {
+    return (
+      <div style={{ animation: "rise .4s both" }}>
+        {head}
+        <Notice tone="calm" title="בחרו בורד" body="הסריקות האלה מבוססות על בורד מסוים." />
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ animation: "rise .4s both" }}>
+      {head}
+      {boards.length > 1 && <BoardPicker boards={boards} value={boardId} onPick={setBoardId} busy={busy} />}
+      {busy && <Spinner label="טוען את הבורד..." />}
+      {failed && <ErrBox msg={failed.msg} />}
+      {ready && (
+        <>
+          <Scan title="התראות היגיינה" open>
+            <AlertsPanel board={ready.board} items={ready.items} pc={C.grape} ac={C.muted} onAskAI={onAskAI} />
+          </Scan>
+          <Scan title="דוח אימפקט">
+            <ImpactPanel board={ready.board} items={ready.items} pc={C.grape} ac={C.muted} />
+          </Scan>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** One folded section. The panel inside writes its own heading, so this only
+    supplies the fold. */
+function Scan({ title, open, children }: { title: string; open?: boolean; children: ReactNode }) {
+  return (
+    <details open={open} style={{ background: C.panel, border: "1px solid #ECEBF5", borderRadius: 18, padding: "4px 18px 4px", marginBottom: 12, boxShadow: "0 4px 16px -8px rgba(60,50,120,.1)" }}>
+      <summary style={{ cursor: "pointer", listStyle: "none", padding: "14px 0", fontSize: 14.5, fontWeight: 800, color: C.grape, display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ width: 8, height: 8, borderRadius: "50%", background: C.grape, flexShrink: 0 }} />
+        {title}
+      </summary>
+      <div style={{ paddingBottom: 16 }}>{children}</div>
+    </details>
+  );
+}
+
 /* ===== "פעולות" =====
    Every screen here already existed; this mode only frames them. Three of them
    (עריכה קבוצתית, אוטומציות, בניית בורד) are the components /workspace renders,
@@ -1269,8 +1366,7 @@ function ChatCore({ chat, ctx, empty }: { chat: ChatApi; ctx: string; empty?: Re
 }
 
 /* ===== floating context chat ("ניהול") ===== */
-function ChatFab({ open, setOpen, tab, names }: { open: boolean; setOpen: (v: boolean) => void; tab: string; names: string[] }) {
-  const chat = useChat();
+function ChatFab({ chat, open, setOpen, tab, names }: { chat: ChatApi; open: boolean; setOpen: (v: boolean) => void; tab: string; names: string[] }) {
   const ctx = tab === "people" ? "המשתתפים" : tab === "insights" ? "התובנות" : "הלוח";
   if (!open) return <button onClick={() => setOpen(true)} style={{ position: "fixed", bottom: 24, insetInlineStart: 24, height: 54, padding: "0 22px", borderRadius: 999, border: "none", background: `linear-gradient(135deg,${C.grape},${C.coral})`, color: "#fff", fontSize: 15, fontWeight: 800, cursor: "pointer", boxShadow: `0 14px 34px -10px ${C.grape}`, display: "flex", alignItems: "center", gap: 9, fontFamily: "inherit", zIndex: 40 }}>💬 שאלו על {ctx}</button>;
   return (
