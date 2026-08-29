@@ -63,13 +63,12 @@ function Welcome({ onNext }: { onNext: () => void }) {
         ברוכים הבאים ל-Any<span style={{ color: PURPLE }}>Day</span>
       </h1>
       <p style={{ fontSize: 16, color: "#6B7385", lineHeight: 1.6, margin: "0 auto 32px", maxWidth: "36ch" }}>
-        מדברים עם ה-Monday של הארגון בשפה רגילה. שאלות, ניתוחים, אוטומציות ושאלונים — הכל במקום אחד.
+        מדברים עם ה-Monday של הארגון בשפה רגילה. שאלות, ניתוחים ואוטומציות — הכל במקום אחד.
       </p>
       <div style={{ background: "#fff", border: "1px solid #ECEDF3", borderRadius: 22, padding: "26px 28px", boxShadow: "0 12px 40px -14px rgba(70,55,140,.18)", textAlign: "right" }}>
         {[
           ["📊", "שאלו על הבורדים", "וקבלו ניתוח, לא טבלה"],
           ["⚡", "בנו אוטומציות", "בעברית, בלי נוסחאות"],
-          ["📋", "צרו שאלונים", "שמתחברים לבורד אוטומטית"],
         ].map(([ic, t, s]) => (
           <div key={t} style={{ display: "flex", alignItems: "center", gap: 13, padding: "10px 0" }}>
             <div style={{ width: 40, height: 40, borderRadius: 12, background: "#EFEBFE", display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{ic}</div>
