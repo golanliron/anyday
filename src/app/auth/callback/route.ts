@@ -8,8 +8,8 @@ import { createServerSupabase } from "@/lib/supabase-server";
 export async function GET(request: NextRequest) {
   const url = request.nextUrl;
   const code = url.searchParams.get("code");
-  const next = url.searchParams.get("next") || "/workspace";
-  const safeNext = next.startsWith("/") ? next : "/workspace";
+  const next = url.searchParams.get("next") || "/app";
+  const safeNext = next.startsWith("/") ? next : "/app";
 
   if (code) {
     const supabase = await createServerSupabase();
