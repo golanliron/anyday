@@ -27,10 +27,27 @@ class PanelErrorBoundary extends Component<{ children: ReactNode; onReset?: () =
   }
 }
 
+/**
+ * An action the AI proposed. It is NEVER executed on arrival: it rides on the
+ * assistant message that proposed it, is rendered as a human-readable preview,
+ * and reaches /api/monday only after the user clicks approve. `actionState`
+ * records what happened so a restored chat session shows history, not live
+ * buttons for something that already ran.
+ */
+interface PendingAction {
+  action: string;
+  conditionColumn?: string;
+  conditionValues?: string[];
+  actionConfig?: Record<string, unknown>;
+  description?: string;
+}
+
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  pendingAction?: PendingAction;
+  actionState?: "pending" | "approved" | "declined";
 }
 
 interface ChatSession {
@@ -559,70 +576,122 @@ export function BoardDashboard({
       });
       const data = await res.json();
       const reply = data.error ? `שגיאה: ${data.error}` : data.reply;
-      setMessages(prev => [...prev, { role: "assistant", content: reply, timestamp: new Date() }]);
-
-      // If AI returned an action, execute it automatically
-      if (data.action) {
-        const act = data.action;
-
-        if (act.action === "create_board") {
-          // Board builder — different endpoint
-          setLoadingMsg("בונה בורד חדש...");
-          try {
-            const actionRes = await fetch("/api/monday", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                action: "create_board",
-                apiToken,
-                boardName: act.actionConfig?.boardName || "בורד חדש",
-                boardKind: act.actionConfig?.boardKind || "public",
-                columns: act.actionConfig?.columns || [],
-                groups: act.actionConfig?.groups || [],
-                items: act.actionConfig?.items || [],
-              }),
-            });
-            const actionResult = await actionRes.json();
-            const resultMsg = actionResult.success
-              ? `**הבורד נוצר בהצלחה!** 🎉\n\nID: ${actionResult.boardId}\n\n${actionResult.results?.map((r: string) => `- ${r}`).join("\n") || ""}`
-              : `שגיאה ביצירת הבורד: ${actionResult.error || "unknown"}`;
-            setMessages(prev => [...prev, { role: "assistant", content: resultMsg, timestamp: new Date() }]);
-          } catch {
-            setMessages(prev => [...prev, { role: "assistant", content: "שגיאה ביצירת הבורד", timestamp: new Date() }]);
-          }
-        } else {
-          // Standard automate action (change_status, move_to_group, notify, archive, send_email, create_item)
-          setLoadingMsg("מבצע פעולה על הבורד...");
-          try {
-            const actionRes = await fetch("/api/monday", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                action: "automate",
-                boardId,
-                apiToken,
-                conditionColumn: act.conditionColumn,
-                conditionValues: act.conditionValues,
-                actionType: act.action,
-                actionConfig: act.actionConfig || {},
-              }),
-            });
-            const actionResult = await actionRes.json();
-            const resultMsg = actionResult.executed > 0
-              ? `**בוצע בהצלחה!** ${actionResult.executed} מתוך ${actionResult.total} פריטים עודכנו.\n\n${actionResult.results?.map((r: string) => `- ${r}`).join("\n") || ""}`
-              : `לא נמצאו פריטים תואמים לביצוע.`;
-            setMessages(prev => [...prev, { role: "assistant", content: resultMsg, timestamp: new Date() }]);
-          } catch {
-            setMessages(prev => [...prev, { role: "assistant", content: "שגיאה בביצוע הפעולה על הבורד", timestamp: new Date() }]);
-          }
-        }
-      }
+      /* פעולה שה-AI הציע לא רצה מעצמה. היא נתלית על ההודעה, מוצגת כתצוגה
+         מקדימה, ורצה רק אחרי לחיצה על אישור — ראו runPendingAction. */
+      const pending: PendingAction | undefined =
+        !data.error && data.action ? (data.action as PendingAction) : undefined;
+      setMessages(prev => [...prev, {
+        role: "assistant", content: reply, timestamp: new Date(),
+        ...(pending ? { pendingAction: pending, actionState: "pending" as const } : {}),
+      }]);
     } catch {
       setMessages(prev => [...prev, { role: "assistant", content: "שגיאה בחיבור לשרת", timestamp: new Date() }]);
     } finally {
       setLoading(false);
       setLoadingMsg("");
     }
+  }
+
+  /* מה בדיוק יקרה אם תאושר הפעולה — בשפת הבורד, לא בשפת ה-API.
+     מזהי עמודות מתורגמים לכותרות כדי שהמשתמשת תאשר משהו שהיא מבינה. */
+  function describeAction(act: PendingAction): string {
+    const colTitle = (id?: string) =>
+      board.columns.find(c => c.id === id)?.title || id || "";
+    const cond = act.conditionColumn
+      ? `בפריטים שבהם "${colTitle(act.conditionColumn)}" = ${
+          act.conditionValues?.length ? act.conditionValues.map(v => `"${v}"`).join(" / ") : "כל ערך"
+        }`
+      : "";
+    const cfg = act.actionConfig || {};
+    switch (act.action) {
+      case "change_status":
+        return `שינוי "${colTitle(String(cfg.columnId || ""))}" ל-"${cfg.newValue}" ${cond}`;
+      case "move_to_group":
+        return `העברת פריטים לקבוצה אחרת ${cond}`;
+      case "archive":
+        return `העברה לארכיון ${cond}`;
+      case "notify":
+        return `שליחת התראה ב-Monday ${cond}`;
+      case "send_email":
+        return `שליחת התראת מייל ב-Monday ${cond}`;
+      case "create_item":
+        return `יצירת פריט חדש: "${cfg.itemName || ""}"`;
+      case "create_board":
+        return `יצירת בורד חדש: "${cfg.boardName || "בורד חדש"}"`;
+      default:
+        return act.description || act.action;
+    }
+  }
+
+  /**
+   * The user clicked approve. Only here — never on the AI's say-so — does the
+   * proposed action reach /api/monday. The message is marked first so a double
+   * click (or a restored session) cannot run the same action twice.
+   */
+  async function runPendingAction(index: number, act: PendingAction) {
+    if (loading) return;
+    setMessages(prev => prev.map((m, i) => (i === index ? { ...m, actionState: "approved" } : m)));
+    setLoading(true);
+
+    if (act.action === "create_board") {
+      setLoadingMsg("בונה בורד חדש...");
+      try {
+        const actionRes = await fetch("/api/monday", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "create_board",
+            boardName: act.actionConfig?.boardName || "בורד חדש",
+            boardKind: act.actionConfig?.boardKind || "public",
+            columns: act.actionConfig?.columns || [],
+            groups: act.actionConfig?.groups || [],
+            items: act.actionConfig?.items || [],
+          }),
+        });
+        const actionResult = await actionRes.json();
+        const resultMsg = actionResult.success
+          ? `**הבורד נוצר בהצלחה!** 🎉\n\nID: ${actionResult.boardId}\n\n${actionResult.results?.map((r: string) => `- ${r}`).join("\n") || ""}`
+          : `שגיאה ביצירת הבורד: ${actionResult.error || "unknown"}`;
+        setMessages(prev => [...prev, { role: "assistant", content: resultMsg, timestamp: new Date() }]);
+      } catch {
+        setMessages(prev => [...prev, { role: "assistant", content: "שגיאה ביצירת הבורד", timestamp: new Date() }]);
+      } finally {
+        setLoading(false);
+        setLoadingMsg("");
+      }
+      return;
+    }
+
+    // Standard automate action (change_status, move_to_group, notify, archive, send_email, create_item)
+    setLoadingMsg("מבצע פעולה על הבורד...");
+    try {
+      const actionRes = await fetch("/api/monday", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "automate",
+          boardId,
+          conditionColumn: act.conditionColumn,
+          conditionValues: act.conditionValues,
+          actionType: act.action,
+          actionConfig: act.actionConfig || {},
+        }),
+      });
+      const actionResult = await actionRes.json();
+      const resultMsg = actionResult.executed > 0
+        ? `**בוצע בהצלחה!** ${actionResult.executed} מתוך ${actionResult.total} פריטים עודכנו.\n\n${actionResult.results?.map((r: string) => `- ${r}`).join("\n") || ""}`
+        : `לא נמצאו פריטים תואמים לביצוע.`;
+      setMessages(prev => [...prev, { role: "assistant", content: resultMsg, timestamp: new Date() }]);
+    } catch {
+      setMessages(prev => [...prev, { role: "assistant", content: "שגיאה בביצוע הפעולה על הבורד", timestamp: new Date() }]);
+    } finally {
+      setLoading(false);
+      setLoadingMsg("");
+    }
+  }
+
+  function declinePendingAction(index: number) {
+    setMessages(prev => prev.map((m, i) => (i === index ? { ...m, actionState: "declined" } : m)));
   }
 
   const NAV_ITEMS: { modeId: "chat" | "dashboard" | "data" | "automations" | "impact"; panel: SidePanel; icon: React.ReactNode; label: string }[] = [
@@ -1050,6 +1119,48 @@ export function BoardDashboard({
                       border: msg.role === "assistant" ? `1px solid ${hexToRgba(pc, 0.1)}` : "none",
                     }}>
                       {msg.role === "assistant" ? <FormattedText text={msg.content} /> : msg.content}
+                      {msg.pendingAction && (
+                        <div style={{
+                          marginTop: 10, paddingTop: 10,
+                          borderTop: `1px solid ${hexToRgba(pc, 0.12)}`,
+                        }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+                            {describeAction(msg.pendingAction)}
+                          </div>
+                          {msg.actionState === "pending" ? (
+                            <div style={{ display: "flex", gap: 8 }}>
+                              <button
+                                onClick={() => runPendingAction(i, msg.pendingAction!)}
+                                disabled={loading}
+                                style={{
+                                  padding: "7px 16px", borderRadius: 10, border: "none",
+                                  background: `linear-gradient(135deg, ${pc}, ${ac})`,
+                                  color: "var(--color-bg)", fontSize: 13, fontWeight: 600,
+                                  cursor: loading ? "wait" : "pointer", fontFamily: "inherit",
+                                }}
+                              >
+                                אישור וביצוע
+                              </button>
+                              <button
+                                onClick={() => declinePendingAction(i)}
+                                disabled={loading}
+                                style={{
+                                  padding: "7px 16px", borderRadius: 10,
+                                  border: `1px solid ${hexToRgba(pc, 0.25)}`,
+                                  background: "transparent", color: "var(--color-text)",
+                                  fontSize: 13, cursor: "pointer", fontFamily: "inherit",
+                                }}
+                              >
+                                ביטול
+                              </button>
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: 12, opacity: 0.7 }}>
+                              {msg.actionState === "approved" ? "אושר ובוצע ✓" : "בוטל — לא בוצע"}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}

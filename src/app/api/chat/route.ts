@@ -4,6 +4,63 @@ import { requireMonday } from "@/lib/monday-server";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+/**
+ * The only actions the product can actually run (they map 1:1 onto the fixed
+ * branches of /api/monday). Anything else the model invents is dropped here.
+ */
+const AUTOMATE_ACTIONS = new Set([
+  "change_status",
+  "move_to_group",
+  "notify",
+  "archive",
+  "send_email",
+  "create_item",
+]);
+
+/**
+ * Turn whatever JSON the model emitted into a well-formed action — or null.
+ *
+ * The block is extracted from FREE TEXT written by an LLM, so its shape is a
+ * guess, not a contract. The client shows this object to the user and, only
+ * after an explicit click, forwards it to /api/monday — so everything that
+ * leaves here must already be the exact shape that route expects: a known
+ * action name, a real condition column, string values, a plain-object config.
+ * Returning null (rather than a "best effort" object) means a malformed block
+ * degrades to a plain chat reply instead of a wrong operation.
+ */
+function sanitizeAction(raw: unknown): Record<string, unknown> | null {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return null;
+  const a = raw as Record<string, unknown>;
+  if (typeof a.action !== "string") return null;
+
+  const actionConfig =
+    typeof a.actionConfig === "object" && a.actionConfig !== null && !Array.isArray(a.actionConfig)
+      ? (a.actionConfig as Record<string, unknown>)
+      : {};
+  const description = typeof a.description === "string" ? a.description : "";
+
+  if (a.action === "create_board") {
+    return { action: "create_board", actionConfig, description };
+  }
+
+  if (!AUTOMATE_ACTIONS.has(a.action)) return null;
+  // /api/monday's automate branch refuses a request without a condition column
+  // — better to refuse here, before the user is shown an approve button that
+  // can only fail.
+  if (typeof a.conditionColumn !== "string" || !a.conditionColumn) return null;
+  const conditionValues = Array.isArray(a.conditionValues)
+    ? a.conditionValues.filter((v): v is string => typeof v === "string")
+    : [];
+
+  return {
+    action: a.action,
+    conditionColumn: a.conditionColumn,
+    conditionValues,
+    actionConfig,
+    description,
+  };
+}
+
 export async function POST(req: NextRequest) {
   // מי שמחוברת ל-Monday היא בדיוק מי שרשאית להשתמש בכלי הזה. אותו שער
   // בדיוק שכל נתיב אחר שנוגע ב-Monday עובר דרכו — לא מנגנון שני לתחזק.
@@ -43,7 +100,7 @@ export async function POST(req: NextRequest) {
 
 ## ביצוע אוטומציות - חובה!
 כשמשתמש מבקש לבצע כל פעולה על פריטים (שנה, העבר, מחק, ארכב, סמן, עדכן):
-1. תגיד "מבצע עכשיו!" בקצרה
+1. תאר בקצרה מה הפעולה תעשה. אל תכתוב "מבצע עכשיו" — הפעולה מוצגת למשתמש לאישור לפני שהיא רצה
 2. תוסיף בלוק פעולה בפורמט:
 
 \`\`\`dayday-action
@@ -144,7 +201,9 @@ export async function POST(req: NextRequest) {
     // Clean any remaining raw code blocks from the visible reply
     cleanReply = cleanReply.replace(/```[\s\S]*?```/g, "").trim();
 
-    return NextResponse.json({ reply: cleanReply, action: actionData });
+    // An action leaves this route only in the exact shape /api/monday accepts;
+    // the client never executes it on its own — it renders an approve button.
+    return NextResponse.json({ reply: cleanReply, action: sanitizeAction(actionData) });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "שגיאה";
     return NextResponse.json({ error: msg }, { status: 500 });
