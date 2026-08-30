@@ -77,7 +77,9 @@ function Welcome({ onNext }: { onNext: () => void }) {
         ))}
         <button onClick={onNext} style={btnPrimary}>חברו את ה-Monday שלכם →</button>
       </div>
-      <p style={{ fontSize: 12, color: "#AEB3C6", marginTop: 18 }}>🔒 הרשאת קריאה וכתיבה לבורדים שתבחרו · ניתן לנתק בכל רגע ממונדיי</p>
+      {/* ההבטחה הזו הפכה נכונה רק אחרי B-3: כל פעולת AI עוברת מסך אישור,
+          וכל כתיבה אחרת (עריכה, ארכוב, אוטומציה) יוצאת מלחיצה מפורשת שלכם. */}
+      <p style={{ fontSize: 12, color: "#AEB3C6", marginTop: 18 }}>🔒 קוראים כדי להציג; כותבים רק פעולות שאתם יוזמים ומאשרים · ניתן לנתק בכל רגע ממונדיי</p>
       <style>{fadeCss}</style>
     </div>
   );
