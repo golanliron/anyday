@@ -1,18 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { mondayQuery as mondayQueryWithToken, requireMonday } from "@/lib/monday-server";
 
-/**
- * Is this a shape we can hand to Monday as GraphQL `variables`?
- *
- * `variables` arrives from the browser, so it is checked rather than trusted.
- * GraphQL wants a plain name→value map; an array, a string or null is not one.
- * `undefined` is NOT passed here — a request that sends no `variables` keeps
- * going out exactly as it does today (see the mutate branch).
- */
-function isVariablesMap(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null && !Array.isArray(v);
-}
-
 export async function POST(req: NextRequest) {
   try {
     // Resolve the token from the logged-in user's org — never from the client.
@@ -172,21 +160,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ executed, total: matches.length, results });
     }
 
-    // ── Single mutation ──
-    if (action === "mutate") {
-      const { mutation, variables } = body;
-      if (!mutation) {
-        return NextResponse.json({ error: "חסרה מוטציה" }, { status: 400 });
+    // ── Archive a single item ──
+    // This replaces the old `mutate` branch, which accepted a whole GraphQL
+    // document from the browser and ran it with the org's token — meaning any
+    // logged-in client could run ANY operation the token allows (delete_item
+    // included). The only thing the product ever sent through it was this one
+    // archive, so this one archive is the only thing the server now offers.
+    // The document lives here, fixed; the browser supplies an item id, nothing
+    // more. Stays archive_item — reversible inside Monday, never delete_item.
+    if (action === "archive_item") {
+      const { itemId } = body;
+      if (!itemId) {
+        return NextResponse.json({ error: "missing params" }, { status: 400 });
       }
-      /* RULES §3: a value that came from the browser travels as a GraphQL
-         variable, never pasted into the query string — a name holding a quote
-         would otherwise rewrite the mutation itself. A malformed `variables` is
-         rejected out loud instead of being dropped silently, so the caller is
-         never told an operation ran with values it did not send. */
-      if (variables !== undefined && !isVariablesMap(variables)) {
-        return NextResponse.json({ error: "variables חייב להיות אובייקט" }, { status: 400 });
-      }
-      const data = await mondayQuery(mutation, variables);
+      const data = await mondayQuery(
+        `mutation ($itemId: ID!) { archive_item(item_id: $itemId) { id } }`,
+        { itemId: String(itemId) }
+      );
       return NextResponse.json({ success: true, data });
     }
 

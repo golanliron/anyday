@@ -112,23 +112,15 @@ function DataEditPanelInner({ board, items, apiToken, boardId, pc = "#FF2D87", a
     }
   }
 
-  /* מזהה הפריט עובר כמשתנה GraphQL ולא בהדבקה לתוך המוטציה (RULES §3):
-     ערך שמגיע מהדפדפן לא ייכנס לעולם למחרוזת השאילתה. */
-  const ARCHIVE_MUTATION = "mutation ($itemId: ID!) { archive_item(item_id: $itemId) { id } }";
-
-  /* הפעולה נשארת archive_item — הפיכה מתוך Monday. אין כאן מחיקה. */
+  /* הפעולה נשארת archive_item — הפיכה מתוך Monday. אין כאן מחיקה.
+     המוטציה עצמה יושבת בשרת; מכאן עובר רק מזהה הפריט. */
   async function handleArchive(itemId: string) {
     setDeletingItem(itemId);
     try {
       const res = await fetch("/api/monday", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "mutate",
-          apiToken,
-          mutation: ARCHIVE_MUTATION,
-          variables: { itemId },
-        }),
+        body: JSON.stringify({ action: "archive_item", itemId }),
       });
       /* התשובה נבדקת לפני שמוצגת הצלחה. סטטוס תקין לבדו לא מספיק: Monday
          מחזיר לפעמים 200 ובתוכו errors, ולכן נבדק גם גוף התשובה. אם משהו
