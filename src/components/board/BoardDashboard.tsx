@@ -1805,8 +1805,10 @@ ${chartsHtml}
 // ReportPanel - One-click management reports
 // ═══════════════════════════════════════════════════════
 
-export function ReportPanel({ board, items, pc = "#FF2D87", ac = "var(--color-accent)", orgName = "" }: {
-  board: MondayBoard; items: MondayItem[]; pc?: string; ac?: string; orgName?: string;
+/* `items` נשאר בטיפוס לתאימות עם הקוראים; הדוח עצמו כבר לא בונה הקשר בדפדפן —
+   השרת קורא את הבורד בעצמו לפי המזהה. */
+export function ReportPanel({ board, pc = "#FF2D87", ac = "var(--color-accent)", orgName = "" }: {
+  board: MondayBoard; items?: MondayItem[]; pc?: string; ac?: string; orgName?: string;
 }) {
   const [reportType, setReportType] = useState<string>("management");
   const [report, setReport] = useState<string>("");
