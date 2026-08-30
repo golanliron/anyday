@@ -320,7 +320,10 @@ export default function Home() {
       <section className="trust" data-reveal>
         <div className="trust__inner">
           {[
-            "הצפנה AES-256","שרתים בישראל","לא מאמנים על הנתונים שלכם","מחיקה מלאה בלחיצה",
+            /* "שרתים בישראל" הוסר: הפריסה היא fra1 — פרנקפורט (ראו vercel.json),
+               ול-Vercel אין אזור בישראל כלל, כך שהטענה אינה "טרם הוגדרה" אלא
+               בלתי ניתנת למימוש. הוחלף במה שנכון ובר-בדיקה. */
+            "הצפנה AES-256","שרתים באיחוד האירופי","לא מאמנים על הנתונים שלכם","מחיקה מלאה בלחיצה",
           ].map((label,i) => (
             <div key={i} className="trust__item">
               <span className="trust__check">✓</span><span>{label}</span>
