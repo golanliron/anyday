@@ -59,7 +59,7 @@ body {
 @keyframes up { from { opacity:0; transform:translateY(32px); } to { opacity:1; transform:translateY(0); } }
 .reveal-up { opacity:0; transform:translateY(24px); animation: up .7s var(--ease) both; }
 [data-reveal] { opacity:0; transform:translateY(32px); transition: opacity .6s var(--ease), transform .6s var(--ease); }
-[data-reveal].in-view { opacity:1; transform:translateY(0); }
+[data-reveal="in"] { opacity:1; transform:translateY(0); }
 
 /* ═══ ROOT ═══ */
 .root { background: var(--bg); }
@@ -629,3 +629,5 @@ body {
 
   .foot { padding: 20px 16px; }
 }
+
+/* reveal: attribute-based (see page.tsx observer) */

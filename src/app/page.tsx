@@ -18,7 +18,9 @@ export default function Home() {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            entry.target.classList.add("in-view");
+            // an attribute, not a class: React rewrites className on re-render
+            // (e.g. opening a FAQ item) and would wipe the class - the item vanished.
+            entry.target.setAttribute("data-reveal", "in");
           }
         });
       },
@@ -94,17 +96,17 @@ export default function Home() {
 
         <div className="hero__inner">
           <div className="hero__text">
-            <p className="hero__over reveal-up">לכל ארגון שעובד עם Monday</p>
+            <p className="hero__over reveal-up">לכל ארגון · Monday או גיליון</p>
             <h1 className="hero__h1">
-              <span className="reveal-up" style={{animationDelay:".1s"}}>ה-Monday שלכם כבר עובד.</span>
-              <span className="hero__accent reveal-up" style={{animationDelay:".2s"}}>אנחנו הופכים אותו לקריא.</span>
+              <span className="reveal-up" style={{animationDelay:".1s"}}>הנתונים שלכם כבר עובדים.</span>
+              <span className="hero__accent reveal-up" style={{animationDelay:".2s"}}>אנחנו הופכים אותם לקריאים.</span>
             </h1>
             <p className="hero__sub reveal-up" style={{animationDelay:".35s"}}>
-              מחברים את החשבון — ואוטומטית נבנה דשבורד עם תובנות, ועם פעולות שיוצאות החוצה וחוזרות ומתעדכנות בבורד עצמו. אפס הגדרות.
+              מחברים את ה-Monday — או מעלים גיליון — ואוטומטית נבנה דשבורד עם תובנות. עם Monday מחובר גם פעולות שיוצאות החוצה וחוזרות ומתעדכנות בבורד עצמו. אפס הגדרות.
             </p>
             <div className="hero__btns reveal-up" style={{animationDelay:".5s"}}>
               <a href="/app" className="btn btn--lime">חברו את ה-Monday שלכם →</a>
-              <a href="/app" className="btn btn--outline">ראו מה AnyDay מוצאת אצלכם</a>
+              <a href="/sheet" className="btn btn--outline">יש לכם גיליון? העלו וראו מיד</a>
             </div>
             <p className="hero__audience reveal-up" style={{animationDelay:".6s"}}>למנכ״לים, מנהלי תפעול, ראשי צוותים ורכזי פרויקטים — במשרד עורכי דין, בחברת בנייה, בבית ספר או בעמותה</p>
           </div>
@@ -175,7 +177,7 @@ export default function Home() {
         </div>
         <div className="capabilities__grid">
           {[
-            { icon: "📊", title: "דשבורד שנבנה לבד", desc: "מחברים את החשבון, AnyDay קוראת את הבורדים ובונה תמונת מצב קריאה. אפס הגדרות." },
+            { icon: "📊", title: "דשבורד שנבנה לבד", desc: "מחברים את Monday או מעלים גיליון — AnyDay קוראת את העמודות ובונה תמונת מצב קריאה. אפס הגדרות." },
             { icon: "🔍", title: "תובנות, לא טבלאות", desc: "מה תקוע, מה עבר תאריך, מי עמוס — AnyDay מציפה את זה לבד, בלי שתחפשו." },
             { icon: "⚡", title: "פעולות שחוזרות פנימה", desc: "״כשפריט עובר ל׳הושלם׳ — עדכנו ושלחו סיכום.״ כלל בעברית, והעדכון נכתב חזרה ל-Monday." },
             { icon: "🏗️", title: "צריכים בורד חדש?", desc: "תארו אותו במילים ו-AnyDay תקים אותו — בלי לצאת מהמסך. נוחות, לא פרויקט הטמעה." },
@@ -266,15 +268,15 @@ export default function Home() {
       <section id="how" className="how">
         <div className="how__header" data-reveal>
           <span className="tag tag--dark">איך זה עובד</span>
-          <h2 className="big-title big-title--light">שתי דקות.<br/>אפס הגדרות.<br/>Monday קריא.</h2>
+          <h2 className="big-title big-title--light">שתי דקות.<br/>אפס הגדרות.<br/>תמונת מצב קריאה.</h2>
         </div>
 
         <div className="timeline">
           <div className="timeline__line" />
           {[
-            { num: "01", title: "חברו את Monday של הארגון", desc: "הכניסו API Token — וזהו. בלי התקנות, בלי הגדרות, בלי IT.", color: "var(--lime)" },
-            { num: "02", title: "הדשבורד נבנה לבד", desc: "AnyDay קוראת את הבורדים, מזהה מה חשוב ובונה תמונת מצב עם תובנות. אתם לא מגדירים כלום.", color: "var(--orange)" },
-            { num: "03", title: "פעלו מתוך הדשבורד", desc: "עדכנו סטטוסים, שלחו סיכומים, הקימו בורד חדש — הכל בעברית, והכל נכתב חזרה ל-Monday.", color: "var(--cyan)" },
+            { num: "01", title: "חברו את Monday — או העלו גיליון", desc: "עם Monday: מאשרים גישה בלחיצה אחת, בלי טוקנים ובלי IT. עם גיליון: גוררים קובץ CSV, והכל נשאר בדפדפן שלכם.", color: "var(--lime)" },
+            { num: "02", title: "הדשבורד נבנה לבד", desc: "AnyDay קוראת את העמודות, מזהה מה חשוב ובונה תמונת מצב עם תובנות. אתם לא מגדירים כלום.", color: "var(--orange)" },
+            { num: "03", title: "פעלו מתוך הדשבורד", desc: "עם Monday מחובר: עדכנו סטטוסים, שלחו סיכומים, קבלו דיגסט שבועי — הכל בעברית, והכל נכתב חזרה לבורד.", color: "var(--cyan)" },
           ].map((s, i) => (
             <div key={i} className="tl-step" data-reveal>
               <div className="tl-step__dot" style={{background: s.color}} />
@@ -340,8 +342,9 @@ export default function Home() {
         </div>
         <div className="faq-list">
           {[
-            { q: "זה מתאים לארגון כמו שלנו?", a: "אם אתם עובדים עם Monday — כן. AnyDay קוראת את הבורד לפי טיפוסי העמודות ולא לפי התחום, ולכן משרד עורכי דין, חברת בנייה, בית ספר או עמותה מקבלים בדיוק את אותה תמונת מצב. צוות של 3 עם 5 בורדים או רשת עם 50 — אותו דבר." },
-            { q: "מה צריך מהצד שלנו?", a: "API Token של Monday (מקבלים בשתי דקות) — וזהו. בלי התקנות, בלי הגדרות, בלי לשנות כלום בבורדים. AnyDay מתחברת ולומדת את המבנה לבד." },
+            { q: "זה מתאים לארגון כמו שלנו?", a: "כן — עם Monday מחובר או עם גיליון שמעלים. AnyDay קוראת את הנתונים לפי טיפוסי העמודות ולא לפי התחום, ולכן משרד עורכי דין, חברת בנייה, בית ספר או עמותה מקבלים בדיוק את אותה תמונת מצב. צוות של 3 עם 5 בורדים או רשת עם 50 — אותו דבר." },
+            { q: "מה צריך מהצד שלנו?", a: "אישור גישה ל-Monday בלחיצה אחת (בלי טוקנים) — או קובץ גיליון. בלי התקנות, בלי הגדרות, בלי לשנות כלום בבורדים. AnyDay מתחברת ולומדת את המבנה לבד." },
+            { q: "אין לנו Monday — רק אקסל. זה עדיין רלוונטי?", a: "כן. שומרים את הגיליון כ-CSV, גוררים אותו לדף הגיליון, ומקבלים דשבורד באותו רגע — בלי חשבון, והקובץ לא עולה לשום שרת. ההבדל היחיד: גיליון הוא תמונה של רגע אחד. דיגסט שבועי ואוטומציות צריכים מקור שמתעדכן לבד, וזה היום Monday." },
             { q: "אנחנו כבר עובדים עם Monday שנים. מה זה מוסיף?", a: "בדיוק בשביל זה. ה-Monday שלכם כבר מכיל את הכל — AnyDay רק הופכת אותו לקריא: תמונת מצב במקום טבלאות, תובנות שעולות לבד, ופעולות שאפשר לעשות מכאן והן מתעדכנות חזרה בבורד." },
             { q: "אפשר להקים בורד חדש מתוך AnyDay?", a: "כן. תארו במילים מה צריך — AnyDay מקימה בורד עם עמודות, קבוצות ואוטומציות, בלי לצאת מהמסך. זו נוחות בתוך המוצר, לא פרויקט הטמעה שאנחנו עושים בשבילכם." },
             { q: "ואם לא מתאים?", a: "7 ימי ניסיון חינם. ביטול בלחיצה אחת. בלי חוזה, בלי שיחת שימור, בלי התחייבות." },
@@ -364,11 +367,12 @@ export default function Home() {
         <div className="final__bg" />
         <div className="final__content" data-reveal>
           <h2 className="final__title">
-            ה-Monday שלכם<br/>כבר יודע הכל.<br/>עכשיו גם תראו.
+            הנתונים שלכם<br/>כבר יודעים הכל.<br/>עכשיו גם תראו.
           </h2>
-          <p className="final__accent">מחברים את החשבון, והדשבורד נבנה לבד — בדקות, בלי הגדרה אחת.</p>
+          <p className="final__accent">מחברים את Monday או מעלים גיליון — והדשבורד נבנה לבד, בדקות, בלי הגדרה אחת.</p>
           <p className="final__sub">ללא כרטיס אשראי · אפס הגדרות · ביטול בלחיצה</p>
           <a href="/app" className="btn btn--lime btn--xl">חברו את ה-Monday שלכם →</a>
+          <p className="final__sub" style={{marginTop: 14}}><a href="/sheet" style={{color: "inherit", textDecoration: "underline"}}>או העלו גיליון CSV — בלי חשבון</a></p>
         </div>
       </section>
 
