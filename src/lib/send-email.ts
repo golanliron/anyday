@@ -1,22 +1,21 @@
 /**
  * src/lib/send-email.ts — the one place that hands an email to Resend.
  *
- * This logic used to live inside `POST /api/send-email`. It was MOVED here
- * unchanged (same provider, same key, same body, same errors, same statuses)
- * for one reason: `/api/send-email` is a public address that sends mail, so it
- * has to sit behind the login gate — but `/api/digest` used to reach it over
- * HTTP, server-to-server, with no cookie. The gate cannot tell that call apart
- * from an attacker's, so gating the route broke the digest (see reports/B6.md).
+ * This is a LIBRARY on purpose, not an HTTP route. There used to be a public
+ * `POST /api/send-email`; its only real caller was the digest, and its gate
+ * (`requireMonday`) accepted any cookie longer than 20 characters without ever
+ * using the token — so in practice it was an open mail relay: a forged cookie
+ * sent real mail, to any recipient, from any sender, on our Resend key. The
+ * route was REMOVED. Mail can now be produced only by server code that decides
+ * the recipients itself (the digest); there is no address on the network that
+ * accepts to/from/html from a browser.
  *
- * Passing a cookie along on the internal call is NOT the fix: Vercel Cron calls
- * the digest with `Authorization: Bearer` and no cookie at all.
+ * If a future feature needs user-triggered mail, it must build the recipient
+ * list and the body on the server from the caller's own session — never accept
+ * them from the request.
  *
- * So both sides now call this function directly and nothing goes over the
- * network in between. The route keeps guarding the outside world; the digest
- * never passes through it.
- *
- * The function does not throw: it reports failure the same way the route did,
- * as a status + message, so both callers can keep their existing behaviour.
+ * The function does not throw: it reports failure as a status + message, so
+ * callers keep their existing behaviour.
  */
 
 export interface SendEmailInput {
