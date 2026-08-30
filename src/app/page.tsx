@@ -199,7 +199,7 @@ export default function Home() {
         {[
           {
             title: "30 בורדים.\nמה דורש אתכם היום?",
-            desc: "AnyDay סורקת את כל המבנה, מזהה עמודות כפולות, פריטים תקועים ובעיות מבניות — ומציעה תיקון מיידי.",
+            desc: "AnyDay סורקת את כל המבנה, מזהה פריטים תקועים, שדות חסרים ובעיות מבניות — ומציעה תיקון מיידי.",
             visual: "alert",
           },
           {
@@ -229,7 +229,7 @@ export default function Home() {
                 {f.visual === "chat" && (
                   <>
                     <div className="fv-bubble fv-bubble--q">כשסטטוס משתנה ל״הושלם״ — שלחו סיכום</div>
-                    <div className="fv-bubble fv-bubble--a">אוטומציה פעילה. 14 פריטים עודכנו החודש.</div>
+                    <div className="fv-bubble fv-bubble--a">לדוגמה: אוטומציה פעילה, 14 פריטים עודכנו החודש.</div>
                   </>
                 )}
                 {f.visual === "report" && (
@@ -243,7 +243,7 @@ export default function Home() {
                 )}
                 {f.visual === "alert" && (
                   <div className="fv-alerts">
-                    <div className="fv-alert fv-alert--red"><span className="fv-dot fv-dot--red" />3 עמודות כפולות באותו בורד</div>
+                    <div className="fv-alert fv-alert--red"><span className="fv-dot fv-dot--red" />12 פריטים בלי בעל תפקיד</div>
                     <div className="fv-alert fv-alert--amber"><span className="fv-dot fv-dot--amber" />קבוצה ריקה: ״ארכיון 2024״</div>
                     <div className="fv-alert fv-alert--green"><span className="fv-dot fv-dot--green" />המבנה תוקן</div>
                   </div>
@@ -345,7 +345,7 @@ export default function Home() {
             { q: "אנחנו כבר עובדים עם Monday שנים. מה זה מוסיף?", a: "בדיוק בשביל זה. ה-Monday שלכם כבר מכיל את הכל — AnyDay רק הופכת אותו לקריא: תמונת מצב במקום טבלאות, תובנות שעולות לבד, ופעולות שאפשר לעשות מכאן והן מתעדכנות חזרה בבורד." },
             { q: "אפשר להקים בורד חדש מתוך AnyDay?", a: "כן. תארו במילים מה צריך — AnyDay מקימה בורד עם עמודות, קבוצות ואוטומציות, בלי לצאת מהמסך. זו נוחות בתוך המוצר, לא פרויקט הטמעה שאנחנו עושים בשבילכם." },
             { q: "ואם לא מתאים?", a: "7 ימי ניסיון חינם. ביטול בלחיצה אחת. בלי חוזה, בלי שיחת שימור, בלי התחייבות." },
-            { q: "הנתונים שלנו בטוחים?", a: "הצפנה מלאה, אנחנו לא שומרים נתונים ולא מאמנים מודלים עליהם. כל שאילתה רצה בזמן אמת ונמחקת. ואפשר לנתק בלחיצה." },
+            { q: "הנתונים שלנו בטוחים?", a: "הצפנה מלאה, ואיננו מאמנים מודלים על הנתונים שלכם. שאילתות הדשבורד רצות בזמן אמת מול Monday ואינן נשמרות. מה שכן נשמר אצלנו: הגדרות הארגון, וכל בורד שבניתם דרך הבונה — עד שתמחקו אותו." },
           ].map((faq, i) => (
             <div key={i} className={`faq ${openFaq === i ? "faq--open" : ""}`} data-reveal
               onClick={() => setOpenFaq(openFaq === i ? null : i)}>

@@ -192,7 +192,7 @@ export default function HealthCheckPage() {
                 marginTop: 12,
               }}>
                 <span>{"\u2705"} לארגונים, עמותות וצוותים</span>
-                <span>{"\uD83D\uDD12"} קריאה בלבד, בלי שינויים</span>
+                <span>{"\uD83D\uDD12"} הבדיקה הזאת קוראת בלבד ואינה משנה דבר</span>
                 <span>{"\u23F1\uFE0F"} תוצאות תוך 30 שניות</span>
               </div>
             </div>

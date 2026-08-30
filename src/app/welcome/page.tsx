@@ -77,7 +77,7 @@ function Welcome({ onNext }: { onNext: () => void }) {
         ))}
         <button onClick={onNext} style={btnPrimary}>חברו את ה-Monday שלכם →</button>
       </div>
-      <p style={{ fontSize: 12, color: "#AEB3C6", marginTop: 18 }}>🔒 קריאה בלבד · הנתונים נשארים אצלכם</p>
+      <p style={{ fontSize: 12, color: "#AEB3C6", marginTop: 18 }}>🔒 הרשאת קריאה וכתיבה לבורדים שתבחרו · ניתן לנתק בכל רגע ממונדיי</p>
       <style>{fadeCss}</style>
     </div>
   );
