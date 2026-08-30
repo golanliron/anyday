@@ -12,14 +12,18 @@ export interface OrgContext {
   mondayAccountName: string | null;
 }
 
-function slugify(base: string): string {
-  const clean = base
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 24);
-  // suffix keeps slugs unique without needing Math.random (unavailable here)
-  return `${clean || "org"}-${Date.now().toString(36)}`;
+/**
+ * The org slug is derived from the user id and nothing else, so it is the SAME
+ * on every concurrent first request. That is what makes the bootstrap below
+ * safe: two parallel requests produce the same slug, the unique index on
+ * organizations.slug lets only one row exist, and the loser simply reads it.
+ *
+ * A time-based slug used to be generated here, which made every racing request
+ * unique — and produced two orgs for one user, 121ms apart, on the very first
+ * real login.
+ */
+function orgSlugFor(userId: string): string {
+  return `org-${userId}`;
 }
 
 /**
@@ -75,21 +79,35 @@ export async function getOrgContext(): Promise<OrgContext | null> {
     "הארגון שלי";
   const orgName = `${baseName} — AnyDay`;
 
-  const { data: org, error: orgErr } = await service
+  const slug = orgSlugFor(user.id);
+
+  // Insert only if this user has no org yet. If a parallel request beat us to
+  // it, the unique index on slug swallows this write instead of creating a
+  // second org — the whole point of the deterministic slug above.
+  const { error: orgErr } = await service
     .from("organizations")
-    .insert({ name: orgName, slug: slugify(baseName), plan: "trial" })
-    .select("id, name")
-    .single();
-  if (orgErr || !org) {
-    console.error("Org bootstrap failed:", orgErr?.message);
+    .upsert({ name: orgName, slug, plan: "trial" }, { onConflict: "slug", ignoreDuplicates: true });
+  if (orgErr) {
+    console.error("Org bootstrap failed:", orgErr.message);
     return null;
   }
 
-  const { error: memErr } = await service.from("org_users").insert({
-    org_id: org.id,
-    user_id: user.id,
-    role: "admin",
-  });
+  // Read back whichever row exists now — ours, or the one the race winner made.
+  const { data: org, error: readErr } = await service
+    .from("organizations")
+    .select("id, name")
+    .eq("slug", slug)
+    .single();
+  if (readErr || !org) {
+    console.error("Org bootstrap read-back failed:", readErr?.message);
+    return null;
+  }
+
+  // Same reasoning: unique(org_id, user_id) makes the second write a no-op.
+  const { error: memErr } = await service.from("org_users").upsert(
+    { org_id: org.id, user_id: user.id, role: "admin" },
+    { onConflict: "org_id,user_id", ignoreDuplicates: true }
+  );
   if (memErr) {
     console.error("Membership bootstrap failed:", memErr.message);
     return null;

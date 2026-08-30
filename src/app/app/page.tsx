@@ -639,7 +639,7 @@ function ChartBody({ w, c }: { w: Widget; c: { fg: string; bg: string } }) {
     return <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>{rows.slice(0, 8).map((r, i) => { const sc = w.kind === "breakdown" ? toneStyle(r.tone) : pick(i); const canOpen = drill && drill[r.label]?.length; const isOpen = openRow === r.label;
       return <div key={r.label} style={{ display: "grid", gap: 4 }}>
         <button onClick={() => canOpen && setOpenRow(isOpen ? null : r.label)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12.5, background: "none", border: "none", padding: 0, cursor: canOpen ? "pointer" : "default", fontFamily: "inherit", color: C.ink, textAlign: "right" }}>
-          <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 190 }}>{r.label}{canOpen && <span style={{ color: "#C4C2D6", marginInlineStart: 5, fontSize: 11 }}>{isOpen ? "▾" : "◂ הצג שמות"}</span>}</span>
+          <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 190 }}>{r.label}{canOpen && <span style={{ color: C.grape, background: C.grapeL, marginInlineStart: 7, fontSize: 11, fontWeight: 700, padding: "1px 7px", borderRadius: 999, whiteSpace: "nowrap" }}>{isOpen ? "▾ הסתר" : `הצג ${r.n} שמות`}</span>}</span>
           <b style={{ fontVariantNumeric: "tabular-nums", color: sc.fg }}>{r.n}</b>
         </button>
         <div style={{ height: 9, borderRadius: 999, background: "#F2F1F9", overflow: "hidden" }}><div style={{ width: `${(r.n / max) * 100}%`, height: "100%", background: sc.fg, borderRadius: 999, transition: "width .6s cubic-bezier(.2,.8,.2,1)" }} /></div>
