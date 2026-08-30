@@ -40,7 +40,8 @@
  * Params (query on GET, JSON body on POST):
  *   to=a@b.com[,c@d.com]  recipients      (default: DIGEST_TO)
  *   boards=123,456        board ids       (default: the anyday_selected_boards cookie)
- *   preview=1             build it and return it, send nothing
+ *   preview=1             build it and return the parts as JSON, send nothing
+ *   preview=html          build it and return the EMAIL ITSELF, send nothing
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -110,7 +111,7 @@ async function authorizeDigest(req: NextRequest): Promise<Gate> {
 
 /* ---------------------------------------------------------------- content */
 
-interface Params { to: string[]; boards: string | null; preview: boolean }
+interface Params { to: string[]; boards: string | null; preview: boolean; previewHtml?: boolean }
 
 function parseRecipients(raw: string | null | undefined): string[] {
   return (raw || "")
@@ -164,7 +165,7 @@ async function handle(req: NextRequest, params: Params) {
     );
 
   const to = params.to.length ? params.to : parseRecipients(process.env.DIGEST_TO);
-  if (!to.length && !params.preview)
+  if (!to.length && !params.preview && !params.previewHtml)
     return NextResponse.json(
       { error: "אין נמען. הוסיפו ?to=<כתובת> או הגדירו DIGEST_TO." },
       { status: 400 }
@@ -186,6 +187,14 @@ async function handle(req: NextRequest, params: Params) {
     generatedAt: new Date(),
     sourceLabel: boards.map((b) => `"${b.name}"`).join(" · "),
   });
+
+  // `preview=html` renders the email itself, so a person can JUDGE it. The
+  // JSON form below stays as it was for anything reading the parts.
+  if (params.previewHtml) {
+    return new NextResponse(digest.html, {
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    });
+  }
 
   if (params.preview) {
     return NextResponse.json({
@@ -212,6 +221,7 @@ export async function GET(req: NextRequest) {
     to: parseRecipients(q.get("to")),
     boards: q.get("boards"),
     preview: q.get("preview") === "1" || q.get("dry") === "1",
+    previewHtml: q.get("preview") === "html",
   });
 }
 
