@@ -32,6 +32,7 @@ interface Blueprint {
 interface Props {
   /** Kept for backwards compatibility; the Monday token is resolved server-side. */
   apiToken?: string;
+  /** Kept for backwards compatibility; the board list is read server-side now. */
   existingBoards?: string[];
   onBoardCreated?: () => void;
 }
@@ -42,7 +43,7 @@ const COLUMN_ICONS: Record<string, string> = {
   timeline: "⟷", link: "🔗", checkbox: "☑", rating: "★", color_picker: "🎨",
 };
 
-export function SmartBuilder({ existingBoards, onBoardCreated }: Props) {
+export function SmartBuilder({ onBoardCreated }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -67,14 +68,11 @@ export function SmartBuilder({ existingBoards, onBoardCreated }: Props) {
     setLoading(true);
 
     try {
-      const boardNames = existingBoards?.join(", ") || "אין מידע";
+      /* רשימת הבורדים הקיימים נקראת בשרת עצמו — לא נשלחת מכאן. */
       const res = await fetch("/api/smart-builder", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: updated,
-          existingBoards: boardNames,
-        }),
+        body: JSON.stringify({ messages: updated }),
       });
 
       const data = await res.json();

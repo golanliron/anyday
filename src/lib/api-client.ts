@@ -66,16 +66,12 @@ export async function createItem(
   return data.item;
 }
 
-export async function analyzeBoardAI(
-  boardName: string,
-  itemsCount: number,
-  columns: string,
-  statusDistribution: string
-): Promise<AIAnalysis> {
+export async function analyzeBoardAI(boardId: string): Promise<AIAnalysis> {
+  // The server reads the board itself by id — the browser sends no board data.
   const res = await fetch("/api/analyze", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ boardName, itemsCount, columns, statusDistribution }),
+    body: JSON.stringify({ boardId }),
   });
   const data = await res.json();
   if (data.error) throw new Error(data.error);

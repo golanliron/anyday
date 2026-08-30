@@ -536,28 +536,6 @@ export function BoardDashboard({
     return () => clearInterval(interval);
   }, [loading, mode]);
 
-  function buildBoardContext() {
-    const statusDist: Record<string, number> = {};
-    items.forEach((item) =>
-      item.column_values.forEach((cv) => {
-        if (cv.column.type === "color" && cv.text)
-          statusDist[cv.text] = (statusDist[cv.text] || 0) + 1;
-      })
-    );
-    const sampleItems = items.slice(0, 30).map(it => {
-      const vals = it.column_values.filter(cv => cv.text).map(cv => `${cv.column.title}:${cv.text}`).join(", ");
-      return `${it.name} (${vals})`;
-    }).join(" | ");
-
-    return {
-      boardName: board.name,
-      itemsCount: board.items_count,
-      columns: board.columns.map((c) => `${c.id}: ${c.title} [${c.type}]`).join(", "),
-      statusDistribution: Object.entries(statusDist).map(([k, v]) => `${k}:${v}`).join(", ") || "אין",
-      sampleItems,
-    };
-  }
-
   async function sendMessage(text?: string) {
     const msg = text || input.trim();
     if (!msg || loading) return;
@@ -569,10 +547,11 @@ export function BoardDashboard({
     setLoadingMsg("חושב...");
 
     try {
+      /* השרת קורא את הבורד בעצמו לפי המזהה — הדפדפן לא שולח "נתוני בורד". */
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: msg, boardContext: buildBoardContext() }),
+        body: JSON.stringify({ message: msg, boardId }),
       });
       const data = await res.json();
       const reply = data.error ? `שגיאה: ${data.error}` : data.reply;
@@ -1835,39 +1814,18 @@ export function ReportPanel({ board, items, pc = "#FF2D87", ac = "var(--color-ac
   const [generated, setGenerated] = useState(false);
   const [streamError, setStreamError] = useState<string>("");
 
-  function buildBoardContext() {
-    const statusDist: Record<string, number> = {};
-    items.forEach((item) =>
-      item.column_values.forEach((cv) => {
-        if (cv.column.type === "color" && cv.text)
-          statusDist[cv.text] = (statusDist[cv.text] || 0) + 1;
-      })
-    );
-    const sampleItems = items.slice(0, 30).map(it => {
-      const vals = it.column_values.filter(cv => cv.text).map(cv => `${cv.column.title}:${cv.text}`).join(", ");
-      return `${it.name} (${vals})`;
-    }).join(" | ");
-
-    return {
-      boardName: board.name,
-      itemsCount: board.items_count,
-      columns: board.columns.map((c) => `${c.id}: ${c.title} [${c.type}]`).join(", "),
-      statusDistribution: Object.entries(statusDist).map(([k, v]) => `${k}:${v}`).join(", ") || "אין",
-      sampleItems,
-    };
-  }
-
   async function generateReport() {
     setGenerating(true);
     setReport("");
     setGenerated(false);
     setStreamError("");
     try {
+      /* השרת קורא את הבורד בעצמו לפי המזהה — הדפדפן לא שולח "נתוני בורד". */
       const res = await fetch("/api/report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          boardContext: buildBoardContext(),
+          boardId: board.id,
           reportType,
           orgName,
         }),
