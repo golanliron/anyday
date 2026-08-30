@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
 4 kpis, 3 automations.`;
 
     const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-6",
+      model: "claude-sonnet-5",
       max_tokens: 1200,
       messages: [{ role: "user", content: prompt }],
     });

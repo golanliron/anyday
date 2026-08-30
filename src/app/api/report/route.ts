@@ -136,7 +136,7 @@ ${orgName ? `שם הארגון: ${orgName}` : ""}
       try {
         const messageStream = anthropic.messages.stream(
           {
-            model: "claude-sonnet-4-6",
+            model: "claude-sonnet-5",
             max_tokens: 6000,
             system: systemPrompt,
             messages: [{ role: "user", content: prompt }],
