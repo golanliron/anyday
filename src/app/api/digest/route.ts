@@ -32,14 +32,25 @@
  *      A call that already carries this app's own session cookie is "inside"
  *      and does not need the secret.
  *
- * ── Scheduling ──────────────────────────────────────────────────────────────
- * Manual for now: call it and it sends. Wiring it to a schedule is one entry in
- * vercel.json — see the report; the code needs no change, because Vercel Cron
- * sends `Authorization: Bearer $CRON_SECRET`, which gate 2 already accepts.
+ * ── Two callers, two different paths ────────────────────────────────────────
+ * FROM A BROWSER: the session identifies one org. Boards come from the
+ * `anyday_selected_boards` cookie, recipients from DIGEST_TO. Unchanged.
+ *
+ * FROM A SCHEDULE (secret, no cookie): `runScheduled()`. There is no session to
+ * resolve an org from, so it reads the opted-in orgs out of the database and
+ * runs each on its own token, boards and recipients.
+ *
+ * That second path did not exist before, and its absence was invisible: the
+ * secret gate passed, and the request then died inside `requireMonday()` with
+ * "יש להתחבר כדי להמשיך". Storing the token was necessary but not sufficient —
+ * something still had to read it ON BEHALF OF a named org, and nothing did.
+ * Board choice had the same hole: it lived only in a browser cookie.
+ * See supabase-schema-v4.sql and /api/digest/settings.
  *
  * Params (query on GET, JSON body on POST):
- *   to=a@b.com[,c@d.com]  recipients      (default: DIGEST_TO)
- *   boards=123,456        board ids       (default: the anyday_selected_boards cookie)
+ *   to=a@b.com[,c@d.com]  recipients      (default: DIGEST_TO) — browser path
+ *   boards=123,456        board ids       (default: the cookie) — browser path
+ *   preview=1 / dry=1     on the schedule: report what WOULD be sent, send none
  *   preview=1             build it and return the parts as JSON, send nothing
  *   preview=html          build it and return the EMAIL ITSELF, send nothing
  */
@@ -51,6 +62,7 @@ import { requireMonday } from "@/lib/monday-server";
 import { fetchBoards, parseBoardIds, coverage, type FetchedBoard } from "@/lib/board-fetch";
 import { renderDigest, digestSection } from "@/lib/digest-email";
 import { sendEmail } from "@/lib/send-email";
+import { getDigestTargets, recordDigestRun } from "@/lib/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -79,11 +91,24 @@ function presentedSecret(req: NextRequest): string | null {
   return null;
 }
 
-type Gate = { ok: true } | { ok: false; status: number; error: string };
+type Gate =
+  | { ok: true; viaSecret: boolean; hasSession: boolean }
+  | { ok: false; status: number; error: string };
+
+/** Does this request carry a browser session at all? */
+async function hasBrowserSession(): Promise<boolean> {
+  try {
+    const jar = await cookies();
+    return jar.getAll().some((c) => c.name === "anyday_monday_token" || c.name.startsWith("sb-"));
+  } catch {
+    return false;
+  }
+}
 
 async function authorizeDigest(req: NextRequest): Promise<Gate> {
   const configured = (process.env.DIGEST_SECRET || "").trim();
   const presented = presentedSecret(req);
+  const session = await hasBrowserSession();
 
   if (presented) {
     // Fail closed: an unset secret must not mean "everything is allowed".
@@ -91,17 +116,12 @@ async function authorizeDigest(req: NextRequest): Promise<Gate> {
       return { ok: false, status: 503, error: "DIGEST_SECRET לא הוגדר בשרת, ולכן קריאות חיצוניות חסומות" };
     if (!secretMatches(presented, configured))
       return { ok: false, status: 401, error: "סוד שגוי" };
-    return { ok: true };
+    return { ok: true, viaSecret: true, hasSession: session };
   }
 
   // No secret presented → this must be a call from a signed-in browser.
-  try {
-    const jar = await cookies();
-    const inside = jar.getAll().some((c) => c.name === "anyday_monday_token" || c.name.startsWith("sb-"));
-    if (inside) return { ok: true };
-  } catch {
-    /* cookies() unavailable → treat as an outside call */
-  }
+  if (session) return { ok: true, viaSecret: false, hasSession: true };
+
   return {
     ok: false,
     status: 401,
@@ -149,9 +169,77 @@ async function sendDigest(to: string[], subject: string, html: string) {
 
 /* ----------------------------------------------------------------- handler */
 
+/**
+ * The scheduled run — the path a cron job takes, and the one that did not
+ * exist until now.
+ *
+ * A browser call resolves ONE org from the session cookie. A cron call has no
+ * cookie, so it goes the other way: it asks the database which organizations
+ * opted in, and handles each on its own token and its own boards. That is why
+ * `requireMonday()` is not used here — there is no user to be.
+ *
+ * One organization failing must not stop the rest, so every org is wrapped and
+ * its outcome recorded on its own row. The answer always names what was
+ * skipped and why: a scheduled job that quietly does nothing is the worst
+ * possible failure, because nobody finds out for a week.
+ */
+async function runScheduled(params: Params) {
+  const { targets, skipped } = await getDigestTargets();
+
+  const sent: { org: string; to: string[]; subject: string; id: string | null }[] = [];
+  const failed: { org: string; error: string }[] = [];
+
+  for (const t of targets) {
+    try {
+      const boards = await fetchBoards(t.boardIds, t.token);
+      if (!boards.length) {
+        const why = "הבורדים שנבחרו לא נמצאו או שאין אליהם הרשאה";
+        failed.push({ org: t.orgName, error: why });
+        await recordDigestRun(t.orgId, why);
+        continue;
+      }
+
+      const cov = coverage(boards);
+      const digest = renderDigest({
+        boards: boards.map(digestSection),
+        coverage: cov,
+        generatedAt: new Date(),
+        sourceLabel: boards.map((b) => `"${b.name}"`).join(" · "),
+      });
+
+      // A dry run reports exactly what it WOULD do, and sends nothing. This is
+      // how you inspect a schedule without mailing real people to find out.
+      if (params.preview || params.previewHtml) {
+        sent.push({ org: t.orgName, to: t.recipients, subject: digest.subject, id: null });
+        continue;
+      }
+
+      const id = await sendDigest(t.recipients, digest.subject, digest.html);
+      sent.push({ org: t.orgName, to: t.recipients, subject: digest.subject, id });
+      await recordDigestRun(t.orgId, null);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "שגיאה";
+      failed.push({ org: t.orgName, error: msg });
+      await recordDigestRun(t.orgId, msg);
+    }
+  }
+
+  return NextResponse.json({
+    scheduled: true,
+    dryRun: params.preview || params.previewHtml || false,
+    organizations: targets.length + skipped.length,
+    sent,
+    failed,
+    skipped,
+  });
+}
+
 async function handle(req: NextRequest, params: Params) {
   const gate = await authorizeDigest(req);
   if (!gate.ok) return NextResponse.json({ error: gate.error }, { status: gate.status });
+
+  // Authorised by the secret, with no browser behind it → this is the schedule.
+  if (gate.viaSecret && !gate.hasSession) return runScheduled(params);
 
   const guard = await requireMonday();
   if (!guard.ok) return NextResponse.json({ error: guard.error }, { status: guard.status });

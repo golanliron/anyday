@@ -6,6 +6,7 @@ import {
   isMondayAuthFailure,
   MONDAY_REAUTH_MESSAGE,
 } from "@/lib/monday-server";
+import { getOrgContext, saveDigestBoards } from "@/lib/session";
 
 const SEL_COOKIE = "anyday_selected_boards";
 
@@ -64,5 +65,16 @@ export async function POST(req: NextRequest) {
     httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production",
     path: "/", maxAge: 60 * 60 * 24 * 7,
   });
+  // Mirror the choice onto the org row. The cookie above stays the source of
+  // truth for this browser; the copy exists for the caller that has no browser
+  // — a scheduled digest, which otherwise has no idea which boards to report.
+  // Best-effort by design: picking boards must not fail because of this.
+  try {
+    const ctx = await getOrgContext();
+    if (ctx) await saveDigestBoards(ctx.orgId, ids);
+  } catch {
+    /* not signed in, or Supabase unconfigured — the cookie still works */
+  }
+
   return NextResponse.json({ ok: true, selected: ids });
 }

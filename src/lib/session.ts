@@ -146,3 +146,134 @@ export async function getMondayToken(orgId: string): Promise<string | null> {
     return null;
   }
 }
+
+/* ------------------------------------------------------------------ digest */
+
+/** One organization a scheduled run should email, with everything it needs. */
+export interface DigestTarget {
+  orgId: string;
+  orgName: string;
+  /** Already decrypted. Never leaves the server. */
+  token: string;
+  boardIds: string[];
+  recipients: string[];
+}
+
+/**
+ * Mirror the dashboard's board choice onto the org row.
+ *
+ * The browser keeps its own httpOnly cookie and that stays the source of truth
+ * for the screen. This copy exists for the one caller that has no browser: a
+ * scheduled run. Failure is deliberately non-fatal — a person picking boards
+ * must not see an error because a background feature could not be recorded.
+ */
+export async function saveDigestBoards(orgId: string, boardIds: string[]): Promise<void> {
+  const service = createServiceClient();
+  if (!service) return;
+  const { error } = await service
+    .from("organizations")
+    .update({ digest_board_ids: boardIds })
+    .eq("id", orgId);
+  if (error) console.warn("Could not mirror board selection for the digest:", error.message);
+}
+
+/** Record the outcome of a scheduled send, so a silent stop is still visible. */
+export async function recordDigestRun(orgId: string, error: string | null): Promise<void> {
+  const service = createServiceClient();
+  if (!service) return;
+  await service
+    .from("organizations")
+    .update(
+      error
+        ? { digest_last_error: error.slice(0, 500) }
+        : { digest_last_sent_at: new Date().toISOString(), digest_last_error: null }
+    )
+    .eq("id", orgId);
+}
+
+/**
+ * Every organization a scheduled digest should run for.
+ *
+ * This is the piece that made cron possible. `getOrgContext()` resolves an org
+ * from a browser session; a cron call has none, so it needs to go the other way
+ * — from the database outward. The service client is correct here precisely
+ * because there is no user to act as: the caller was already authorised by
+ * DIGEST_SECRET, and no org id is ever taken from client input.
+ *
+ * An org is included only when ALL of these hold:
+ *   - it opted in         (digest_enabled)
+ *   - Monday is connected (a token we can actually decrypt)
+ *   - boards were chosen  (nothing to report on otherwise)
+ *   - somebody receives it
+ *
+ * Anything that fails a check is skipped with a reason, never guessed at.
+ */
+export async function getDigestTargets(): Promise<{ targets: DigestTarget[]; skipped: { org: string; why: string }[] }> {
+  const targets: DigestTarget[] = [];
+  const skipped: { org: string; why: string }[] = [];
+
+  const service = createServiceClient();
+  if (!service) return { targets, skipped };
+
+  const { data: orgs, error } = await service
+    .from("organizations")
+    .select("id, name, monday_token_encrypted, digest_enabled, digest_board_ids, digest_recipients")
+    .eq("digest_enabled", true);
+
+  if (error) {
+    console.error("Reading digest targets failed:", error.message);
+    return { targets, skipped };
+  }
+
+  for (const org of orgs ?? []) {
+    const name = (org.name as string) ?? org.id;
+
+    if (!org.monday_token_encrypted) {
+      skipped.push({ org: name, why: "מונדיי לא מחובר" });
+      continue;
+    }
+
+    let token: string;
+    try {
+      token = decrypt(org.monday_token_encrypted as string);
+    } catch {
+      // A key rotation makes every stored token unreadable. Say so plainly
+      // instead of letting the run look merely empty.
+      skipped.push({ org: name, why: "הטוקן לא ניתן לפענוח — ייתכן ש-ENCRYPTION_KEY הוחלף" });
+      continue;
+    }
+
+    const boardIds = ((org.digest_board_ids as string[]) ?? []).filter((id) => /^\d+$/.test(id));
+    if (!boardIds.length) {
+      skipped.push({ org: name, why: "לא נבחרו בורדים" });
+      continue;
+    }
+
+    let recipients = ((org.digest_recipients as string[]) ?? []).filter(Boolean);
+    if (!recipients.length) recipients = await memberEmails(service, org.id as string);
+    if (!recipients.length) {
+      skipped.push({ org: name, why: "אין נמען" });
+      continue;
+    }
+
+    targets.push({ orgId: org.id as string, orgName: name, token, boardIds, recipients });
+  }
+
+  return { targets, skipped };
+}
+
+/** The login emails of an org's members — the fallback when none were set. */
+async function memberEmails(
+  service: ReturnType<typeof createServiceClient>,
+  orgId: string
+): Promise<string[]> {
+  if (!service) return [];
+  const { data: members } = await service.from("org_users").select("user_id").eq("org_id", orgId);
+  const out: string[] = [];
+  for (const m of members ?? []) {
+    const { data } = await service.auth.admin.getUserById(m.user_id as string);
+    const email = data?.user?.email;
+    if (email) out.push(email);
+  }
+  return out;
+}
