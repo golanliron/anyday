@@ -11,6 +11,7 @@ import { AlertsPanel, ImpactPanel, ReportPanel } from "@/components/board/BoardD
 import { SmartBuilder } from "@/components/builder/SmartBuilder";
 import type { MondayBoard, MondayItem } from "@/types";
 import { parseDelimited, headRow, normKey, looksLikeHeader } from "@/lib/sheet-to-board";
+import { useUser } from "@/lib/use-user";
 
 /* ===== "לוח חי" palette — colorful, energetic, NOT flat purple ===== */
 const C = {
@@ -227,6 +228,8 @@ function AppShell() {
    so the roof has to keep that promise before the old screen can close. */
 function ShellAside({ onDisconnected }: { onDisconnected: () => void }) {
   const synced = useSyncTime();
+  const me = useUser();
+  const greetName = me?.name || me?.email?.split("@")[0] || null;
   /* Same source /workspace uses - GET /api/monday/status via api-client. No new
      route: the account name is already in that answer. */
   const [account, setAccount] = useState<string | null>(null);
@@ -280,7 +283,10 @@ function ShellAside({ onDisconnected }: { onDisconnected: () => void }) {
           style={{ border: "1px solid #E6E4F0", background: "#fff", color: C.muted, borderRadius: 9, padding: "5px 12px", fontSize: 11.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
         >{"נתק"}</button>
       )}
-      <div style={{ fontSize: 13, fontWeight: 600, color: C.muted, borderInlineStart: "1px solid #ECEBF5", paddingInlineStart: 12 }}>שלום, לירון</div>
+      {/* The name comes from the signed-in user. It used to be a hardcoded
+          "שלום, לירון", which greeted every organization by one developer's
+          name. Falls back to a bare greeting rather than guessing. */}
+      <div style={{ fontSize: 13, fontWeight: 600, color: C.muted, borderInlineStart: "1px solid #ECEBF5", paddingInlineStart: 12 }}>{greetName ? `שלום, ${greetName}` : "שלום"}</div>
     </>
   );
 }
