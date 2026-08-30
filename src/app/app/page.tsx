@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import * as BI from "@/lib/board-intelligence";
 import { ModeShell, type Mode, type ShellTab } from "@/components/ui/ModeShell";
@@ -649,7 +649,7 @@ function ChartBody({ w, c }: { w: Widget; c: { fg: string; bg: string } }) {
           <b style={{ fontVariantNumeric: "tabular-nums", color: sc.fg }}>{r.n}</b>
         </button>
         <div style={{ height: 9, borderRadius: 999, background: "#F2F1F9", overflow: "hidden" }}><div style={{ width: `${(r.n / max) * 100}%`, height: "100%", background: sc.fg, borderRadius: 999, transition: "width .6s cubic-bezier(.2,.8,.2,1)" }} /></div>
-        {isOpen && canOpen && <div style={{ display: "flex", flexWrap: "wrap", gap: 5, padding: "6px 0 2px", animation: "fade .2s both" }}>{drill![r.label].slice(0, 40).map((name, j) => <span key={j} style={{ fontSize: 11.5, padding: "3px 9px", background: sc.bg, color: sc.fg, borderRadius: 999 }}>{name}</span>)}{drill![r.label].length > 40 && <span style={{ fontSize: 11, color: C.muted }}>ועוד {drill![r.label].length - 40}…</span>}<style>{`@keyframes fade{from{opacity:0}}`}</style></div>}
+        {isOpen && canOpen && <DrillList names={drill![r.label]} accent={sc.fg} />}
       </div>; })}</div>;
   }
   if (w.kind === "numberSummary")
@@ -658,6 +658,33 @@ function ChartBody({ w, c }: { w: Widget; c: { fg: string; bg: string } }) {
     return <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{items.slice(0, 10).map((n, i) => <span key={i} style={{ fontSize: 12, padding: "5px 11px", background: pick(i).bg, color: pick(i).fg, borderRadius: 999, fontWeight: 600 }}>{n}</span>)}</div>;
   }
   return null;
+}
+
+/* The names behind one segment. A sorted, scrollable column list — not a
+   cloud of chips — so 49 names read like a list and 400 don't need a cap. */
+function DrillList({ names, accent }: { names: string[]; accent: string }) {
+  const [q, setQ] = useState("");
+  const sorted = useMemo(() => [...names].sort((a, b) => a.localeCompare(b, "he")), [names]);
+  const shown = q.trim() ? sorted.filter((n) => n.toLowerCase().includes(q.trim().toLowerCase())) : sorted;
+  return (
+    <div style={{ background: "#F8F7FC", border: "1px solid #ECEBF5", borderRadius: 12, padding: "8px 10px", marginTop: 2, animation: "fade .2s both" }}>
+      {names.length > 12 && (
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="חיפוש בשמות…" aria-label="חיפוש בשמות"
+          style={{ width: "100%", boxSizing: "border-box", fontSize: 12.5, padding: "6px 10px", border: "1px solid #E4E2F0", borderRadius: 8, background: C.panel, color: C.ink, fontFamily: "inherit", marginBottom: 6, outline: "none" }} />
+      )}
+      <div style={{ maxHeight: 216, overflowY: "auto", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", columnGap: 12, rowGap: 1 }}>
+        {shown.map((name, j) => (
+          <div key={j} title={name} style={{ fontSize: 12.5, lineHeight: "22px", padding: "1px 8px", borderInlineStart: `2px solid ${accent}`, color: C.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</div>
+        ))}
+        {shown.length === 0 && <div style={{ fontSize: 12, color: C.muted, padding: "6px 8px" }}>אין שם שמתאים ל"{q.trim()}"</div>}
+      </div>
+      <div style={{ fontSize: 11, color: C.muted, marginTop: 6, paddingTop: 6, borderTop: "1px dashed #EEEDF5", display: "flex", justifyContent: "space-between" }}>
+        <span>{q.trim() ? `${shown.length} מתוך ${names.length}` : `${names.length} שמות`}</span>
+        {names.length > 8 && <span style={{ opacity: .7 }}>לפי א״ב</span>}
+      </div>
+      <style>{`@keyframes fade{from{opacity:0}}`}</style>
+    </div>
+  );
 }
 
 /* ===== people = FULL MANAGEMENT (edit/add/delete/import → writes to Monday) ===== */
