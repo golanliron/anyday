@@ -1,22 +1,26 @@
 "use client";
 
 /**
- * /sheet — a dashboard from a file you already have, with no account at all.
+ * /sheet — a dashboard from a sheet you already have, with no account at all.
  *
- * ── The one rule this screen is built around ──
- * THE FILE NEVER LEAVES THE BROWSER. It is read with `File.text()`, parsed by
- * `@/lib/sheet-to-board`, and handed straight to `board-intelligence` — all of
- * it inside this tab. There is no upload, no API route, no cookie, no
- * localStorage. Closing the tab is the delete button.
+ * ── Two ways in, each with its own honest promise ──
+ * A FILE never leaves the browser: read with `File.text()`, parsed by
+ * `@/lib/sheet-to-board`, handed straight to `board-intelligence` — all inside
+ * this tab. No upload, no cookie, no localStorage; closing the tab deletes it.
+ * A GOOGLE SHEETS LINK is fetched by our own /api/sheets, because Google's CSV
+ * export sends no CORS headers and a browser cannot read it directly. The
+ * bytes pass through the server and are not stored or logged; parsing still
+ * happens HERE, by the same reader a dropped file gets. The pill in the top
+ * bar states whichever promise applies.
  *
- * That is not only a privacy promise. It is what lets AnyDay be shown to
- * somebody who has never heard of us, using her own real data, without asking
- * her to hand it over first.
+ * A link is also what makes this screen near-live: "משיכה מחדש" re-reads the
+ * sheet as it is right now, keeping any type the user corrected (column ids
+ * are positional, so they survive a refetch).
  *
  * ── What this screen is NOT ──
- * A view. There is no writing back, no automation, no digest — a file cannot be
- * updated, and pretending otherwise would be the "כאילו" this product exists to
- * end. A live system is Monday, connected.
+ * Still a view. No writing back, no automation, no digest — pretending
+ * otherwise would be the "כאילו" this product exists to end. A live system
+ * that ACTS is Monday, connected.
  */
 
 import { useMemo, useRef, useState } from "react";
@@ -65,11 +69,18 @@ const TYPE_ORDER: SheetType[] = ["status", "date", "numbers", "text"];
 
 type Stage = "drop" | "confirm" | "dash";
 
+/** Where the current plan came from — it decides the privacy pill, and whether
+ *  a refetch is even possible. */
+type Source = { kind: "file" } | { kind: "link"; url: string };
+
 export default function SheetPage() {
   const [plan, setPlan] = useState<SheetPlan | null>(null);
   const [types, setTypes] = useState<Record<string, SheetType>>({});
   const [stage, setStage] = useState<Stage>("drop");
   const [err, setErr] = useState<string | null>(null);
+  const [source, setSource] = useState<Source>({ kind: "file" });
+  const [busy, setBusy] = useState(false);
+  const [fetchedAt, setFetchedAt] = useState<Date | null>(null);
 
   /* The plan the user actually approved: the guess, plus any type she corrected.
      Rebuilt on every render from the same inputs, so nothing is cached behind
@@ -79,14 +90,43 @@ export default function SheetPage() {
     [plan, types],
   );
 
-  function reset() { setPlan(null); setTypes({}); setStage("drop"); setErr(null); }
+  function reset() { setPlan(null); setTypes({}); setStage("drop"); setErr(null); setSource({ kind: "file" }); setBusy(false); setFetchedAt(null); }
+
+  /** The link path's single network call: our own /api/sheets brings the CSV,
+   *  and the SAME `readSheet` that reads a dropped file reads it here. */
+  async function fetchLink(url: string): Promise<SheetPlan | null> {
+    const r = await fetch("/api/sheets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url }) });
+    const d = await r.json().catch(() => ({ error: "תשובה לא צפויה מהשרת." }));
+    if (!r.ok || d.error) { setErr(d.error || "לא הצלחתי למשוך את הגיליון."); return null; }
+    const p = readSheet(d.title || "גיליון Google", d.csv || "");
+    if (p.empty) { setErr("לא נמצאו נתונים בגיליון — כל השורות ריקות."); return null; }
+    return p;
+  }
+
+  async function fromLink(url: string) {
+    setErr(null); setBusy(true);
+    try {
+      const p = await fetchLink(url);
+      if (p) { setPlan(p); setTypes({}); setSource({ kind: "link", url }); setFetchedAt(new Date()); setStage("confirm"); }
+    } finally { setBusy(false); }
+  }
+
+  /** Re-read the sheet as it is right now. Type corrections are kept: column
+   *  ids are positional, so they still point at the same columns. */
+  async function refresh() {
+    if (source.kind !== "link") return;
+    setErr(null); setBusy(true);
+    try { const p = await fetchLink(source.url); if (p) { setPlan(p); setFetchedAt(new Date()); } }
+    finally { setBusy(false); }
+  }
 
   /**
    * Reading a file. `f.text()` resolves inside this tab — the bytes go nowhere
-   * else, and there is deliberately no fetch() anywhere in this component.
+   * else. The only fetch() in this file belongs to the LINK path, and it talks
+   * to our own /api/sheets and to nobody else.
    */
   async function accept(f: File) {
-    setErr(null);
+    setErr(null); setSource({ kind: "file" }); setFetchedAt(null);
     if (/\.(xlsx|xls|ods)$/i.test(f.name)) {
       setErr("קובץ אקסל עדיין לא נקרא כאן. בתוך אקסל: קובץ ← שמירה בשם ← CSV UTF-8, ואז לגרור לכאן את הגיליון שנשמר.");
       return;
@@ -101,9 +141,9 @@ export default function SheetPage() {
 
   return (
     <div dir="rtl" style={{ minHeight: "100vh", background: C.bg, color: C.ink, fontFamily: FONT }}>
-      <TopBar onReset={plan ? reset : undefined} fileName={plan?.fileName} />
+      <TopBar onReset={plan ? reset : undefined} fileName={plan?.fileName} live={source.kind === "link"} />
       <main style={{ maxWidth: 1080, margin: "0 auto", padding: "26px 20px 70px" }}>
-        {stage === "drop" && <DropStage onFile={accept} err={err} />}
+        {stage === "drop" && <DropStage onFile={accept} onLink={fromLink} busy={busy} err={err} />}
         {stage === "confirm" && finalPlan && (
           <ConfirmStage
             plan={finalPlan}
@@ -112,13 +152,18 @@ export default function SheetPage() {
             onBack={reset}
           />
         )}
-        {stage === "dash" && finalPlan && <DashStage plan={finalPlan} onBack={() => setStage("confirm")} onReset={reset} />}
+        {stage === "dash" && finalPlan && (
+          <DashStage
+            plan={finalPlan} onBack={() => setStage("confirm")} onReset={reset}
+            live={source.kind === "link" ? { busy, fetchedAt, err, onRefresh: refresh } : undefined}
+          />
+        )}
       </main>
     </div>
   );
 }
 
-function TopBar({ onReset, fileName }: { onReset?: () => void; fileName?: string }) {
+function TopBar({ onReset, fileName, live }: { onReset?: () => void; fileName?: string; live?: boolean }) {
   return (
     <header style={{ height: 58, background: C.panel, borderBottom: `1px solid ${C.line}`, display: "flex", alignItems: "center", gap: 14, padding: "0 22px", position: "sticky", top: 0, zIndex: 20 }}>
       <Link href="/" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", color: C.ink }}>
@@ -130,27 +175,29 @@ function TopBar({ onReset, fileName }: { onReset?: () => void; fileName?: string
       </span>
       {fileName && <span style={{ fontSize: 12, color: C.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 260 }}>{fileName}</span>}
       <div style={{ marginInlineStart: "auto", display: "flex", gap: 8, alignItems: "center" }}>
-        <PrivacyPill />
-        {onReset && <button onClick={onReset} style={btnGhost}>קובץ אחר</button>}
+        <PrivacyPill live={live} />
+        {onReset && <button onClick={onReset} style={btnGhost}>מקור אחר</button>}
       </div>
     </header>
   );
 }
 
-/** The promise, said in the chrome and not only in the small print. */
-function PrivacyPill() {
+/** The promise, said in the chrome and not only in the small print — and said
+ *  per source, because the two paths genuinely differ. */
+function PrivacyPill({ live }: { live?: boolean }) {
   return (
     <span style={{ fontSize: 11.5, fontWeight: 700, color: "#0B8F76", background: C.tealL, borderRadius: 999, padding: "5px 11px", whiteSpace: "nowrap" }}>
-      🔒 הקובץ נשאר בדפדפן שלך
+      {live ? "🔒 לא נשמר אצלנו דבר" : "🔒 הקובץ נשאר בדפדפן שלך"}
     </span>
   );
 }
 
 /* ── stage 1: choose a file ─────────────────────────────────────────────── */
 
-function DropStage({ onFile, err }: { onFile: (f: File) => void; err: string | null }) {
+function DropStage({ onFile, onLink, busy, err }: { onFile: (f: File) => void; onLink: (url: string) => void; busy: boolean; err: string | null }) {
   const ref = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
+  const [link, setLink] = useState("");
 
   return (
     <div style={{ maxWidth: 620, margin: "24px auto 0" }}>
@@ -158,8 +205,8 @@ function DropStage({ onFile, err }: { onFile: (f: File) => void; err: string | n
         גיליון אחד, ומיד דשבורד
       </h1>
       <p style={{ fontSize: 14.5, color: C.muted, lineHeight: 1.7, margin: "0 0 22px" }}>
-        גררו לכאן קובץ CSV. המערכת קוראת אותו, מזהה לבד מה יש בכל עמודה, ובונה תמונת מצב.
-        בלי חשבון, בלי הרשמה, ובלי להעלות שום דבר לשרת.
+        גררו קובץ CSV — או הדביקו קישור לגיליון Google. המערכת קוראת, מזהה לבד מה יש
+        בכל עמודה, ובונה תמונת מצב. בלי חשבון ובלי הרשמה.
       </p>
 
       <div
@@ -181,6 +228,30 @@ function DropStage({ onFile, err }: { onFile: (f: File) => void; err: string | n
           onChange={(e) => { const f = e.target.files?.[0]; if (ref.current) ref.current.value = ""; if (f) onFile(f); }}
           style={{ display: "none" }}
         />
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "18px 0 14px" }}>
+        <span style={{ flex: 1, height: 1, background: C.line }} />
+        <span style={{ fontSize: 12, color: C.muted, fontWeight: 700 }}>או מגיליון Google — בלי להוריד קובץ</span>
+        <span style={{ flex: 1, height: 1, background: C.line }} />
+      </div>
+
+      <div style={{ ...card, padding: "16px 18px" }}>
+        <form onSubmit={(e) => { e.preventDefault(); if (link.trim() && !busy) onLink(link.trim()); }} style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <input
+            value={link} onChange={(e) => setLink(e.target.value)} dir="ltr" inputMode="url"
+            placeholder="https://docs.google.com/spreadsheets/d/…" aria-label="קישור לגיליון Google Sheets"
+            style={{ flex: 1, minWidth: 220, fontFamily: FONT, fontSize: 13, padding: "10px 12px", borderRadius: 10, border: `1px solid ${C.line}`, background: C.panel, color: C.ink, outline: "none" }}
+          />
+          <button type="submit" disabled={busy || !link.trim()} style={{ ...btnPrimary, opacity: busy || !link.trim() ? .55 : 1, cursor: busy ? "wait" : "pointer" }}>
+            {busy ? "מושך…" : "משיכה מהגיליון"}
+          </button>
+        </form>
+        <div style={{ marginTop: 9, fontSize: 12, color: C.muted, lineHeight: 1.7 }}>
+          הגיליון צריך להיות משותף כ״כל מי שיש לו הקישור״. במסלול הזה הנתונים עוברים דרך
+          השרת שלנו בדרך אליכם — ולא נשמרים בו. ומהדשבורד אפשר למשוך מחדש בכל רגע,
+          אז התמונה נשארת עדכנית בלי להוריד קובץ שוב.
+        </div>
       </div>
 
       {err && (
@@ -224,7 +295,7 @@ function ConfirmStage({ plan, onType, onGo, onBack }: {
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
-      <h1 style={{ fontSize: 23, fontWeight: 800, margin: "0 0 6px" }}>זה מה שזיהיתי בקובץ</h1>
+      <h1 style={{ fontSize: 23, fontWeight: 800, margin: "0 0 6px" }}>זה מה שזיהיתי בנתונים</h1>
       <p style={{ fontSize: 13.5, color: C.muted, margin: "0 0 16px", lineHeight: 1.7 }}>
         הטיפוס של כל עמודה נקבע לפי <b style={{ color: C.ink }}>צורת הנתונים</b> שבתוכה — לא לפי שם העמודה.
         זה ניחוש, ואפשר לתקן אותו כאן לפני שמחשבים משהו.
@@ -283,8 +354,8 @@ function ConfirmStage({ plan, onType, onGo, onBack }: {
 
       <div style={{ display: "flex", gap: 10, marginTop: 18, alignItems: "center", flexWrap: "wrap" }}>
         <button onClick={onGo} style={btnPrimary}>בניית הדשבורד</button>
-        <button onClick={onBack} style={btnGhost}>קובץ אחר</button>
-        <span style={{ fontSize: 12, color: C.muted }}>עדיין לא נשלח שום דבר לשום מקום.</span>
+        <button onClick={onBack} style={btnGhost}>מקור אחר</button>
+        <span style={{ fontSize: 12, color: C.muted }}>עדיין לא חושב שום דבר.</span>
       </div>
     </div>
   );
@@ -307,7 +378,9 @@ function whyText(type: SheetType, identifier: boolean, filled: number, unique: n
 
 /* ── stage 3: the dashboard, straight from the engine ───────────────────── */
 
-function DashStage({ plan, onBack, onReset }: { plan: SheetPlan; onBack: () => void; onReset: () => void }) {
+type LiveInfo = { busy: boolean; fetchedAt: Date | null; err: string | null; onRefresh: () => void };
+
+function DashStage({ plan, onBack, onReset, live }: { plan: SheetPlan; onBack: () => void; onReset: () => void; live?: LiveInfo }) {
   const board = useMemo(() => planToBoard(plan), [plan]);
   const kpis = useMemo(() => BI.headlineKpis(board), [board]);
   const tones = useMemo(() => BI.statusTones(board), [board]);
@@ -330,7 +403,13 @@ function DashStage({ plan, onBack, onReset }: { plan: SheetPlan; onBack: () => v
 
   return (
     <div>
-      <ViewOnlyBanner />
+      <ViewOnlyBanner live={!!live} />
+
+      {live?.err && (
+        <div style={{ ...card, borderColor: `${C.coral}55`, padding: "11px 15px", marginBottom: 14, fontSize: 12.5, lineHeight: 1.7 }}>
+          המשיכה האחרונה נכשלה, והמוצג הוא המצב הקודם. {live.err}
+        </div>
+      )}
 
       <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", margin: "0 0 14px" }}>
         <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>{board.name}</h1>
@@ -340,9 +419,19 @@ function DashStage({ plan, onBack, onReset }: { plan: SheetPlan; onBack: () => v
           {plan.blankRows ? ` · ${plural(plan.blankRows, "שורה ריקה אחת דולגה", "שורות ריקות דולגו")}` : ""}
           {plan.droppedColumns.length ? ` · ${plural(plan.droppedColumns.length, "עמודה ריקה אחת הושמטה", "עמודות ריקות הושמטו")}` : ""}
         </span>
-        <div style={{ marginInlineStart: "auto", display: "flex", gap: 8 }}>
+        <div style={{ marginInlineStart: "auto", display: "flex", gap: 8, alignItems: "center" }}>
+          {live && (
+            <>
+              <span style={{ fontSize: 11.5, color: C.muted, fontVariantNumeric: "tabular-nums" }}>
+                {live.fetchedAt ? `נמשך ב-${live.fetchedAt.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}` : ""}
+              </span>
+              <button onClick={live.onRefresh} disabled={live.busy} style={{ ...btnGhost, color: C.grape, borderColor: `${C.grape}55`, cursor: live.busy ? "wait" : "pointer" }}>
+                {live.busy ? "מושך…" : "↻ משיכה מחדש"}
+              </button>
+            </>
+          )}
           <button onClick={onBack} style={btnGhost}>תיקון טיפוסים</button>
-          <button onClick={onReset} style={btnGhost}>קובץ אחר</button>
+          <button onClick={onReset} style={btnGhost}>מקור אחר</button>
         </div>
       </div>
 
@@ -365,15 +454,17 @@ function DashStage({ plan, onBack, onReset }: { plan: SheetPlan; onBack: () => v
   );
 }
 
-function ViewOnlyBanner() {
+function ViewOnlyBanner({ live }: { live: boolean }) {
   return (
     <div style={{ ...card, padding: "13px 17px", marginBottom: 16, display: "flex", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
       <span style={{ fontSize: 18, lineHeight: 1.2 }}>👁️</span>
       <div style={{ flex: 1, minWidth: 240 }}>
         <div style={{ fontSize: 13.5, fontWeight: 800, marginBottom: 3 }}>תצוגה בלבד</div>
         <div style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.7 }}>
-          הכול חושב כאן בדפדפן, מהקובץ שבחרתם. הוא לא נשלח לשרת ולא נשמר — סגירת הלשונית מוחקת אותו.
-          אין כתיבה חזרה לקובץ, אין אוטומציות ואין דיוור. למערכת חיה שמתעדכנת לבד — <Link href="/app" style={{ color: C.grape, fontWeight: 700 }}>מחברים את Monday</Link>.
+          {live
+            ? "הכול חושב כאן בדפדפן, מהגיליון שקישרתם. הנתונים עוברים דרך השרת שלנו בדרך לכאן ולא נשמרים בו. ״משיכה מחדש״ קוראת את הגיליון כפי שהוא עכשיו."
+            : "הכול חושב כאן בדפדפן, מהקובץ שבחרתם. הוא לא נשלח לשרת ולא נשמר — סגירת הלשונית מוחקת אותו."}
+          {" "}אין כתיבה חזרה, אין אוטומציות ואין דיוור. למערכת חיה שגם פועלת — <Link href="/app" style={{ color: C.grape, fontWeight: 700 }}>מחברים את Monday</Link>.
         </div>
       </div>
     </div>
