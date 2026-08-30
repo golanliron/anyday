@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { mondayQuery } from "@/lib/monday-server";
+import { mondayQuery, personalTokenAllowed } from "@/lib/monday-server";
 
 const COOKIE = "anyday_monday_token";
 
@@ -9,8 +9,20 @@ const COOKIE = "anyday_monday_token";
  * We validate it against the real Monday API, then store it in an httpOnly
  * cookie so the browser never keeps it and every later request is authorized.
  * (Production path is OAuth; this is the fast lane for a single-operator test.)
+ *
+ * Gated behind the SAME flag as MONDAY_PERSONAL_TOKEN: in a public deployment
+ * this route was a token oracle — paste any stolen Monday token and the server
+ * tells you whether it works and whose account it opens. DELETE stays open so
+ * a stale cookie can always be cleared.
  */
 export async function POST(req: NextRequest) {
+  if (!personalTokenAllowed()) {
+    return NextResponse.json(
+      { error: "מסלול הדבקת-טוקן כבוי בפריסה. חברו את Monday דרך OAuth." },
+      { status: 403 }
+    );
+  }
+
   const { token } = await req.json().catch(() => ({ token: "" }));
   if (!token || typeof token !== "string" || token.trim().length < 20) {
     return NextResponse.json({ error: "הטוקן קצר מדי או חסר" }, { status: 400 });

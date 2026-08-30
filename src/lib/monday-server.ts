@@ -90,8 +90,13 @@ export type MondayGuardResult =
  * — fine on a laptop, catastrophic on a public URL. So it is enabled only in
  * development, unless the operator has deliberately opted in with
  * ANYDAY_ALLOW_PERSONAL_TOKEN=true (documented as single-tenant only).
+ *
+ * Exported because it gates BOTH single-operator paths: the env token below
+ * and the paste-a-token cookie flow (/api/connect sets it, requireMonday reads
+ * it). Gating only one of them left the more dangerous one — the cookie, which
+ * any visitor can mint for themselves — as the only ungated door.
  */
-function personalTokenAllowed(): boolean {
+export function personalTokenAllowed(): boolean {
   if (process.env.NODE_ENV !== "production") return true;
   return process.env.ANYDAY_ALLOW_PERSONAL_TOKEN === "true";
 }
@@ -127,12 +132,17 @@ export async function requireMonday(): Promise<MondayGuardResult> {
 
   // Cookie token set by the /welcome → /connect flow (each visitor pastes their
   // OWN token; it is httpOnly + sameSite so it stays scoped to that browser).
-  try {
-    const cookieToken = (await cookies()).get("anyday_monday_token")?.value;
-    if (cookieToken && cookieToken.length > 20) {
-      return { ok: true, token: cookieToken, orgId: "personal" };
-    }
-  } catch { /* cookies() unavailable in some contexts — fall through */ }
+  // Honored ONLY where the single-operator mode is allowed: the value is never
+  // verified here, so in a public deployment any self-minted cookie longer
+  // than 20 characters would walk straight through this gate.
+  if (personalTokenAllowed()) {
+    try {
+      const cookieToken = (await cookies()).get("anyday_monday_token")?.value;
+      if (cookieToken && cookieToken.length > 20) {
+        return { ok: true, token: cookieToken, orgId: "personal" };
+      }
+    } catch { /* cookies() unavailable in some contexts — fall through */ }
+  }
 
   const ctx = await getOrgContext();
   if (!ctx) return { ok: false, status: 401, error: "יש להתחבר כדי להמשיך" };
