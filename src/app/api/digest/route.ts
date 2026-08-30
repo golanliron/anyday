@@ -26,8 +26,9 @@
  * This route SENDS MAIL, so a public address would be a flooding tool. Two
  * gates, both must pass:
  *   1. `requireMonday()` — same gate as every other Monday-touching route.
- *   2. A caller from outside the browser must present `DIGEST_SECRET` in a
- *      header (`x-digest-secret`, or `Authorization: Bearer <secret>`).
+ *   2. A caller from outside the browser must present `CRON_SECRET` (what
+ *      Vercel Cron sends) or `DIGEST_SECRET` (a hand-made call) in a header
+ *      (`x-digest-secret`, or `Authorization: Bearer <secret>`).
  *      Never in the query string — query strings land in server logs.
  *      A call that already carries this app's own session cookie is "inside"
  *      and does not need the secret.
@@ -79,6 +80,28 @@ function secretMatches(presented: string, configured: string): boolean {
   return timingSafeEqual(a, b);
 }
 
+/**
+ * The secrets this route accepts. Either one alone is enough.
+ *
+ * `CRON_SECRET` is listed because it is the name the PLATFORM sends, not one
+ * this file chose: a `crons` entry in vercel.json is invoked as
+ * `Authorization: Bearer $CRON_SECRET`. This route used to compare against
+ * `DIGEST_SECRET` only, so a correctly configured deployment answered 401 every
+ * Sunday morning and told nobody — the schedule looked wired and sent no mail.
+ * A digest that silently stops is the exact failure this feature exists to end.
+ *
+ * `DIGEST_SECRET` stays accepted so a hand-made call — curl, a preview run —
+ * keeps working with the name it has always had.
+ *
+ * They do NOT have to hold the same value, and that is the point: requiring
+ * them to match is a rule someone has to remember, and the two would drift.
+ */
+function configuredSecrets(): string[] {
+  return [process.env.CRON_SECRET, process.env.DIGEST_SECRET]
+    .map((s) => (s || "").trim())
+    .filter((s) => s.length > 0);
+}
+
 /** The secret is accepted from headers only — a query string is logged. */
 function presentedSecret(req: NextRequest): string | null {
   const direct = req.headers.get("x-digest-secret");
@@ -106,15 +129,15 @@ async function hasBrowserSession(): Promise<boolean> {
 }
 
 async function authorizeDigest(req: NextRequest): Promise<Gate> {
-  const configured = (process.env.DIGEST_SECRET || "").trim();
+  const configured = configuredSecrets();
   const presented = presentedSecret(req);
   const session = await hasBrowserSession();
 
   if (presented) {
     // Fail closed: an unset secret must not mean "everything is allowed".
-    if (!configured)
-      return { ok: false, status: 503, error: "DIGEST_SECRET לא הוגדר בשרת, ולכן קריאות חיצוניות חסומות" };
-    if (!secretMatches(presented, configured))
+    if (configured.length === 0)
+      return { ok: false, status: 503, error: "CRON_SECRET / DIGEST_SECRET לא הוגדרו בשרת, ולכן קריאות חיצוניות חסומות" };
+    if (!configured.some((c) => secretMatches(presented, c)))
       return { ok: false, status: 401, error: "סוד שגוי" };
     return { ok: true, viaSecret: true, hasSession: session };
   }
