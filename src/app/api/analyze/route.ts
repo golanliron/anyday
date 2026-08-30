@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { requireMonday } from "@/lib/monday-server";
 import { fetchBoards } from "@/lib/board-fetch";
 import { aiBoardContext } from "@/lib/ai-board-context";
+import { rateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -12,6 +13,11 @@ export async function POST(req: NextRequest) {
   // בלעדיו כל מי שיודע את הכתובת שורף את מפתח ה-AI של השרת.
   const guard = await requireMonday();
   if (!guard.ok) return NextResponse.json({ error: guard.error }, { status: guard.status });
+
+  const rl = rateLimit("analyze", guard.orgId, 10, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json({ error: RATE_LIMIT_MESSAGE }, { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } });
+  }
 
   try {
     const { boardId } = await req.json();

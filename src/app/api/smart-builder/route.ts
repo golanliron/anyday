@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { mondayQuery, requireMonday } from "@/lib/monday-server";
+import { rateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -18,10 +19,23 @@ export async function POST(req: NextRequest) {
     const guard = await requireMonday();
     if (!guard.ok) return NextResponse.json({ error: guard.error }, { status: guard.status });
 
+    const rl = rateLimit("smart-builder", guard.orgId, 15, 60_000);
+    if (!rl.ok) {
+      return NextResponse.json({ error: RATE_LIMIT_MESSAGE }, { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } });
+    }
+
     const { messages } = await req.json();
 
     if (!messages?.length) {
       return NextResponse.json({ error: "חסרה הודעה" }, { status: 400 });
+    }
+    // השיחה כולה נשלחת בכל סבב; תקרה על מה שמגיע למודל (ולחשבון).
+    if (messages.length > 40) {
+      return NextResponse.json({ error: "השיחה ארוכה מדי — התחילו שיחה חדשה" }, { status: 413 });
+    }
+    const totalChars = (messages as Message[]).reduce((s, m) => s + (m?.content?.length || 0), 0);
+    if (totalChars > 60_000) {
+      return NextResponse.json({ error: "השיחה ארוכה מדי — התחילו שיחה חדשה" }, { status: 413 });
     }
 
     // The account's existing boards are read HERE, with the org's own token —

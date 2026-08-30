@@ -7,6 +7,7 @@ import {
   writePayload, looksLikeWrite, resolveName, valueCandidates, matchLabel,
   labelsHtml, escapeHtml, labelsByColumn, STATUS_COLUMNS_QUERY,
 } from "@/lib/chat-intent";
+import { rateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
 
 /**
  * The AnyDay chat brain. Reads the user's SELECTED Monday boards live and
@@ -20,9 +21,17 @@ export async function POST(req: NextRequest) {
   const guard = await requireMonday();
   if (!guard.ok) return NextResponse.json({ error: guard.error }, { status: guard.status });
 
+  const rl = rateLimit("ask", guard.orgId, 30, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json({ error: RATE_LIMIT_MESSAGE }, { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } });
+  }
+
   const { question } = await req.json().catch(() => ({ question: "" }));
   if (!question || typeof question !== "string") {
     return NextResponse.json({ error: "חסרה שאלה" }, { status: 400 });
+  }
+  if (question.length > 2000) {
+    return NextResponse.json({ error: "השאלה ארוכה מדי (עד 2000 תווים)" }, { status: 413 });
   }
 
   // Which boards to read (selected, else the busiest few).

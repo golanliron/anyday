@@ -70,6 +70,7 @@ import { fetchBoards, parseBoardIds, coverage, type FetchedBoard } from "@/lib/b
 import { renderDigest, digestSection } from "@/lib/digest-email";
 import { sendEmail } from "@/lib/send-email";
 import { getDigestTargets, recordDigestRun } from "@/lib/session";
+import { rateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -256,6 +257,12 @@ async function handle(req: NextRequest, params: Params) {
 
   const guard = await requireMonday();
   if (!guard.ok) return NextResponse.json({ error: guard.error }, { status: guard.status });
+
+  // תצוגה מקדימה = קריאת בורדים מלאה. תקרה פר ארגון; מסלול הקרון לא נוגע בזה.
+  const rl = rateLimit("digest-preview", guard.orgId, 10, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json({ error: RATE_LIMIT_MESSAGE }, { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } });
+  }
 
   // A cookie-authorised call may LOOK but never SEND: a sending GET behind
   // cookie auth is a one-click CSRF that mails board data to an attacker.

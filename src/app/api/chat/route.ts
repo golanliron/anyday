@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { requireMonday } from "@/lib/monday-server";
 import { fetchBoards } from "@/lib/board-fetch";
 import { aiBoardContext, aiBoardContextText } from "@/lib/ai-board-context";
+import { rateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -70,11 +71,20 @@ export async function POST(req: NextRequest) {
   const guard = await requireMonday();
   if (!guard.ok) return NextResponse.json({ error: guard.error }, { status: guard.status });
 
+  // כל קריאה כאן = קריאת בורד מלאה + קריאת מודל בתשלום. תקרה פר ארגון.
+  const rl = rateLimit("chat", guard.orgId, 20, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json({ error: RATE_LIMIT_MESSAGE }, { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } });
+  }
+
   try {
     const { message, boardId } = await req.json();
 
-    if (!message) {
+    if (!message || typeof message !== "string") {
       return NextResponse.json({ error: "חסרה שאלה" }, { status: 400 });
+    }
+    if (message.length > 4000) {
+      return NextResponse.json({ error: "ההודעה ארוכה מדי (עד 4000 תווים)" }, { status: 413 });
     }
     if (!boardId || !/^\d+$/.test(String(boardId))) {
       return NextResponse.json({ error: "חסר מזהה בורד" }, { status: 400 });

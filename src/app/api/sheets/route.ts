@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimit, clientIp, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
 
 /**
  * POST /api/sheets — fetch a shared Google Sheet as CSV, for /sheet.
@@ -49,8 +50,15 @@ function titleFrom(res: Response): string | null {
 }
 
 export async function POST(req: NextRequest) {
+  // הנתיב ציבורי במכוון (מסלול /sheet עובד בלי חשבון), ולכן התקרה לפי IP:
+  // בלעדיה הוא צינור חינמי להורדת CSV-ים מגוגל דרך השרת שלנו.
+  const rl = rateLimit("sheets", clientIp(req), 10, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json({ error: RATE_LIMIT_MESSAGE }, { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } });
+  }
+
   const { url } = await req.json().catch(() => ({}));
-  if (!url || typeof url !== "string") {
+  if (!url || typeof url !== "string" || url.length > 2000) {
     return NextResponse.json({ error: "חסר קישור לגיליון." }, { status: 400 });
   }
   const target = csvUrlFor(url.trim());

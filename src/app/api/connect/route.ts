@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { mondayQuery, personalTokenAllowed } from "@/lib/monday-server";
+import { rateLimit, clientIp, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
 
 const COOKIE = "anyday_monday_token";
 
@@ -21,6 +22,12 @@ export async function POST(req: NextRequest) {
       { error: "מסלול הדבקת-טוקן כבוי בפריסה. חברו את Monday דרך OAuth." },
       { status: 403 }
     );
+  }
+
+  // גם כשהמסלול מותר, הוא בודק טוקנים מול Monday — לא נותנים לסקריפט לנחש בהם.
+  const rl = rateLimit("connect", clientIp(req), 5, 5 * 60_000);
+  if (!rl.ok) {
+    return NextResponse.json({ error: RATE_LIMIT_MESSAGE }, { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } });
   }
 
   const { token } = await req.json().catch(() => ({ token: "" }));

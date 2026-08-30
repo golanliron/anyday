@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { requireMonday } from "@/lib/monday-server";
 import { fetchBoards } from "@/lib/board-fetch";
 import { aiBoardContext, aiBoardContextText } from "@/lib/ai-board-context";
+import { rateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -18,6 +19,12 @@ export async function POST(req: NextRequest) {
   const guard = await requireMonday();
   if (!guard.ok) return NextResponse.json({ error: guard.error }, { status: guard.status });
 
+  // הדוח הוא הקריאה הכבדה ביותר כאן (עד 6000 טוקנים, קרוב לדקה) — תקרה נמוכה.
+  const rl = rateLimit("report", guard.orgId, 4, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json({ error: RATE_LIMIT_MESSAGE }, { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } });
+  }
+
   let boardId: string | undefined;
   let reportType: string | undefined;
   let orgName: string | undefined;
@@ -27,7 +34,8 @@ export async function POST(req: NextRequest) {
     boardId = typeof body?.boardId === "string" || typeof body?.boardId === "number"
       ? String(body.boardId) : undefined;
     reportType = body?.reportType;
-    orgName = body?.orgName;
+    // שם ארגון הוא תווית קצרה; כל דבר אחר לא נכנס לפרומפט.
+    orgName = typeof body?.orgName === "string" ? body.orgName.slice(0, 200) : undefined;
   } catch {
     return NextResponse.json({ error: "בקשה לא תקינה" }, { status: 400 });
   }
