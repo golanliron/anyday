@@ -1,31 +1,58 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { createHash, timingSafeEqual } from "crypto";
 import { getOrgContext } from "@/lib/session";
 import { createServiceClient } from "@/lib/supabase-server";
 import { encrypt } from "@/lib/encryption";
 
 const MONDAY_API = "https://api.monday.com/v2";
+const OAUTH_STATE_COOKIE = "anyday_oauth_state";
+
+/** Constant-time compare that tolerates different lengths (hash first). */
+function nonceMatches(presented: string, stored: string): boolean {
+  const a = createHash("sha256").update(presented).digest();
+  const b = createHash("sha256").update(stored).digest();
+  return timingSafeEqual(a, b);
+}
 
 /**
  * Monday OAuth callback.
  * Exchanges the code for an access token, encrypts it, and stores it on the
  * logged-in user's organization. The token NEVER travels back to the browser.
  * On return we redirect to the originating page with a simple success flag.
+ *
+ * The `state` parameter must equal the nonce the authorize route planted in
+ * this browser's cookie (RFC 6749 §10.12) — see authorize/route.ts for the
+ * attack this stops. The return path comes from that cookie too, never from
+ * the URL. The cookie is single-use: every exit from here clears it.
  */
 export async function GET(request: NextRequest) {
   const origin = request.nextUrl.origin;
   const code = request.nextUrl.searchParams.get("code");
-  const state = request.nextUrl.searchParams.get("state") || "/";
-  const returnTo = state.startsWith("/") ? state : "/"; // prevent open redirect
+  const state = request.nextUrl.searchParams.get("state") || "";
 
-  const fail = (reason: string) =>
-    Response.redirect(`${origin}${returnTo}?monday_error=${reason}`);
+  const stored = request.cookies.get(OAUTH_STATE_COOKIE)?.value || "";
+  const sep = stored.indexOf("|");
+  const nonce = sep > 0 ? stored.slice(0, sep) : "";
+  const cookieReturnTo = sep > 0 ? stored.slice(sep + 1) : "/";
+  const returnTo = cookieReturnTo.startsWith("/") ? cookieReturnTo : "/"; // prevent open redirect
+
+  const redirect = (to: string) => {
+    const res = NextResponse.redirect(`${origin}${to}`);
+    res.cookies.set(OAUTH_STATE_COOKIE, "", { path: "/api/monday-oauth", maxAge: 0 });
+    return res;
+  };
+  const fail = (reason: string) => redirect(`${returnTo}?monday_error=${reason}`);
+
+  // No nonce in this browser, or a state that does not match it → this
+  // callback was not started here. Refuse before touching the code.
+  if (!nonce || !state || !nonceMatches(state, nonce)) return fail("state_mismatch");
 
   if (!code) return fail("missing_code");
 
   // The user must be logged into AnyDay so we know which org to attach to.
   const ctx = await getOrgContext();
   if (!ctx) {
-    return Response.redirect(`${origin}/login?callbackUrl=${encodeURIComponent(returnTo)}`);
+    return redirect(`/login?callbackUrl=${encodeURIComponent(returnTo)}`);
   }
 
   // 1. Exchange the code for an access token.
@@ -87,5 +114,5 @@ export async function GET(request: NextRequest) {
     return fail("store_failed");
   }
 
-  return Response.redirect(`${origin}${returnTo}?monday=connected`);
+  return redirect(`${returnTo}?monday=connected`);
 }

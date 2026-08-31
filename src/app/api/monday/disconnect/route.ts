@@ -10,6 +10,11 @@ export async function POST() {
   const ctx = await getOrgContext();
   if (!ctx) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
+  // ניתוק Monday משבית את הארגון כולו — דיגסט, דוחות, הכל. החלטת אדמין.
+  // הקיר האמיתי הוא RLS (v5: עדכון organizations = אדמין); כאן רק סירוב ברור.
+  if (ctx.role !== "admin")
+    return NextResponse.json({ error: "רק אדמין יכול לנתק את חיבור ה-Monday" }, { status: 403 });
+
   const service = createServiceClient();
   if (!service) return NextResponse.json({ error: "storage_unavailable" }, { status: 500 });
 

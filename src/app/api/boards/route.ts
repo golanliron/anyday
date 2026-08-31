@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { mondayQuery, requireMonday } from "@/lib/monday-server";
+import {
+  mondayQuery,
+  requireMonday,
+  isMondayAuthFailure,
+  MONDAY_REAUTH_MESSAGE,
+} from "@/lib/monday-server";
+import { getOrgContext, saveDigestBoards } from "@/lib/session";
 
 const SEL_COOKIE = "anyday_selected_boards";
 
@@ -25,6 +31,17 @@ export async function GET() {
     const selected = (await cookies()).get(SEL_COOKIE)?.value?.split(",").filter(Boolean) || [];
     return NextResponse.json({ boards, selected });
   } catch (e: unknown) {
+    // A token that Monday itself rejects (HTTP 401) is a broken CONNECTION, not
+    // a broken service: answer 409 so the connect gate in /app catches it and
+    // offers a way back in. Decided on the status code alone — never on the
+    // wording of the message (RULES §1).
+    // The cookie is deliberately NOT cleared here: if Monday is the one having
+    // a bad day, deleting a valid token would be the real damage.
+    if (isMondayAuthFailure(e)) {
+      return NextResponse.json({ error: MONDAY_REAUTH_MESSAGE }, { status: 409 });
+    }
+    // Everything else — Monday down, network failure, GraphQL error — stays 502
+    // with the real message, so nobody is told to reconnect for no reason.
     return NextResponse.json({ error: e instanceof Error ? e.message : "שגיאה" }, { status: 502 });
   }
 }
@@ -40,10 +57,24 @@ export async function POST(req: NextRequest) {
   if (!Array.isArray(boardIds) || boardIds.length === 0) {
     return NextResponse.json({ error: "בחרו לפחות בורד אחד" }, { status: 400 });
   }
-  const ids = boardIds.slice(0, 2).map(String);
+  // only real (numeric) Monday ids reach the cookie — it is later used to
+  // build queries, so junk must not get stored there in the first place
+  const ids = boardIds.map(String).filter((id: string) => /^\d+$/.test(id)).slice(0, 2);
+  if (!ids.length) return NextResponse.json({ error: "מזהה בורד לא תקין" }, { status: 400 });
   (await cookies()).set(SEL_COOKIE, ids.join(","), {
     httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production",
     path: "/", maxAge: 60 * 60 * 24 * 7,
   });
+  // Mirror the choice onto the org row. The cookie above stays the source of
+  // truth for this browser; the copy exists for the caller that has no browser
+  // — a scheduled digest, which otherwise has no idea which boards to report.
+  // Best-effort by design: picking boards must not fail because of this.
+  try {
+    const ctx = await getOrgContext();
+    if (ctx) await saveDigestBoards(ctx.orgId, ids);
+  } catch {
+    /* not signed in, or Supabase unconfigured — the cookie still works */
+  }
+
   return NextResponse.json({ ok: true, selected: ids });
 }

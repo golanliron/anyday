@@ -63,13 +63,12 @@ function Welcome({ onNext }: { onNext: () => void }) {
         ברוכים הבאים ל-Any<span style={{ color: PURPLE }}>Day</span>
       </h1>
       <p style={{ fontSize: 16, color: "#6B7385", lineHeight: 1.6, margin: "0 auto 32px", maxWidth: "36ch" }}>
-        מדברים עם ה-Monday של העמותה בשפה רגילה. שאלות, ניתוחים, אוטומציות ושאלונים — הכל במקום אחד.
+        מדברים עם ה-Monday של הארגון בשפה רגילה. שאלות, ניתוחים ואוטומציות — הכל במקום אחד.
       </p>
       <div style={{ background: "#fff", border: "1px solid #ECEDF3", borderRadius: 22, padding: "26px 28px", boxShadow: "0 12px 40px -14px rgba(70,55,140,.18)", textAlign: "right" }}>
         {[
           ["📊", "שאלו על הבורדים", "וקבלו ניתוח, לא טבלה"],
           ["⚡", "בנו אוטומציות", "בעברית, בלי נוסחאות"],
-          ["📋", "צרו שאלונים", "שמתחברים לבורד אוטומטית"],
         ].map(([ic, t, s]) => (
           <div key={t} style={{ display: "flex", alignItems: "center", gap: 13, padding: "10px 0" }}>
             <div style={{ width: 40, height: 40, borderRadius: 12, background: "#EFEBFE", display: "grid", placeItems: "center", fontSize: 19, flexShrink: 0 }}>{ic}</div>
@@ -78,7 +77,9 @@ function Welcome({ onNext }: { onNext: () => void }) {
         ))}
         <button onClick={onNext} style={btnPrimary}>חברו את ה-Monday שלכם →</button>
       </div>
-      <p style={{ fontSize: 12, color: "#AEB3C6", marginTop: 18 }}>🔒 קריאה בלבד · הנתונים נשארים אצלכם</p>
+      {/* ההבטחה הזו הפכה נכונה רק אחרי B-3: כל פעולת AI עוברת מסך אישור,
+          וכל כתיבה אחרת (עריכה, ארכוב, אוטומציה) יוצאת מלחיצה מפורשת שלכם. */}
+      <p style={{ fontSize: 12, color: "#AEB3C6", marginTop: 18 }}>🔒 קוראים כדי להציג; כותבים רק פעולות שאתם יוזמים ומאשרים · ניתן לנתק בכל רגע ממונדיי</p>
       <style>{fadeCss}</style>
     </div>
   );
@@ -124,7 +125,7 @@ function Waking({ account, onDone }: { account: string | null; onDone: () => voi
   const steps = [
     "מתחבר לחשבון Monday...",
     "קורא את הבורדים שלכם...",
-    "מזהה מבנה: מוטבים, תוכניות, מלווים...",
+    "מזהה מבנה: פריטים, סטטוסים, תאריכים ואחראים...",
     "בונה את תמונת המצב...",
   ];
   const [i, setI] = useState(0);

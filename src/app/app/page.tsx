@@ -1,6 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useSearchParams } from "next/navigation";
+import * as BI from "@/lib/board-intelligence";
+import { ModeShell, type Mode, type ShellTab } from "@/components/ui/ModeShell";
+import { loadBoard, disconnectMonday, getMondayStatus } from "@/lib/api-client";
+import DataEditPanel from "@/components/board/DataEditPanel";
+import { AutomationsPanel } from "@/components/board/AutomationsPanel";
+import { AlertsPanel, ImpactPanel, ReportPanel } from "@/components/board/BoardDashboard";
+import { SmartBuilder } from "@/components/builder/SmartBuilder";
+import type { MondayBoard, MondayItem } from "@/types";
+import { parseDelimited, headRow, normKey, looksLikeHeader } from "@/lib/sheet-to-board";
+import { useUser } from "@/lib/use-user";
 
 /* ===== "לוח חי" palette — colorful, energetic, NOT flat purple ===== */
 const C = {
@@ -17,29 +28,151 @@ const PALETTE = [
   { fg: C.amber, bg: C.amberL }, { fg: C.sky, bg: C.skyL }, { fg: C.lime, bg: C.limeL },
 ];
 const pick = (i: number) => PALETTE[i % PALETTE.length];
-const statusColor = (s: string) => /סיים|בוגר|פעיל|הושלם|אושר|גויס|התגייס/.test(s) ? { fg: "#0B8F76", bg: C.tealL }
-  : /סיכון|תקוע|דחוף|בעיה|נשיר/.test(s) ? { fg: "#D63A5C", bg: C.coralL }
-  : /ממתין|בטיפול|בבדיק/.test(s) ? { fg: "#C77A00", bg: C.amberL } : { fg: C.muted, bg: "#F0EFF6" };
+/* A status value is painted by its TONE, which arrives from the server. The
+   server derives that tone from the colour the Monday board itself gave the
+   label (see board-intelligence), so this screen recognises no word at all -
+   a board in Hebrew, Arabic or English colours identically. */
+type Tone = "risk" | "progress" | "done" | "neutral";
+type ToneMap = Record<string, string>;
+const TONE_STYLE: Record<Tone, { fg: string; bg: string }> = {
+  done: { fg: "#0B8F76", bg: C.tealL },
+  risk: { fg: "#D63A5C", bg: C.coralL },
+  progress: { fg: "#C77A00", bg: C.amberL },
+  neutral: { fg: C.muted, bg: "#F0EFF6" },
+};
+const toneStyle = (t?: string) => TONE_STYLE[t as Tone] || TONE_STYLE.neutral;
 
-type Tab = "dash" | "people" | "insights";
+/**
+ * The ONE breakpoint of /app: below 900px the two-column shell folds to one.
+ * Everything in this page is styled inline, so a media query cannot reach it —
+ * this hook is the media query. Initial value false (SSR has no window);
+ * hydration corrects it on the first paint of a phone.
+ */
+function useIsNarrow(): boolean {
+  const [narrow, setNarrow] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 900px)");
+    const apply = () => setNarrow(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+  return narrow;
+}
+
+/* The eight tab names are locked by Meytal (28.8.2026) — see the approved
+   mockup in anyday-ops. Do not reword them. "AnyDay" is the product name on the
+   roof only; the chat tab is called צ׳אט־פקודות. */
+const TABS: Record<Mode, ShellTab[]> = {
+  manage: [
+    { id: "dash", label: "לוח חי" },
+    { id: "people", label: "משתתפים" },
+    { id: "insights", label: "תובנות" },
+  ],
+  act: [
+    { id: "chat", label: "צ׳אט־פקודות" },
+    { id: "bulk", label: "עריכה קבוצתית" },
+    { id: "autos", label: "אוטומציות" },
+    { id: "reports", label: "דוחות" },
+    { id: "build", label: "בניית בורד" },
+  ],
+};
+const readMode = (v: string | null): Mode => (v === "act" ? "act" : "manage");
+const readTab = (m: Mode, v: string | null): string =>
+  TABS[m].some((t) => t.id === v) ? (v as string) : TABS[m][0].id;
 interface Widget { kind: string; title: string; source: string; data: unknown; }
 interface KPI { icon: string; n: number; label: string; tone: string; }
 interface PField { colId: string; title: string; type: string; text: string }
 interface Person { id: string; name: string; boardId: string; boardName: string; status: string; owner: string; date: string; fields: PField[]; }
 interface BoardOpt { id: string; name: string; items: number; }
+/** A board's real columns, as /api/people reports them (id + title + TYPE). */
+interface BoardCol { id: string; title: string; type: string }
+interface BoardInfo { id: string; name: string; columns: BoardCol[] }
+
+/** How much of the board the numbers are actually based on (see board-fetch). */
+interface Cov { loaded: number; total: number; truncated: boolean; note: string }
+
+/** What GET /api/boards answers with: boards, or an error carried by a status. */
+interface BoardsReply { boards?: BoardOpt[]; selected?: string[]; error?: string }
+/**
+ * Which of /app's entry screens the visitor is owed right now.
+ *  checking - the first answer from /api/boards has not arrived yet
+ *  open     - there is a Monday connection; the normal screens take over
+ *  connect  - no connection: show the connect gate, not an empty picker
+ *  error    - something else broke; say so instead of blaming the connection
+ */
+type GateState =
+  | { kind: "checking" }
+  | { kind: "open" }
+  | { kind: "connect" }
+  | { kind: "error"; msg: string };
 
 export default function AppPage() {
+  // useSearchParams needs a Suspense boundary for the statically-rendered shell.
+  return (
+    <Suspense fallback={<Spinner label="טוען..." />}>
+      <AppShell />
+    </Suspense>
+  );
+}
+
+/**
+ * The shared roof. Two modes live here: "ניהול", where the system shows you what
+ * it already worked out, and "פעולות", where you ask it to do something. Both
+ * render existing screens unchanged — this component only decides which one is
+ * on screen, and keeps that choice in the URL so a view can be linked to.
+ */
+function AppShell() {
+  const params = useSearchParams();
   const [boards, setBoards] = useState<BoardOpt[]>([]);
   const [active, setActive] = useState<string[]>([]);   // boards shown on dashboard
   const [ready, setReady] = useState(false);
-  const [tab, setTab] = useState<Tab>("dash");
+  const [mode, setMode] = useState<Mode>(() => readMode(params.get("mode")));
+  const [tab, setTab] = useState<string>(() => readTab(readMode(params.get("mode")), params.get("tab")));
   const [chatOpen, setChatOpen] = useState(false);
+  /* /app is the front door now, so the answer from /api/boards can no longer be
+     dropped on the floor: without a Monday connection it is the ONLY thing that
+     knows a gate has to be shown. Kept as "checking" until the first answer, so
+     nobody is left staring at a board picker that was never going to fill. */
+  const [gate, setGate] = useState<GateState>({ kind: "checking" });
+  /* The bubble's chat engine lives here, not inside the bubble, so a section of
+     "תובנות" can hand it a question — the same move /workspace made when an
+     alert asked the AI what to do. */
+  const fabChat = useChat();
+  /* מעל early-returns של השער — hook לא נקרא בתנאי לעולם. */
+  const narrow = useIsNarrow();
 
   useEffect(() => {
-    fetch("/api/boards", { cache: "no-store" }).then((r) => r.json()).then((d) => {
-      if (d.boards) { setBoards(d.boards.filter((b: BoardOpt) => b.items > 0)); if (d.selected?.length) { setActive(d.selected); setReady(true); } }
-    });
+    fetch("/api/boards", { cache: "no-store" })
+      .then(async (r) => ({ status: r.status, body: (await r.json().catch(() => ({}))) as BoardsReply }))
+      .then(({ status, body }) => {
+        if (body.boards) {
+          /* An EMPTY board is still a board. "בניית בורד" creates one that is
+             born with zero items, so filtering those out made the tab produce
+             something the user could never reach again. Everything is listed;
+             the screens say plainly when a board has no records yet. */
+          setBoards(body.boards);
+          if (body.selected?.length) { setActive(body.selected); setReady(true); }
+          setGate({ kind: "open" });
+          return;
+        }
+        /* 401 = nobody signed in yet, 409 = signed in but Monday is not
+           connected (or its token expired). Those two, and only those two, are
+           answered by the connect gate. The HTTP STATUS decides - never the
+           wording of the message, which is free to change or be translated. */
+        if (status === 401 || status === 409) { setGate({ kind: "connect" }); return; }
+        setGate({ kind: "error", msg: body.error || "לא הצלחנו לטעון את הבורדים." });
+      })
+      .catch(() => setGate({ kind: "error", msg: "לא הצלחנו לפנות לשרת. בדקו את החיבור לרשת ונסו שוב." }));
   }, []);
+
+  /* Mirror mode+tab into the address bar. replaceState keeps it a client-side
+     move: no reload, no new history entry per click, but the URL is shareable. */
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    q.set("mode", mode); q.set("tab", tab);
+    window.history.replaceState({}, "", `${window.location.pathname}?${q.toString()}`);
+  }, [mode, tab]);
 
   async function begin(ids: string[]) {
     await fetch("/api/boards", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ boardIds: ids }) });
@@ -50,52 +183,137 @@ export default function AppPage() {
     await fetch("/api/boards", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ boardIds: ids }) });
     setActive(ids);
   }
+  /* Switching mode lands on that mode's first tab — a tab id is only valid
+     inside its own mode. */
+  function goMode(m: Mode) { setMode(m); setTab(TABS[m][0].id); }
+  /* After a disconnect there is no Monday behind the screens any more, so the
+     whole session is wound back to the state /api/boards would report on a
+     fresh visit: the connect gate T11 built - never a blank screen. */
+  function handleDisconnected() {
+    setBoards([]); setActive([]); setReady(false); setGate({ kind: "connect" });
+  }
+  /* Called after "בניית בורד" creates one, so it shows up in the board picker
+     without a page reload. */
+  async function reloadBoards() {
+    const d = await fetch("/api/boards", { cache: "no-store" }).then((r) => r.json());
+    /* No items>0 filter here either - a board that was just built is empty by
+       definition, and this reload exists precisely to surface it. */
+    if (d.boards) setBoards(d.boards as BoardOpt[]);
+  }
 
+  if (gate.kind === "checking") return <GateFrame><Spinner label={"בודקים חיבור..."} /></GateFrame>;
+  if (gate.kind === "connect") return <ConnectGate />;
+  if (gate.kind === "error") return <GateFrame><ErrBox msg={gate.msg} /></GateFrame>;
   if (!ready) return <Onboard boards={boards} onStart={begin} />;
 
-  const activeNames = boards.filter((b) => active.includes(b.id)).map((b) => b.name);
+  const activeBoards = boards.filter((b) => active.includes(b.id));
+  const activeNames = activeBoards.map((b) => b.name);
+  /* Every board on the roof is still empty - the dashboard is not broken, it
+     simply has nothing to count yet, and has to say so. */
+  const activeAllEmpty = activeBoards.length > 0 && activeBoards.every((b) => b.items === 0);
 
   return (
-    <div dir="rtl" style={{ minHeight: "100vh", background: C.bg, fontFamily: "Rubik, Assistant, Heebo, system-ui, sans-serif", color: C.ink }}>
-      <TopBar tab={tab} setTab={setTab} />
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 250px", maxWidth: 1260, margin: "0 auto", gap: 18, padding: "20px 20px 90px" }}>
-        <main style={{ minWidth: 0 }}>
-          {tab === "dash" && <Dashboard key={active.join()} names={activeNames} />}
-          {tab === "people" && <People />}
-          {tab === "insights" && <Insights key={active.join()} names={activeNames} />}
-        </main>
-        <BoardRail boards={boards} active={active} setActive={setActiveBoards} />
-      </div>
-      <ChatFab open={chatOpen} setOpen={setChatOpen} tab={tab} names={activeNames} />
-    </div>
+    <ModeShell mode={mode} onModeChange={goMode} tabs={TABS[mode]} tab={tab} onTabChange={setTab} aside={<ShellAside onDisconnected={handleDisconnected} />}>
+      {mode === "manage" ? (
+        <>
+          {/* מסך צר = טור אחד, והסרגל הופך לכפתור מעל התוכן (B-6): הדיגסט
+              נפתח בטלפון, וזה המסך שהוא מוביל אליו. */}
+          <div style={{ display: "grid", gridTemplateColumns: narrow ? "1fr" : "1fr 250px", maxWidth: 1260, margin: "0 auto", gap: 18, padding: narrow ? "14px 14px 90px" : "20px 20px 90px" }}>
+            {narrow && <BoardRail boards={boards} active={active} setActive={setActiveBoards} collapsible />}
+            <main style={{ minWidth: 0 }}>
+              {tab === "dash" && <Dashboard key={active.join()} names={activeNames} empty={activeAllEmpty} />}
+              {tab === "people" && <People />}
+              {tab === "insights" && (
+                <>
+                  <Insights key={active.join()} names={activeNames} />
+                  <BoardScans
+                    key={`scan-${active.join()}`}
+                    boards={boards.filter((b) => active.includes(b.id))}
+                    onAskAI={(q) => { setChatOpen(true); void fabChat.send(q); }}
+                  />
+                </>
+              )}
+            </main>
+            {!narrow && <BoardRail boards={boards} active={active} setActive={setActiveBoards} />}
+          </div>
+          <ChatFab chat={fabChat} open={chatOpen} setOpen={setChatOpen} tab={tab} names={activeNames} />
+        </>
+      ) : (
+        <ActMode tab={tab} boards={boards} names={activeNames} onBoardsChanged={reloadBoards} />
+      )}
+    </ModeShell>
   );
 }
 
-/* ===== top bar + tabs ===== */
-function TopBar({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
+/* ===== right-hand slot of the top bar =====
+   Two things /workspace had and the roof did not: WHICH Monday account you are
+   looking at, and a way out of it. The home page promises "אפשר לנתק בלחיצה",
+   so the roof has to keep that promise before the old screen can close. */
+function ShellAside({ onDisconnected }: { onDisconnected: () => void }) {
   const synced = useSyncTime();
+  const me = useUser();
+  const greetName = me?.name || me?.email?.split("@")[0] || null;
+  /* Same source /workspace uses - GET /api/monday/status via api-client. No new
+     route: the account name is already in that answer. */
+  const [account, setAccount] = useState<string | null>(null);
+  /* Disconnecting is reversible but surprising, so it is a two-step: the button
+     turns into an explicit confirm, and only the second click writes anything. */
+  const [asking, setAsking] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    getMondayStatus()
+      .then((st) => { if (alive) setAccount(st.accountName ?? null); })
+      .catch(() => { /* the name is a nicety - its absence must not break the bar */ });
+    return () => { alive = false; };
+  }, []);
+
+  async function confirmDisconnect() {
+    setBusy(true);
+    try { await disconnectMonday(); onDisconnected(); }
+    finally { setBusy(false); setAsking(false); }
+  }
+
   return (
-    <header style={{ height: 58, background: C.panel, borderBottom: `1px solid #ECEBF5`, display: "flex", alignItems: "center", gap: 16, padding: "0 22px", position: "sticky", top: 0, zIndex: 20 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-        <div style={{ width: 32, height: 32, borderRadius: 10, background: `linear-gradient(135deg,${C.grape},${C.coral})`, color: "#fff", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 16 }}>A</div>
-        <div style={{ fontWeight: 800, fontSize: 18 }}>Any<span style={{ color: C.grape }}>Day</span></div>
-      </div>
-      <nav style={{ display: "flex", gap: 2, marginInlineStart: 8 }}>
-        {([["dash", "לוח חי"], ["people", "משתתפים"], ["insights", "תובנות"]] as [Tab, string][]).map(([id, label]) => (
-          <button key={id} onClick={() => setTab(id)} style={{ position: "relative", padding: "18px 14px", fontSize: 14, fontWeight: tab === id ? 700 : 500, color: tab === id ? C.grape : C.muted, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
-            {label}
-            {tab === id && <span style={{ position: "absolute", bottom: 0, insetInline: 8, height: 3, borderRadius: "3px 3px 0 0", background: C.grape }} />}
-          </button>
-        ))}
-      </nav>
-      <div style={{ marginInlineStart: "auto", display: "flex", alignItems: "center", gap: 6 }} title={`מסונכרן עם Monday · ${synced}`}>
+    <>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }} title={`מסונכרן עם Monday · ${synced}`}>
         <span style={{ width: 6, height: 6, borderRadius: "50%", background: C.teal }} />
         <span style={{ fontSize: 10.5, color: "#9E9CB2" }}>מסונכרן {synced}</span>
       </div>
-      <div style={{ fontSize: 13, fontWeight: 600, color: C.muted, borderInlineStart: "1px solid #ECEBF5", paddingInlineStart: 12 }}>שלום, לירון</div>
-    </header>
+      <div
+        style={{ fontSize: 11.5, fontWeight: 600, color: C.muted, maxWidth: 170, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", borderInlineStart: "1px solid #ECEBF5", paddingInlineStart: 12 }}
+        title={account ? `מחוברים לחשבון ${account} ב-Monday` : "מחוברים ל-Monday"}
+      >
+        <span style={{ color: C.teal, marginInlineEnd: 5 }}>●</span>{account || "מחובר ל-Monday"}
+      </div>
+      {asking ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+          <span style={{ fontSize: 11.5, color: C.ink }}>לנתק את Monday?</span>
+          <button
+            onClick={confirmDisconnect} disabled={busy}
+            style={{ border: "none", background: C.coral, color: "#fff", borderRadius: 9, padding: "5px 11px", fontSize: 11.5, fontWeight: 700, cursor: busy ? "wait" : "pointer", fontFamily: "inherit" }}
+          >{busy ? "מנתקים…" : "כן, נתקו"}</button>
+          <button
+            onClick={() => setAsking(false)} disabled={busy}
+            style={{ border: "1px solid #E6E4F0", background: "#fff", color: C.muted, borderRadius: 9, padding: "5px 11px", fontSize: 11.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+          >{"ביטול"}</button>
+        </div>
+      ) : (
+        <button
+          onClick={() => setAsking(true)}
+          title="מנתקים את החיבור ל-Monday. הנתונים ב-Monday לא משתנים, ואפשר להתחבר שוב."
+          style={{ border: "1px solid #E6E4F0", background: "#fff", color: C.muted, borderRadius: 9, padding: "5px 12px", fontSize: 11.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+        >{"נתק"}</button>
+      )}
+      {/* The name comes from the signed-in user. It used to be a hardcoded
+          "שלום, לירון", which greeted every organization by one developer's
+          name. Falls back to a bare greeting rather than guessing. */}
+      <div style={{ fontSize: 13, fontWeight: 600, color: C.muted, borderInlineStart: "1px solid #ECEBF5", paddingInlineStart: 12 }}>{greetName ? `שלום, ${greetName}` : "שלום"}</div>
+    </>
   );
 }
+
 function useSyncTime() {
   const [t, setT] = useState("עכשיו");
   useEffect(() => {
@@ -107,17 +325,49 @@ function useSyncTime() {
 }
 
 /* ===== board rail (right) ===== */
-function BoardRail({ boards, active, setActive }: { boards: BoardOpt[]; active: string[]; setActive: (ids: string[]) => void }) {
+function BoardRail({ boards, active, setActive, collapsible }: { boards: BoardOpt[]; active: string[]; setActive: (ids: string[]) => void; collapsible?: boolean }) {
   const [q, setQ] = useState("");
   const shown = boards.filter((b) => b.name.includes(q));
   function toggle(id: string) {
     const next = active.includes(id) ? active.filter((x) => x !== id) : active.length < 2 ? [...active, id] : [active[1], id];
     setActive(next);
   }
+
+  /* במסך צר הסרגל לא יכול לשבת בצד — הוא היה דוחס את התוכן לפס. הוא הופך
+     ל-<details>: שורת כפתור שמראה מה נבחר, ונפתחת רק כשרוצים להחליף. */
+  if (collapsible) {
+    const activeNames = boards.filter((b) => active.includes(b.id)).map((b) => b.name);
+    return (
+      <details style={{ background: C.panel, border: `1px solid #ECEBF5`, borderRadius: 16 }}>
+        <summary style={{ listStyle: "none", cursor: "pointer", padding: "12px 14px", display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 700 }}>
+          <span aria-hidden style={{ fontSize: 11, color: C.muted }}>▾</span>
+          בורדים על הלוח
+          <span style={{ fontWeight: 500, color: C.muted, fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {activeNames.length ? `· ${activeNames.join(" + ")}` : "· לא נבחרו"}
+          </span>
+        </summary>
+        <div style={{ padding: "0 14px 14px" }}>
+          <RailBody q={q} setQ={setQ} shown={shown} active={active} toggle={toggle} />
+        </div>
+      </details>
+    );
+  }
+
   return (
     <aside style={{ position: "sticky", top: 78, alignSelf: "start", background: C.panel, border: `1px solid #ECEBF5`, borderRadius: 20, padding: 14, maxHeight: "calc(100vh - 100px)", overflowY: "auto" }}>
       <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".05em", color: C.muted, marginBottom: 4 }}>בורדים על הלוח</div>
       <div style={{ fontSize: 11, color: "#A9A7BE", marginBottom: 10 }}>סמנו עד 2 · הלוח מתעדכן מיד</div>
+      <RailBody q={q} setQ={setQ} shown={shown} active={active} toggle={toggle} />
+    </aside>
+  );
+}
+
+/** תוכן הסרגל — משותף לגרסת הצד ולגרסת הכפתור, כדי שלא יהיו שתי אמיתות. */
+function RailBody({ q, setQ, shown, active, toggle }: {
+  q: string; setQ: (v: string) => void; shown: BoardOpt[]; active: string[]; toggle: (id: string) => void;
+}) {
+  return (
+    <>
       <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="חיפוש..." style={{ width: "100%", padding: "8px 11px", borderRadius: 10, border: "1px solid #E6E4F0", fontSize: 12.5, outline: "none", fontFamily: "inherit", marginBottom: 10 }} />
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {shown.slice(0, 40).map((b, i) => {
@@ -131,7 +381,40 @@ function BoardRail({ boards, active, setActive }: { boards: BoardOpt[]; active: 
           );
         })}
       </div>
-    </aside>
+    </>
+  );
+}
+
+/* ===== the connect gate =====
+   State 3, the one /app never had: /api/boards answered "not connected".
+   Both ways into Monday are offered here - the OAuth flow, and /welcome for
+   whoever pastes a personal token - because /welcome is still the only route
+   for a personal token and must not be cut off. */
+function GateFrame({ children }: { children: ReactNode }) {
+  return (
+    <div dir="rtl" style={{ minHeight: "100vh", background: C.bg, fontFamily: "Rubik, Assistant, Heebo, system-ui, sans-serif", color: C.ink, display: "grid", placeItems: "center", padding: 24 }}>
+      <div style={{ width: "100%", maxWidth: 520 }}>{children}</div>
+    </div>
+  );
+}
+
+function ConnectGate() {
+  return (
+    <GateFrame>
+      <div style={{ background: C.panel, borderRadius: 22, padding: "38px 30px 30px", textAlign: "center", boxShadow: "0 18px 50px -28px rgba(60,50,120,.45)" }}>
+        <div style={{ width: 56, height: 56, borderRadius: 18, background: `linear-gradient(135deg,${C.grape},${C.coral})`, color: "#fff", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 26, margin: "0 auto 16px" }}>A</div>
+        <h1 style={{ fontSize: 24.5, fontWeight: 800, margin: "0 0 9px", lineHeight: 1.4 }}>{"מחברים את Monday, ומקבלים לוח"}</h1>
+        <p style={{ fontSize: 14.5, color: C.muted, margin: "0 0 26px", lineHeight: 1.75 }}>{"AnyDay קוראת את הבורדים שכבר יש לכם ובונה מהם לוח קריא. אפס הגדרות."}</p>
+        <button
+          onClick={() => { window.location.href = "/api/monday-oauth/authorize?return_to=/app"; }}
+          style={{ width: "100%", background: `linear-gradient(135deg,${C.grape},${C.coral})`, color: "#fff", border: "none", borderRadius: 15, padding: "15px", fontSize: 16.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}
+        >{"התחברו ל-Monday"}</button>
+        <a
+          href="/welcome"
+          style={{ display: "block", marginTop: 16, fontSize: 13, color: C.muted, textDecoration: "underline", fontFamily: "inherit" }}
+        >{"יש לכם טוקן אישי? התחברו כאן"}</a>
+      </div>
+    </GateFrame>
   );
 }
 
@@ -153,7 +436,7 @@ function Onboard({ boards, onStart }: { boards: BoardOpt[]; onStart: (ids: strin
           {shown.slice(0, 30).map((b, i) => { const on = sel.includes(b.id), dis = !on && sel.length >= 2, c = pick(i);
             return <button key={b.id} onClick={() => toggle(b.id)} disabled={dis} style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 14px", borderRadius: 15, border: `2px solid ${on ? c.fg : "transparent"}`, background: on ? c.bg : C.panel, cursor: dis ? "not-allowed" : "pointer", opacity: dis ? .4 : 1, textAlign: "right", fontFamily: "inherit", boxShadow: on ? `0 8px 20px -10px ${c.fg}` : "0 2px 8px rgba(60,50,120,.05)" }}>
               <span style={{ width: 30, height: 30, borderRadius: 10, background: c.bg, color: c.fg, display: "grid", placeItems: "center", fontSize: 15, flexShrink: 0 }}>📋</span>
-              <span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 13.5, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.name}</span><span style={{ fontSize: 11.5, color: C.muted }}>{b.items} פריטים</span></span>
+              <span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 13.5, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.name}</span><span style={{ fontSize: 11.5, color: C.muted }}>{b.items ? `${b.items} פריטים` : "עדיין בלי רשומות"}</span></span>
             </button>;
           })}
         </div>
@@ -167,9 +450,13 @@ function Onboard({ boards, onStart }: { boards: BoardOpt[]; onStart: (ids: strin
 interface Dot { id: string; name: string; cluster: string; status: string; updatedAt: string; fields: { title: string; text: string }[]; x?: number; y?: number; c?: string; }
 interface CBoard { boardId: string; boardName: string; entity: string; clusterTitle: string; statusTitle: string; clusters: { name: string; n: number }[]; dots: Dot[]; }
 const DOT_COLORS = ["#8A6BFF", "#4FA9FF", "#12C7A8", "#FFAE34", "#FF6B8A", "#84D65A"];
-function statusDotColor(s: string) { return /סיכון|תקוע|דחוף|בעיה|נשיר/.test(s) ? "#FF5470" : /סיים|בוגר|פעיל|הושלם|גויס|התגייס/.test(s) ? "#12C7A8" : null; }
+/** Dot colour from the server-derived tone - never from the status text. */
+function statusDotColor(tone?: string) { return tone === "risk" ? "#FF5470" : tone === "done" ? "#12C7A8" : null; }
 
-function ImpactMap({ names }: { names: string[] }) {
+// NOTE: this component is not mounted anywhere today. When it is wired back in,
+// its caller must hand it the tone map (GET /api/dashboard?meta=1), exactly as
+// People does - /api/constellation does not carry tones of its own.
+function ImpactMap({ names, tones }: { names: string[]; tones: ToneMap }) {
   const [data, setData] = useState<CBoard[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [sel, setSel] = useState<Dot | null>(null);
@@ -207,7 +494,7 @@ function ImpactMap({ names }: { names: string[] }) {
       const cp = clusterPos[d.cluster] || { cx: W / 2, cy: H / 2, color: "#8A6BFF" };
       const a = rand(i) * Math.PI * 2, r = 18 + rand(i + 999) * 78;
       const x = cp.cx + Math.cos(a) * r, y = cp.cy + Math.sin(a) * r * 0.8;
-      dots.push({ ...d, x, y, c: statusDotColor(d.status) || cp.color });
+      dots.push({ ...d, x, y, c: statusDotColor(tones[d.status]) || cp.color });
     });
     dotsRef.current = dots;
 
@@ -239,7 +526,7 @@ function ImpactMap({ names }: { names: string[] }) {
     }
     frame();
     return () => cancelAnimationFrame(raf);
-  }, [data]);
+  }, [data, tones]);
 
   function onClick(e: React.MouseEvent) {
     const rect = canvasRef.current!.getBoundingClientRect();
@@ -252,7 +539,7 @@ function ImpactMap({ names }: { names: string[] }) {
   if (err) return <ErrBox msg={err} />;
   if (!data) return <Spinner label="בונה את מפת האימפקט..." />;
   const totalDots = data.reduce((s, b) => s + b.dots.length, 0);
-  const atRisk = data.flatMap((b) => b.dots).filter((d) => statusDotColor(d.status) === "#FF5470").length;
+  const atRisk = data.flatMap((b) => b.dots).filter((d) => tones[d.status] === "risk").length;
 
   return (
     <div style={{ animation: "rise .4s both" }}>
@@ -270,7 +557,7 @@ function ImpactMap({ names }: { names: string[] }) {
         </div>
         {/* legend */}
         <div style={{ position: "absolute", bottom: 14, insetInlineStart: 18, display: "flex", gap: 14, fontSize: 11.5, color: "#B8B5D0" }}>
-          <Legend c="#8A6BFF" t="אדם" /><Legend c="#12C7A8" t="פעיל/הושלם" /><Legend c="#FF5470" t="דורש תשומת לב" />
+          <Legend c="#8A6BFF" t="אדם" /><Legend c="#12C7A8" t="הסתיים" /><Legend c="#FF5470" t="דורש תשומת לב" />
         </div>
       </div>
       {sel && <DotProfile d={sel} entity={data[0]?.entity || ""} onClose={() => setSel(null)} />}
@@ -329,8 +616,8 @@ function DotProfile({ d, entity, onClose }: { d: Dot; entity: string; onClose: (
 }
 
 /* ===== dashboard (charts fallback) ===== */
-function Dashboard({ names }: { names: string[] }) {
-  const [d, setD] = useState<{ kpis: KPI[]; charts: Widget[]; attention: { count: number; items: { name: string; why: string; board: string }[] }; source: string } | null>(null);
+function Dashboard({ names, empty = false }: { names: string[]; empty?: boolean }) {
+  const [d, setD] = useState<{ kpis: KPI[]; charts: Widget[]; attention: { count: number; items: { name: string; why: string; board: string }[] }; coverage?: Cov; source: string } | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const load = () => { setD(null); setErr(null);
     fetch("/api/dashboard", { cache: "no-store" }).then((r) => r.json()).then((x) => x.error ? setErr(x.error) : setD(x)).catch(() => setErr("שגיאה"));
@@ -345,8 +632,16 @@ function Dashboard({ names }: { names: string[] }) {
     <div style={{ animation: "rise .4s both" }}>
       <div style={{ marginBottom: 16 }}>
         <h1 style={{ fontSize: 23, fontWeight: 800, margin: "0 0 2px" }}>הלוח של {names.join(" · ")}</h1>
-        <p style={{ fontSize: 13, color: C.muted, margin: 0 }}>מתעדכן חי מ-Monday</p>
+        <p style={{ fontSize: 13, color: C.muted, margin: 0 }}>מתעדכן חי מ-Monday{d.coverage?.truncated ? ` · ${d.coverage.note}` : ""}</p>
       </div>
+      {/* A board with no rows is not a broken board - say it plainly instead of
+          showing a grid of zeros with no explanation. */}
+      {empty && (
+        <div style={{ background: C.panel, border: "1px solid #ECEBF5", borderInlineStart: `4px solid ${C.grape}`, borderRadius: 16, padding: "14px 18px", marginBottom: 16 }}>
+          <div style={{ fontSize: 14.5, fontWeight: 800, marginBottom: 4 }}>{"אין עדיין רשומות בבורד הזה"}</div>
+          <p style={{ fontSize: 13, color: C.muted, lineHeight: 1.7, margin: 0 }}>{"הבורד ריק, ולכן אין מה להציג על הלוח. הוסיפו לו רשומות ב-Monday, והלוח יתמלא מיד."}</p>
+        </div>
+      )}
       {/* KPI tiles — colorful, animated numbers */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 12, marginBottom: 16 }}>
         {d.kpis.map((k, i) => <KpiTile key={i} k={k} i={i} />)}
@@ -401,15 +696,15 @@ function ChartBody({ w, c }: { w: Widget; c: { fg: string; bg: string } }) {
   const drill = (w as Widget & { drill?: Record<string, string[]> }).drill;
   const [openRow, setOpenRow] = useState<string | null>(null);
   if (w.kind === "breakdown" || w.kind === "byOwner") {
-    const rows = (d.rows as { label: string; n: number }[]) || []; const max = Math.max(...rows.map((r) => r.n), 1);
-    return <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>{rows.slice(0, 8).map((r, i) => { const sc = w.kind === "breakdown" ? statusColor(r.label) : pick(i); const canOpen = drill && drill[r.label]?.length; const isOpen = openRow === r.label;
+    const rows = (d.rows as { label: string; n: number; tone?: string }[]) || []; const max = Math.max(...rows.map((r) => r.n), 1);
+    return <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>{rows.slice(0, 8).map((r, i) => { const sc = w.kind === "breakdown" ? toneStyle(r.tone) : pick(i); const canOpen = drill && drill[r.label]?.length; const isOpen = openRow === r.label;
       return <div key={r.label} style={{ display: "grid", gap: 4 }}>
         <button onClick={() => canOpen && setOpenRow(isOpen ? null : r.label)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12.5, background: "none", border: "none", padding: 0, cursor: canOpen ? "pointer" : "default", fontFamily: "inherit", color: C.ink, textAlign: "right" }}>
-          <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 190 }}>{r.label}{canOpen && <span style={{ color: "#C4C2D6", marginInlineStart: 5, fontSize: 11 }}>{isOpen ? "▾" : "◂ הצג שמות"}</span>}</span>
+          <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 190 }}>{r.label}{canOpen && <span style={{ color: C.grape, background: C.grapeL, marginInlineStart: 7, fontSize: 11, fontWeight: 700, padding: "1px 7px", borderRadius: 999, whiteSpace: "nowrap" }}>{isOpen ? "▾ הסתר" : `הצג ${r.n} שמות`}</span>}</span>
           <b style={{ fontVariantNumeric: "tabular-nums", color: sc.fg }}>{r.n}</b>
         </button>
         <div style={{ height: 9, borderRadius: 999, background: "#F2F1F9", overflow: "hidden" }}><div style={{ width: `${(r.n / max) * 100}%`, height: "100%", background: sc.fg, borderRadius: 999, transition: "width .6s cubic-bezier(.2,.8,.2,1)" }} /></div>
-        {isOpen && canOpen && <div style={{ display: "flex", flexWrap: "wrap", gap: 5, padding: "6px 0 2px", animation: "fade .2s both" }}>{drill![r.label].slice(0, 40).map((name, j) => <span key={j} style={{ fontSize: 11.5, padding: "3px 9px", background: sc.bg, color: sc.fg, borderRadius: 999 }}>{name}</span>)}{drill![r.label].length > 40 && <span style={{ fontSize: 11, color: C.muted }}>ועוד {drill![r.label].length - 40}…</span>}<style>{`@keyframes fade{from{opacity:0}}`}</style></div>}
+        {isOpen && canOpen && <DrillList names={drill![r.label]} accent={sc.fg} />}
       </div>; })}</div>;
   }
   if (w.kind === "numberSummary")
@@ -420,6 +715,33 @@ function ChartBody({ w, c }: { w: Widget; c: { fg: string; bg: string } }) {
   return null;
 }
 
+/* The names behind one segment. A sorted, scrollable column list — not a
+   cloud of chips — so 49 names read like a list and 400 don't need a cap. */
+function DrillList({ names, accent }: { names: string[]; accent: string }) {
+  const [q, setQ] = useState("");
+  const sorted = useMemo(() => [...names].sort((a, b) => a.localeCompare(b, "he")), [names]);
+  const shown = q.trim() ? sorted.filter((n) => n.toLowerCase().includes(q.trim().toLowerCase())) : sorted;
+  return (
+    <div style={{ background: "#F8F7FC", border: "1px solid #ECEBF5", borderRadius: 12, padding: "8px 10px", marginTop: 2, animation: "fade .2s both" }}>
+      {names.length > 12 && (
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="חיפוש בשמות…" aria-label="חיפוש בשמות"
+          style={{ width: "100%", boxSizing: "border-box", fontSize: 12.5, padding: "6px 10px", border: "1px solid #E4E2F0", borderRadius: 8, background: C.panel, color: C.ink, fontFamily: "inherit", marginBottom: 6, outline: "none" }} />
+      )}
+      <div style={{ maxHeight: 216, overflowY: "auto", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", columnGap: 12, rowGap: 1 }}>
+        {shown.map((name, j) => (
+          <div key={j} title={name} style={{ fontSize: 12.5, lineHeight: "22px", padding: "1px 8px", borderInlineStart: `2px solid ${accent}`, color: C.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</div>
+        ))}
+        {shown.length === 0 && <div style={{ fontSize: 12, color: C.muted, padding: "6px 8px" }}>אין שם שמתאים ל"{q.trim()}"</div>}
+      </div>
+      <div style={{ fontSize: 11, color: C.muted, marginTop: 6, paddingTop: 6, borderTop: "1px dashed #EEEDF5", display: "flex", justifyContent: "space-between" }}>
+        <span>{q.trim() ? `${shown.length} מתוך ${names.length}` : `${names.length} שמות`}</span>
+        {names.length > 8 && <span style={{ opacity: .7 }}>לפי א״ב</span>}
+      </div>
+      <style>{`@keyframes fade{from{opacity:0}}`}</style>
+    </div>
+  );
+}
+
 /* ===== people = FULL MANAGEMENT (edit/add/delete/import → writes to Monday) ===== */
 function People() {
   const [people, setPeople] = useState<Person[] | null>(null);
@@ -427,10 +749,21 @@ function People() {
   const [view, setView] = useState<"cards" | "list">("cards");
   const [toast, setToast] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const [cov, setCov] = useState<Cov | null>(null);
+  // tone map + the board's own word for a row - both derived server-side
+  const [meta, setMeta] = useState<{ tones: ToneMap; entities: Record<string, string> } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  // the selected boards' real columns — the only source for file→board matching
+  const [boardInfo, setBoardInfo] = useState<BoardInfo[]>([]);
+  const [plan, setPlan] = useState<ImportPlan | null>(null);
 
-  const load = () => fetch("/api/people", { cache: "no-store" }).then((r) => r.json()).then((d) => d.error ? setErr(d.error) : setPeople(d.people || [])).catch(() => setErr("שגיאה"));
-  useEffect(() => { load(); }, []);
+  const load = () => fetch("/api/people", { cache: "no-store" }).then((r) => r.json()).then((d) => { if (d.error) { setErr(d.error); return; } setPeople(d.people || []); setCov(d.coverage || null); setBoardInfo(d.boards || []); }).catch(() => setErr("שגיאה"));
+  useEffect(() => { load();
+    fetch("/api/dashboard?meta=1", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => { if (!d.error) setMeta({ tones: d.tones || {}, entities: d.entities || {} }); })
+      .catch(() => { /* colours simply stay neutral */ });
+  }, []);
   function flash(m: string) { setToast(m); setTimeout(() => setToast(null), 2600); }
 
   async function addRecord(name: string) {
@@ -442,28 +775,66 @@ function People() {
     const r = await fetch("/api/record", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ op: "delete", itemId: id }) });
     const d = await r.json(); if (d.ok) { flash("נמחק מ-Monday ✓"); setOpen(null); load(); } else flash("שגיאה: " + d.error);
   }
+  /**
+   * Reading a file does NOT import it. It builds a plan — which file column
+   * goes into which board column — and hands it to the confirmation screen.
+   * An import writes to a real board, so nothing is written before the user
+   * has seen the mapping and approved it.
+   */
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0]; if (!f) return;
-    const text = await f.text();
-    // simple CSV: first column = name (one per line, skip header if it looks like one)
-    const lines = text.split(/\r?\n/).map((l) => l.split(/[,\t;]/)[0]?.trim()).filter(Boolean);
-    if (lines.length && /שם|name/i.test(lines[0])) lines.shift();
-    const boardId = people?.[0]?.boardId; if (!boardId || !lines.length) { flash("לא נמצאו שורות"); return; }
-    flash(`מייבא ${lines.length} רשומות...`);
-    const r = await fetch("/api/record", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ op: "import", boardId, rows: lines.map((name) => ({ name })) }) });
-    const d = await r.json(); flash(d.ok ? `יובאו ${d.created} רשומות ל-Monday ✓` : "שגיאה בייבוא"); load();
-    if (fileRef.current) fileRef.current.value = "";
+    const f = e.target.files?.[0];
+    if (fileRef.current) fileRef.current.value = "";   // so the same file can be re-picked
+    if (!f) return;
+    const boardId = people?.[0]?.boardId || boardInfo[0]?.id;
+    const board = boardInfo.find((b) => b.id === boardId);
+    if (!boardId || !board) { flash("לא נמצא לוח פעיל לייבוא"); return; }
+
+    const parsed = parseDelimited(await f.text());
+    const rows = parsed.filter((r) => r.some((c) => c !== ""));
+    const emptyRows = parsed.length - rows.length;
+    if (!rows.length) { flash("הקובץ ריק — לא נמצאו שורות"); return; }
+
+    const cols = board.columns || [];
+    const targets = importTargets(cols);
+    const head = headRow(rows);
+    const hasHeader = looksLikeHeader(head, targets);
+    setPlan({
+      fileName: f.name, boardId, boardName: board.name,
+      rows, emptyRows, cols, targets,
+      hasHeader, map: autoMap(head, targets, hasHeader),
+    });
+  }
+
+  /** The user approved the mapping — only now do we write to Monday. */
+  async function runImport(p: ImportPlan): Promise<ImportOutcome> {
+    const { rows: payload, noName } = rowsToImport(p);
+    const r = await fetch("/api/record", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ op: "import", boardId: p.boardId, rows: payload.slice(0, IMPORT_LIMIT) }),
+    });
+    const d = await r.json();
+    load();
+    if (!d.ok) return { created: 0, failed: 0, noName, skippedEmpty: p.emptyRows, overCap: 0, failures: [], error: d.error || "הייבוא נכשל" };
+    return {
+      created: d.created || 0,
+      failed: d.failed || 0,
+      noName: noName + (d.noName || 0),
+      skippedEmpty: p.emptyRows,
+      overCap: Math.max(0, payload.length - IMPORT_LIMIT) + (d.overCap || 0),
+      failures: d.failures || [],
+    };
   }
 
   if (err) return <ErrBox msg={err} />;
   if (!people) return <Spinner label="קורא רשומות..." />;
-  const entity = deriveEntity(people[0]?.boardName || "");
+  const tones: ToneMap = meta?.tones || {};
+  const entity = meta?.entities[people[0]?.boardName || ""] || "רשומות";
   const shown = people.filter((p) => p.name.includes(q) || p.status.includes(q) || p.owner.includes(q));
   return (
     <div style={{ animation: "rise .4s both" }}>
       {toast && <div style={{ position: "fixed", top: 70, insetInlineStart: "50%", transform: "translateX(-50%)", background: C.ink, color: "#fff", padding: "10px 18px", borderRadius: 12, fontSize: 13, fontWeight: 600, zIndex: 60, boxShadow: "0 10px 30px rgba(0,0,0,.3)" }}>{toast}</div>}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
-        <div><h1 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 2px" }}>{entity}</h1><p style={{ fontSize: 12.5, color: C.muted, margin: 0 }}>{people.length} רשומות · עריכה נכתבת ישר ל-Monday</p></div>
+        <div><h1 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 2px" }}>{entity}</h1><p style={{ fontSize: 12.5, color: C.muted, margin: 0 }}>{people.length} רשומות · עריכה נכתבת ישר ל-Monday{cov?.truncated ? ` · ${cov.note}` : ""}</p></div>
         <div style={{ marginInlineStart: "auto", display: "flex", gap: 8, alignItems: "center" }}>
           <button onClick={() => setAdding(true)} style={{ background: C.grape, color: "#fff", border: "none", borderRadius: 11, padding: "9px 15px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>+ רשומה</button>
           <button onClick={() => fileRef.current?.click()} style={{ background: "#fff", color: C.grape, border: `1px solid ${C.grape}`, borderRadius: 11, padding: "9px 15px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>העלאת רשימה</button>
@@ -474,10 +845,11 @@ function People() {
         </div>
       </div>
       {adding && <AddRow onAdd={addRecord} onCancel={() => setAdding(false)} entity={entity} />}
+      {plan && <ImportMapper plan={plan} setPlan={setPlan} onRun={runImport} />}
       <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="חיפוש..." style={{ width: "100%", maxWidth: 400, padding: "11px 14px", borderRadius: 12, border: "1px solid #E6E4F0", fontSize: 13.5, marginBottom: 16, outline: "none", fontFamily: "inherit" }} />
       {view === "cards" ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: 12 }}>
-          {shown.slice(0, 60).map((p, i) => <PersonCard key={p.id} p={p} i={i} open={open === p.id} onToggle={() => setOpen(open === p.id ? null : p.id)} onSaved={load} onDelete={delRecord} flash={flash} />)}
+          {shown.slice(0, 60).map((p, i) => <PersonCard key={p.id} p={p} i={i} tone={tones[p.status]} open={open === p.id} onToggle={() => setOpen(open === p.id ? null : p.id)} onSaved={load} onDelete={delRecord} flash={flash} />)}
         </div>
       ) : (
         <div style={{ background: C.panel, border: "1px solid #ECEBF5", borderRadius: 16, overflow: "hidden" }}>
@@ -486,7 +858,7 @@ function People() {
               <button onClick={() => setOpen(open === p.id ? null : p.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 15px", background: open === p.id ? "#FAF9FE" : "#fff", border: "none", borderBottom: "1px solid #F4F3FB", cursor: "pointer", textAlign: "right", fontFamily: "inherit" }}>
                 <Avatar name={p.name} i={i} sm />
                 <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</div>{p.owner && <div style={{ fontSize: 11.5, color: C.muted }}>{p.owner}</div>}</div>
-                {p.status && <Chip s={p.status} />}
+                {p.status && <Chip s={p.status} tone={tones[p.status]} />}
               </button>
               {open === p.id && <ProfileExpand p={p} onSaved={load} onDelete={delRecord} flash={flash} />}
             </div>
@@ -496,6 +868,187 @@ function People() {
     </div>
   );
 }
+/* ===== list upload: read the file → SHOW THE MAPPING → approve → write =====
+   Nothing here knows a single content word. A file column reaches a board
+   column only by matching that board's own column titles, and the match is
+   shown to the user for approval before one row is written. */
+
+const IMPORT_LIMIT = 200;             // the server's protection cap, mirrored here
+const NAME_TARGET = "__name__";       // the item's own name in Monday
+/** Column TYPES a text cell cannot legally be written into: computed values,
+    references to users/files/boards, and Monday-managed fields. */
+const UNWRITABLE = ["name", "subtasks", "subitems", "button", "creation_log", "last_updated", "formula", "mirror", "board_relation", "dependency", "file", "doc", "auto_number", "progress", "integration", "time_tracking", "person", "people", "multiple-person", "vote"];
+
+interface ImportCell { columnId: string; type: string; value: string }
+interface ImportPlan {
+  fileName: string; boardId: string; boardName: string;
+  rows: string[][];     // every non-empty row of the file, header row included
+  emptyRows: number;    // rows that were blank end to end
+  cols: BoardCol[];     // the board's columns exactly as Monday reports them
+  targets: BoardCol[];  // the subset a file column may be written into
+  hasHeader: boolean;
+  map: string[];        // per file column: a target id, or "" = do not import
+}
+interface ImportOutcome {
+  created: number; failed: number; noName: number; skippedEmpty: number; overCap: number;
+  failures: { name: string; reason: string }[]; error?: string;
+}
+
+/* The delimited-file reader that used to live here now lives in
+   `@/lib/sheet-to-board`, unchanged, so /sheet can read a file with exactly
+   the same rules this screen has always used. This screen imports it. */
+
+/** The board columns a file column may be sent to, plus the record name itself. */
+function importTargets(cols: BoardCol[]): BoardCol[] {
+  const nameCol = cols.find((c) => c.type === "name");
+  return [
+    { id: NAME_TARGET, title: nameCol?.title || "שם הרשומה", type: "name" },
+    ...cols.filter((c) => !UNWRITABLE.includes(c.type)),
+  ];
+}
+
+/** The proposed mapping — a proposal only; the user sees it and may change it. */
+function autoMap(first: string[], targets: BoardCol[], hasHeader: boolean): string[] {
+  const byTitle = new Map(targets.map((t) => [normKey(t.title), t.id]));
+  return first.map((h, i) => (hasHeader ? byTitle.get(normKey(h)) || "" : i === 0 ? NAME_TARGET : ""));
+}
+
+/** Turn the approved plan into the rows the API will write. */
+function rowsToImport(p: ImportPlan): { rows: { name: string; values: ImportCell[] }[]; noName: number } {
+  const data = p.hasHeader ? p.rows.slice(1) : p.rows;
+  const nameIdx = p.map.indexOf(NAME_TARGET);
+  const typeOf = (id: string) => p.cols.find((c) => c.id === id)?.type || "text";
+  const rows: { name: string; values: ImportCell[] }[] = [];
+  let noName = 0;
+  for (const r of data) {
+    const name = (nameIdx >= 0 ? r[nameIdx] || "" : "").trim();
+    if (!name) { noName++; continue; }
+    const values: ImportCell[] = [];
+    p.map.forEach((target, i) => {
+      if (!target || target === NAME_TARGET) return;
+      const v = (r[i] || "").trim();
+      if (v) values.push({ columnId: target, type: typeOf(target), value: v });
+    });
+    rows.push({ name, values });
+  }
+  return { rows, noName };
+}
+
+/** The confirmation screen. It is the whole point: an import writes to a real
+    board, so the user reads what will happen before it happens. */
+function ImportMapper({ plan, setPlan, onRun }: { plan: ImportPlan; setPlan: (p: ImportPlan | null) => void; onRun: (p: ImportPlan) => Promise<ImportOutcome> }) {
+  const [busy, setBusy] = useState(false);
+  const [out, setOut] = useState<ImportOutcome | null>(null);
+
+  const head = headRow(plan.rows);
+  const header = plan.hasHeader ? head : head.map((_, i) => `עמודה ${i + 1}`);
+  const data = plan.hasHeader ? plan.rows.slice(1) : plan.rows;
+  const sample = data[0] || [];
+  const { rows: ready, noName } = rowsToImport(plan);
+  const dropped = header.map((h, i) => (plan.map[i] ? "" : h || `עמודה ${i + 1}`)).filter(Boolean);
+  const dupe = plan.map.some((t, i) => t && plan.map.indexOf(t) !== i);
+  const willImport = Math.min(ready.length, IMPORT_LIMIT);
+  const blocked = plan.map.indexOf(NAME_TARGET) < 0
+    ? "בחרו איזו עמודה בקובץ היא שם הרשומה — בלעדיה אי אפשר לייבא."
+    : dupe ? "שתי עמודות בקובץ מכוונות לאותה עמודה בלוח — תקנו כדי להמשיך."
+    : !ready.length ? "אין בקובץ אף שורה עם שם." : "";
+
+  const setMapAt = (i: number, target: string) => setPlan({ ...plan, map: plan.map.map((t, j) => (j === i ? target : t)) });
+  const toggleHeader = (v: boolean) => setPlan({ ...plan, hasHeader: v, map: autoMap(head, plan.targets, v) });
+  async function approve() {
+    setBusy(true);
+    try { setOut(await onRun(plan)); } catch { setOut({ created: 0, failed: 0, noName: 0, skippedEmpty: 0, overCap: 0, failures: [], error: "הייבוא נכשל — לא הצלחתי לפנות לשרת" }); }
+    finally { setBusy(false); }
+  }
+
+  const box: React.CSSProperties = { background: C.panel, borderRadius: 20, width: 640, maxWidth: "calc(100vw - 32px)", maxHeight: "86vh", overflowY: "auto", padding: 22, boxShadow: "0 30px 70px -20px rgba(40,30,90,.45)", animation: "pop .22s both" };
+  const label: React.CSSProperties = { fontSize: 11, color: C.muted, marginBottom: 3 };
+
+  return (
+    <div dir="rtl" style={{ position: "fixed", inset: 0, background: "rgba(27,24,48,.45)", display: "grid", placeItems: "center", zIndex: 70, padding: 16 }}>
+      <div style={box}>
+        {out ? (
+          <>
+            <h2 style={{ fontSize: 19, fontWeight: 800, margin: "0 0 4px" }}>{out.error ? "הייבוא נכשל" : "סיכום הייבוא"}</h2>
+            <p style={{ fontSize: 12.5, color: C.muted, margin: "0 0 14px" }}>{plan.fileName} ← {plan.boardName}</p>
+            {out.error ? (
+              <div style={{ background: C.coralL, color: "#D63A5C", borderRadius: 12, padding: "12px 14px", fontSize: 13, fontWeight: 600 }}>{out.error}</div>
+            ) : (
+              <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
+                {[["נוצרו ב-Monday", out.created, C.teal, C.tealL], ["נכשלו", out.failed, C.coral, C.coralL]].map(([l, n, fg, bg]) => (
+                  <div key={l as string} style={{ flex: 1, background: bg as string, borderRadius: 13, padding: 12 }}>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: fg as string, fontVariantNumeric: "tabular-nums" }}>{n as number}</div>
+                    <div style={{ fontSize: 11.5, color: C.muted }}>{l as string}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <ul style={{ margin: "0 0 12px", paddingInlineStart: 18, fontSize: 12.5, color: C.muted, lineHeight: 1.7 }}>
+              {out.skippedEmpty > 0 && <li>{out.skippedEmpty} שורות ריקות בקובץ — דולגו.</li>}
+              {out.noName > 0 && <li>{out.noName} שורות בלי שם — לא יובאו.</li>}
+              {out.overCap > 0 && <li>{out.overCap} שורות מעבר לתקרת {IMPORT_LIMIT} השורות לייבוא — לא נשלחו. העלו אותן בקובץ נוסף.</li>}
+              {dropped.length > 0 && <li>עמודות בקובץ שלא נכנסו ללוח: {dropped.join(" · ")}</li>}
+            </ul>
+            {out.failures.length > 0 && (
+              <div style={{ border: `1px solid ${C.coral}40`, borderRadius: 13, padding: 12, marginBottom: 14 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: C.coral, marginBottom: 6 }}>מה נכשל ולמה</div>
+                {out.failures.map((f, i) => <div key={i} style={{ fontSize: 12, color: C.ink, lineHeight: 1.6 }}><b>{f.name}</b> — <span style={{ color: C.muted }}>{f.reason}</span></div>)}
+                {out.failed > out.failures.length && <div style={{ fontSize: 11.5, color: C.muted, marginTop: 5 }}>ועוד {out.failed - out.failures.length} שורות שנכשלו.</div>}
+              </div>
+            )}
+            <button onClick={() => setPlan(null)} style={{ background: C.grape, color: "#fff", border: "none", borderRadius: 11, padding: "10px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>סגירה</button>
+          </>
+        ) : (
+          <>
+            <h2 style={{ fontSize: 19, fontWeight: 800, margin: "0 0 4px" }}>לפני שמייבאים — כך יתאימו העמודות</h2>
+            <p style={{ fontSize: 12.5, color: C.muted, margin: "0 0 14px" }}>{plan.fileName} ← הלוח {plan.boardName}. שום דבר עוד לא נכתב ל-Monday.</p>
+
+            <label style={{ display: "flex", alignItems: "center", gap: 8, background: C.grapeL, borderRadius: 12, padding: "9px 12px", marginBottom: 14, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+              <input type="checkbox" checked={plan.hasHeader} onChange={(e) => toggleHeader(e.target.checked)} />
+              השורה הראשונה בקובץ היא שורת כותרות
+              <span style={{ color: C.muted, fontWeight: 500 }}>({plan.rows[0].slice(0, 3).join(" · ")})</span>
+            </label>
+
+            <div style={{ border: "1px solid #ECEBF5", borderRadius: 14, overflow: "hidden", marginBottom: 12 }}>
+              {header.map((h, i) => {
+                const target = plan.map[i];
+                return (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderBottom: i === header.length - 1 ? "none" : "1px solid #F4F3FB", background: target ? "#fff" : "#FBFAFE" }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{h || `עמודה ${i + 1}`}</div>
+                      <div style={{ ...label, marginBottom: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sample[i] ? `לדוגמה: ${sample[i]}` : "ריקה בשורה הראשונה"}</div>
+                    </div>
+                    <span style={{ color: C.muted }}>←</span>
+                    <select value={target} onChange={(e) => setMapAt(i, e.target.value)} style={{ width: 210, border: `1px solid ${target ? "#E1DBFC" : "#E6E4F0"}`, borderRadius: 10, padding: "8px 10px", fontSize: 12.5, fontWeight: 600, fontFamily: "inherit", color: target ? C.ink : C.muted, background: "#fff" }}>
+                      <option value="">לא לייבא</option>
+                      {plan.targets.map((t) => <option key={t.id} value={t.id}>{t.id === NAME_TARGET ? `${t.title} (שם הרשומה)` : t.title}</option>)}
+                    </select>
+                  </div>
+                );
+              })}
+            </div>
+
+            <ul style={{ margin: "0 0 14px", paddingInlineStart: 18, fontSize: 12.5, color: C.muted, lineHeight: 1.7 }}>
+              <li><b style={{ color: C.ink }}>{willImport}</b> רשומות ייווצרו בלוח.</li>
+              {dropped.length > 0 && <li>לא נמצאו בלוח ולא ייובאו: {dropped.join(" · ")}</li>}
+              {plan.emptyRows > 0 && <li>{plan.emptyRows} שורות ריקות — ידולגו.</li>}
+              {noName > 0 && <li>{noName} שורות בלי שם — ידולגו.</li>}
+              {ready.length > IMPORT_LIMIT && <li>הקובץ מכיל {ready.length} שורות; בייבוא אחד נכתבות עד {IMPORT_LIMIT}. השאר לא ייכתבו.</li>}
+            </ul>
+
+            {blocked && <div style={{ background: C.amberL, color: "#C77A00", borderRadius: 12, padding: "10px 13px", fontSize: 12.5, fontWeight: 700, marginBottom: 12 }}>{blocked}</div>}
+
+            <div style={{ display: "flex", gap: 8 }}>
+              <button disabled={busy || !!blocked} onClick={approve} style={{ background: blocked || busy ? "#C9C6DE" : C.grape, color: "#fff", border: "none", borderRadius: 11, padding: "11px 20px", fontSize: 13, fontWeight: 700, cursor: blocked || busy ? "default" : "pointer", fontFamily: "inherit" }}>{busy ? "מייבא ל-Monday..." : `אשרו וייבאו ${willImport} רשומות`}</button>
+              <button disabled={busy} onClick={() => setPlan(null)} style={{ background: "#F0EFF6", color: C.muted, border: "none", borderRadius: 11, padding: "11px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>ביטול</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AddRow({ onAdd, onCancel, entity }: { onAdd: (n: string) => void; onCancel: () => void; entity: string }) {
   const [n, setN] = useState("");
   return (
@@ -506,7 +1059,7 @@ function AddRow({ onAdd, onCancel, entity }: { onAdd: (n: string) => void; onCan
     </div>
   );
 }
-function PersonCard({ p, i, open, onToggle, onSaved, onDelete, flash }: { p: Person; i: number; open: boolean; onToggle: () => void; onSaved: () => void; onDelete: (id: string) => void; flash: (m: string) => void }) {
+function PersonCard({ p, i, tone, open, onToggle, onSaved, onDelete, flash }: { p: Person; i: number; tone?: string; open: boolean; onToggle: () => void; onSaved: () => void; onDelete: (id: string) => void; flash: (m: string) => void }) {
   const c = pick(i);
   return (
     <div onClick={(e) => { if ((e.target as HTMLElement).tagName !== "INPUT" && (e.target as HTMLElement).tagName !== "BUTTON") onToggle(); }} style={{ background: C.panel, border: `1px solid ${open ? c.fg : "#ECEBF5"}`, borderRadius: 16, padding: 15, cursor: "pointer", boxShadow: open ? `0 10px 26px -12px ${c.fg}` : "0 3px 12px -6px rgba(60,50,120,.1)", transition: "all .18s", gridColumn: open ? "1 / -1" : "auto" }}>
@@ -516,9 +1069,43 @@ function PersonCard({ p, i, open, onToggle, onSaved, onDelete, flash }: { p: Per
           <div style={{ fontSize: 14.5, fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</div>
           <div style={{ fontSize: 11.5, color: C.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.owner || p.boardName}</div>
         </div>
-        {p.status && <Chip s={p.status} />}
+        {p.status && <Chip s={p.status} tone={tone} />}
       </div>
       {open && <ProfileExpand p={p} inline onSaved={onSaved} onDelete={onDelete} flash={flash} />}
+    </div>
+  );
+}
+/* ===== the record's journey — dots on a line, ordered by the dates themselves.
+   A stage's name is the board's own date-column title, so this component knows
+   no stage, no phase and no word of the organisation's content. A date column
+   the record has not filled in is a stage that has not happened yet: it stays
+   on the line, faded, instead of vanishing. A board with no date column draws
+   nothing at all. The order comes from the engine (BI.timeline). ===== */
+const DATE_FMT = new Intl.DateTimeFormat("he-IL", { day: "numeric", month: "numeric", year: "numeric" });
+const LINE_ON = "#C9BEF9", LINE_OFF = "#E4E1EF";
+
+function Journey({ p }: { p: Person }) {
+  const w = BI.timeline(
+    { id: p.boardId, name: p.boardName, items: [], columns: p.fields.map((f) => ({ id: f.colId, title: f.title, type: f.type })) },
+    { id: p.id, name: p.name, values: p.fields },
+  );
+  if (!w) return null;                       // no date column on this board
+  const stages = (w.data as { stages: BI.Stage[] }).stages;
+  const seg = (a: BI.Stage, b: BI.Stage) => (a.at !== null && b.at !== null ? LINE_ON : LINE_OFF);
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ fontSize: 11.5, fontWeight: 800, color: C.grape, marginBottom: 9 }}>ציר הזמן</div>
+      <div style={{ display: "flex", overflowX: "auto", paddingBottom: 2 }}>
+        {stages.map((s, i) => (
+          <div key={s.colId} style={{ position: "relative", flex: "1 0 94px", minWidth: 94, textAlign: "center", opacity: s.at === null ? 0.45 : 1 }}>
+            {i > 0 && <span style={{ position: "absolute", insetInlineEnd: "50%", width: "50%", top: 6, height: 2, background: seg(s, stages[i - 1]) }} />}
+            {i < stages.length - 1 && <span style={{ position: "absolute", insetInlineStart: "50%", width: "50%", top: 6, height: 2, background: seg(s, stages[i + 1]) }} />}
+            <span style={{ position: "relative", display: "block", width: 12, height: 12, boxSizing: "border-box", margin: "1px auto 7px", borderRadius: "50%", background: s.at === null ? "#F4F3FB" : "#fff", border: `3px solid ${s.at === null ? "#C4BFD8" : C.grape}` }} />
+            <div style={{ fontSize: 11.5, fontWeight: 800, color: s.at === null ? C.muted : C.ink, whiteSpace: "nowrap" }}>{s.at === null ? "טרם" : DATE_FMT.format(new Date(s.at))}</div>
+            <div style={{ fontSize: 10.5, color: C.muted, lineHeight: 1.3, padding: "0 4px" }}>{s.title}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -532,6 +1119,7 @@ function ProfileExpand({ p, inline, onSaved, onDelete, flash }: { p: Person; inl
   }
   return (
     <div style={{ marginTop: inline ? 14 : 0, padding: inline ? "14px 0 0" : "16px 18px", background: inline ? "transparent" : "#FAF9FE", borderTop: inline ? "1px dashed #EEEDF5" : "none", animation: "fade .25s both" }}>
+      <Journey p={p} />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(170px,1fr))", gap: 9 }}>
         {editable.map((f, i) => <EditField key={i} f={f} onSave={save} />)}
       </div>
@@ -568,16 +1156,13 @@ function EditField({ f, onSave }: { f: PField; onSave: (f: PField, v: string) =>
     </div>
   );
 }
-function deriveEntity(boardName: string) {
-  const map: [RegExp, string][] = [[/בוגר/, "בוגרים"], [/מוטב/, "מוטבים"], [/תלמיד/, "תלמידים"], [/משפח/, "משפחות"], [/מתנדב/, "מתנדבים"], [/קשיש|זקן/, "קשישים"], [/חיה|בעל.?ח/, "בעלי חיים"], [/איש קשר|אנשי קשר/, "אנשי קשר"], [/לקוח/, "לקוחות"]];
-  for (const [re, w] of map) if (re.test(boardName)) return w;
-  return "רשומות";
-}
+// (the board's word for a row is derived server-side by terminology() and
+//  delivered through /api/dashboard?meta=1 - the screen keeps no copy)
 function Avatar({ name, i, sm }: { name: string; i: number; sm?: boolean }) {
   const c = pick(i); const s = sm ? 34 : 42;
   return <div style={{ width: s, height: s, borderRadius: 12, background: `linear-gradient(135deg,${c.fg},${c.fg}cc)`, color: "#fff", display: "grid", placeItems: "center", fontSize: sm ? 12 : 15, fontWeight: 800, flexShrink: 0 }}>{initials(name)}</div>;
 }
-function Chip({ s }: { s: string }) { const c = statusColor(s); return <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999, background: c.bg, color: c.fg, whiteSpace: "nowrap" }}>{s}</span>; }
+function Chip({ s, tone }: { s: string; tone?: string }) { const c = toneStyle(tone); return <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999, background: c.bg, color: c.fg, whiteSpace: "nowrap" }}>{s}</span>; }
 
 /* ===== insights = "שמתי לב ש..." phrased discoveries (NOT charts) ===== */
 interface Discovery { tone: string; icon: string; title: string; body: string; source: string }
@@ -611,15 +1196,238 @@ function Insights({ names }: { names: string[] }) {
   );
 }
 
-/* ===== floating context chat ===== */
+/* ===== "תובנות" · the two board scans =====
+   The discoveries above are computed on the server across every selected board.
+   These two are not: they read ONE loaded board — its columns and its items —
+   so this section loads that board itself.
+
+   They are SECTIONS of "תובנות", not tabs. The eight tab names and the mode
+   switch are locked by Meytal; nothing here adds to them. "תובנות" sits in
+   "ניהול", so both get the purple accent, never the pink of "פעולות".
+
+   Both are folded into <details> because together they are far longer than the
+   discoveries they sit under. The hygiene scan opens by default — it is the one
+   that can tell you something is wrong; the impact report is an export tool and
+   waits to be asked for. */
+function BoardScans({ boards, onAskAI }: { boards: BoardOpt[]; onAskAI: (q: string) => void }) {
+  const [boardId, setBoardId] = useState(boards[0]?.id ?? "");
+  const [loaded, setLoaded] = useState<{ id: string; board: MondayBoard; items: MondayItem[] } | null>(null);
+  const [err, setErr] = useState<{ id: string; msg: string } | null>(null);
+
+  /* No setState in the body of this effect: the load is started here and every
+     answer lands in a callback, so a stale board is recognised by its id rather
+     than cleared up front. */
+  useEffect(() => {
+    if (!boardId) return;
+    let alive = true;
+    loadBoard(boardId)
+      .then((d) => { if (alive) setLoaded({ id: boardId, board: d.board, items: d.items }); })
+      .catch((e) => { if (alive) setErr({ id: boardId, msg: e instanceof Error ? e.message : "לא הצלחנו לטעון את הבורד" }); });
+    return () => { alive = false; };
+  }, [boardId]);
+
+  const ready = loaded && loaded.id === boardId ? loaded : null;
+  const failed = err && err.id === boardId ? err : null;
+  const busy = Boolean(boardId) && !ready && !failed;
+
+  const head = (
+    <div style={{ marginTop: 26, marginBottom: 14 }}>
+      <h2 style={{ fontSize: 18, fontWeight: 800, margin: "0 0 2px" }}>סריקות על בורד אחד</h2>
+      <p style={{ fontSize: 12.5, color: C.muted, margin: 0 }}>שתי הסריקות האלה קוראות בורד אחד לעומק — בחרו על איזה.</p>
+    </div>
+  );
+
+  if (!boardId) {
+    return (
+      <div style={{ animation: "rise .4s both" }}>
+        {head}
+        <Notice tone="calm" title="בחרו בורד" body="הסריקות האלה מבוססות על בורד מסוים." />
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ animation: "rise .4s both" }}>
+      {head}
+      {boards.length > 1 && <BoardPicker boards={boards} value={boardId} onPick={setBoardId} busy={busy} />}
+      {busy && <Spinner label="טוען את הבורד..." />}
+      {failed && <ErrBox msg={failed.msg} />}
+      {ready && (
+        <>
+          <Scan title="התראות היגיינה" open>
+            <AlertsPanel board={ready.board} items={ready.items} pc={C.grape} ac={C.muted} onAskAI={onAskAI} />
+          </Scan>
+          <Scan title="דוח אימפקט">
+            <ImpactPanel board={ready.board} items={ready.items} pc={C.grape} ac={C.muted} />
+          </Scan>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** One folded section. The panel inside writes its own heading, so this only
+    supplies the fold. */
+function Scan({ title, open, children }: { title: string; open?: boolean; children: ReactNode }) {
+  return (
+    <details open={open} style={{ background: C.panel, border: "1px solid #ECEBF5", borderRadius: 18, padding: "4px 18px 4px", marginBottom: 12, boxShadow: "0 4px 16px -8px rgba(60,50,120,.1)" }}>
+      <summary style={{ cursor: "pointer", listStyle: "none", padding: "14px 0", fontSize: 14.5, fontWeight: 800, color: C.grape, display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ width: 8, height: 8, borderRadius: "50%", background: C.grape, flexShrink: 0 }} />
+        {title}
+      </summary>
+      <div style={{ paddingBottom: 16 }}>{children}</div>
+    </details>
+  );
+}
+
+/* ===== "פעולות" =====
+   Every screen here already existed; this mode only frames them. Three of them
+   (עריכה קבוצתית, אוטומציות, בניית בורד) are the components /workspace renders,
+   imported unchanged. צ׳אט־פקודות is the chat engine below, given a full panel
+   instead of a bubble.
+
+   Note the split in what they need: the bulk-edit and automations panels act on
+   ONE board and take its columns and items as props, so this mode asks which
+   board to work on. The chat and the builder do not — the chat reasons over all
+   the boards the org selected, and the builder is creating a board that does
+   not exist yet. */
+const ACT = "#FF2D87";
+
+function ActMode({ tab, boards, names, onBoardsChanged }: { tab: string; boards: BoardOpt[]; names: string[]; onBoardsChanged: () => void }) {
+  const [boardId, setBoardId] = useState("");
+  const [loaded, setLoaded] = useState<{ board: MondayBoard; items: MondayItem[] } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const chat = useChat();
+
+  async function choose(id: string) {
+    setBoardId(id); setBusy(true); setErr(null); setLoaded(null);
+    try { const d = await loadBoard(id); setLoaded({ board: d.board, items: d.items }); }
+    catch (e) { setErr(e instanceof Error ? e.message : "לא הצלחנו לטעון את הבורד"); }
+    finally { setBusy(false); }
+  }
+
+  const shell = (kids: React.ReactNode) => (
+    <div style={{ maxWidth: 1260, margin: "0 auto", padding: "20px 20px 60px" }}>{kids}</div>
+  );
+
+  if (tab === "chat") {
+    return shell(
+      <div style={{ background: C.panel, border: "1px solid #ECEBF5", borderRadius: 18, overflow: "hidden", display: "flex", flexDirection: "column", height: "calc(100vh - 190px)", minHeight: 420 }}>
+        <div style={{ padding: "14px 18px", borderBottom: "1px solid #ECEBF5" }}>
+          <div style={{ fontWeight: 800, fontSize: 15.5 }}>תגידו מה לעשות — ייעשה</div>
+          <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{names.length ? names.join(" · ") : "כל הבורדים שנבחרו"} · כל שינוי מוצג לאישור לפני שהוא נכתב ל-Monday</div>
+        </div>
+        <ChatCore chat={chat} ctx="הבורד" empty={<ChatIdeas onPick={(q) => chat.send(q)} />} />
+      </div>
+    );
+  }
+
+  if (tab === "build") {
+    return shell(<SmartBuilder existingBoards={boards.map((b) => b.name)} onBoardCreated={onBoardsChanged} />);
+  }
+
+  /* bulk / autos / reports — need one loaded board */
+  const picker = (
+    <BoardPicker boards={boards} value={boardId} onPick={choose} busy={busy} />
+  );
+  if (!loaded) {
+    return shell(
+      <>
+        {picker}
+        {err && <Notice tone="bad" title="שגיאה" body={err} />}
+        {!err && !busy && <Notice tone="calm" title="בחרו בורד" body={tab === "reports" ? "הדוח מופק מבורד מסוים." : "הפעולות במצב הזה נכתבות לבורד מסוים, ולכן צריך לבחור על איזה מהם לעבוד."} />}
+      </>
+    );
+  }
+  /* A board with no rows loads perfectly well - a board that "בניית בורד" just
+     created IS this. It must not look broken, and it must not be a dead end:
+     "עריכה קבוצתית" is the screen that can add the first record, so it stays
+     open with a line explaining the empty table. Automations and reports have
+     genuinely nothing to work on, so they say so instead of drawing an empty
+     tool that looks like a bug. */
+  const isEmpty = !loaded.items.length;
+  if (isEmpty && tab !== "bulk") {
+    return shell(
+      <>
+        {picker}
+        <Notice
+          tone="calm"
+          title="הבורד עדיין ריק"
+          body={tab === "reports"
+            ? "אין בו רשומות, ולכן אין ממה להפיק דוח. הוסיפו רשומות בלשונית עריכה קבוצתית, וחזרו לכאן."
+            : "אין בו רשומות, ולכן אין על מה להריץ אוטומציה. הוסיפו רשומות בלשונית עריכה קבוצתית, וחזרו לכאן."}
+        />
+      </>
+    );
+  }
+  return shell(
+    <>
+      {picker}
+      {isEmpty && <div style={{ marginBottom: 12 }}><Notice tone="calm" title="הבורד עדיין ריק" body="אין בו רשומות. הוסיפו את הראשונה בשדה ״+ פריט חדש״ שלמטה, והיא תיכתב ישירות ל-Monday." /></div>}
+      {tab === "bulk" && <DataEditPanel board={loaded.board} items={loaded.items} apiToken="" boardId={boardId} pc={ACT} />}
+      {tab === "autos" && <AutomationsPanel board={loaded.board} items={loaded.items} apiToken="" boardId={boardId} pc={ACT} />}
+      {tab === "reports" && <ReportPanel board={loaded.board} items={loaded.items} pc={ACT} />}
+    </>
+  );
+}
+
+function BoardPicker({ boards, value, onPick, busy }: { boards: BoardOpt[]; value: string; onPick: (id: string) => void; busy: boolean }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", background: C.panel, border: "1px solid #ECEBF5", borderRadius: 14, padding: "12px 16px", marginBottom: 16 }}>
+      <label htmlFor="act-board" style={{ fontSize: 13, fontWeight: 700 }}>עובדים על הבורד</label>
+      <select
+        id="act-board" value={value} onChange={(e) => onPick(e.target.value)} disabled={busy}
+        style={{ flex: "1 1 240px", maxWidth: 420, border: "1px solid #E6E4F0", borderRadius: 10, padding: "9px 12px", fontSize: 13.5, fontFamily: "inherit", background: "#fff", color: C.ink }}
+      >
+        <option value="">— בחרו —</option>
+        {boards.map((b) => <option key={b.id} value={b.id}>{b.items ? `${b.name} (${b.items})` : `${b.name} (ריק)`}</option>)}
+      </select>
+      {busy && <span style={{ fontSize: 12.5, color: C.muted }}>טוען…</span>}
+    </div>
+  );
+}
+
+function ChatIdeas({ onPick }: { onPick: (q: string) => void }) {
+  const ideas = ["כמה יש בכל סטטוס?", "מי דורש תשומת לב?", "מה לא עודכן הכי הרבה זמן?", "אילו עמודות ריקות ברובן?"];
+  return (
+    <div style={{ padding: "10px 6px" }}>
+      <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 10, textAlign: "center" }}>נסחו פקודה או שאלה — או התחילו מאחת מאלה:</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {ideas.map((q) => (
+          <button key={q} onClick={() => onPick(q)} style={{ textAlign: "start", background: C.panel, border: "1px solid #ECEBF5", borderRadius: 12, padding: "11px 14px", fontSize: 13, color: C.ink, cursor: "pointer", fontFamily: "inherit" }}>
+            <span style={{ color: ACT, fontWeight: 900, marginInlineEnd: 8 }}>›</span>{q}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Notice({ tone, title, body, action }: { tone: "calm" | "bad"; title: string; body: string; action?: { href: string; label: string } }) {
+  const bad = tone === "bad";
+  return (
+    <div style={{ background: C.panel, border: `1px solid ${bad ? C.coral + "55" : "#ECEBF5"}`, borderInlineStart: `4px solid ${bad ? C.coral : ACT}`, borderRadius: 16, padding: "18px 22px", maxWidth: 620 }}>
+      <div style={{ fontSize: 15.5, fontWeight: 800, marginBottom: 6 }}>{title}</div>
+      <p style={{ fontSize: 13.5, color: C.muted, lineHeight: 1.7, margin: 0 }}>{body}</p>
+      {action && (
+        <a href={action.href} style={{ display: "inline-block", marginTop: 14, background: ACT, color: "#fff", borderRadius: 10, padding: "9px 18px", fontSize: 13.5, fontWeight: 700, textDecoration: "none" }}>{action.label}</a>
+      )}
+    </div>
+  );
+}
+
+/* ===== command chat =====
+   One chat engine, two frames: a floating bubble in "ניהול" (ask about what is
+   on screen) and a full panel as the "צ׳אט־פקודות" tab in "פעולות" (tell it what
+   to do). Both post to /api/ask and confirm every write before it reaches
+   Monday — the confirmation card is the safety rule, not decoration. */
 interface Action { type: string; personName: string; boardId: string; boardName: string; itemId: string; columnId: string; columnTitle: string; from: string; to: string; }
 interface ChatMsg { role: "user" | "bot"; text: string; ai?: boolean; source?: string | null; action?: Action; done?: boolean; }
-function ChatFab({ open, setOpen, tab, names }: { open: boolean; setOpen: (v: boolean) => void; tab: Tab; names: string[] }) {
+
+function useChat() {
   const [msgs, setMsgs] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState(""); const [busy, setBusy] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => { ref.current?.scrollTo(0, ref.current.scrollHeight); }, [msgs, busy]);
-  const ctx = tab === "people" ? "המשתתפים" : tab === "insights" ? "התובנות" : "הלוח";
   async function send(q?: string) {
     const question = (q ?? input).trim(); if (!question) return;
     setInput(""); setMsgs((m) => [...m, { role: "user", text: question }]); setBusy(true);
@@ -637,23 +1445,27 @@ function ChatFab({ open, setOpen, tab, names }: { open: boolean; setOpen: (v: bo
     } catch { setMsgs((m) => m.concat([{ role: "bot", text: "❌ העדכון נכשל" }])); } finally { setBusy(false); }
   }
   function cancelAction(idx: number) { setMsgs((m) => m.map((x, i) => i === idx ? { ...x, done: true } : x).concat([{ role: "bot", text: "ביטלתי — לא שונה כלום." }])); }
-  if (!open) return <button onClick={() => setOpen(true)} style={{ position: "fixed", bottom: 24, insetInlineStart: 24, height: 54, padding: "0 22px", borderRadius: 999, border: "none", background: `linear-gradient(135deg,${C.grape},${C.coral})`, color: "#fff", fontSize: 15, fontWeight: 800, cursor: "pointer", boxShadow: `0 14px 34px -10px ${C.grape}`, display: "flex", alignItems: "center", gap: 9, fontFamily: "inherit", zIndex: 40 }}>💬 שאלו על {ctx}</button>;
+  return { msgs, input, setInput, busy, send, confirmAction, cancelAction };
+}
+
+type ChatApi = ReturnType<typeof useChat>;
+
+/** Scroll area + composer. Whatever frames it decides the height. */
+function ChatCore({ chat, ctx, empty }: { chat: ChatApi; ctx: string; empty?: React.ReactNode }) {
+  const { msgs, input, setInput, busy, send, confirmAction, cancelAction } = chat;
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => { ref.current?.scrollTo(0, ref.current.scrollHeight); }, [msgs, busy]);
   return (
-    <div style={{ position: "fixed", bottom: 24, insetInlineStart: 24, width: 380, maxWidth: "calc(100vw - 40px)", height: 520, maxHeight: "78vh", background: C.panel, borderRadius: 22, boxShadow: "0 30px 70px -20px rgba(40,30,90,.4)", display: "flex", flexDirection: "column", overflow: "hidden", zIndex: 40, animation: "pop .25s both" }}>
-      <div style={{ padding: "14px 16px", background: `linear-gradient(135deg,${C.grape},${C.coral})`, color: "#fff", display: "flex", alignItems: "center", gap: 9 }}>
-        <div style={{ fontWeight: 800, fontSize: 14.5 }}>🟣 שאלו על {ctx}</div>
-        <div style={{ fontSize: 11, opacity: .85 }}>{names.join(" · ")}</div>
-        <button onClick={() => setOpen(false)} style={{ marginInlineStart: "auto", background: "rgba(255,255,255,.2)", border: "none", color: "#fff", width: 28, height: 28, borderRadius: 8, cursor: "pointer", fontSize: 15 }}>✕</button>
-      </div>
+    <>
       <div ref={ref} style={{ flex: 1, overflowY: "auto", padding: 14, display: "flex", flexDirection: "column", gap: 10, background: C.bg }}>
-        {msgs.length === 0 && <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "20px 10px" }}>שאלו כל דבר על {ctx} — למשל "כמה בכל סטטוס?" או "מי דורש תשומת לב?"</div>}
+        {msgs.length === 0 && (empty ?? <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "20px 10px" }}>שאלו כל דבר על {ctx} — למשל &quot;כמה בכל סטטוס?&quot; או &quot;מי דורש תשומת לב?&quot;</div>)}
         {msgs.map((m, i) => <div key={i} style={{ alignSelf: m.role === "user" ? "flex-start" : "flex-end", maxWidth: "90%" }}>
           {m.role === "bot" && <div style={{ fontSize: 10, fontWeight: 800, color: C.grape, marginBottom: 3 }}>ANYDAY {m.ai && "· AI"}</div>}
           <div style={{ background: m.role === "user" ? "#fff" : C.grapeL, border: `1px solid ${m.role === "user" ? "#ECEBF5" : "#E1DBFC"}`, borderRadius: 14, padding: "9px 13px", fontSize: 13.5, lineHeight: 1.55 }} dangerouslySetInnerHTML={{ __html: m.text }} />
           {m.action && !m.done && (
             <div style={{ marginTop: 8, background: "#fff", border: `1.5px solid ${C.amber}`, borderRadius: 14, padding: 13 }}>
               <div style={{ fontSize: 11, fontWeight: 800, color: C.amber, marginBottom: 8 }}>מה ישתנה ב-Monday?</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 11 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 11, flexWrap: "wrap" }}>
                 <b>{m.action.personName}</b>
                 <span style={{ color: C.muted }}>· {m.action.columnTitle}:</span>
                 <span style={{ background: "#F0EFF6", padding: "2px 8px", borderRadius: 7, textDecoration: "line-through", color: C.muted }}>{m.action.from}</span>
@@ -672,9 +1484,25 @@ function ChatFab({ open, setOpen, tab, names }: { open: boolean; setOpen: (v: bo
       </div>
       <div style={{ padding: 12, borderTop: "1px solid #ECEBF5", display: "flex", gap: 8 }}>
         <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder={`שאלו על ${ctx}...`} style={{ flex: 1, border: "1px solid #E6E4F0", borderRadius: 12, padding: "10px 13px", fontSize: 13.5, outline: "none", fontFamily: "inherit" }} />
-        <button onClick={() => send()} style={{ width: 42, height: 42, borderRadius: 12, border: "none", background: C.grape, color: "#fff", fontSize: 17, cursor: "pointer" }}>↑</button>
+        <button onClick={() => send()} aria-label="שליחה" style={{ width: 42, height: 42, borderRadius: 12, border: "none", background: C.grape, color: "#fff", fontSize: 17, cursor: "pointer" }}>↑</button>
       </div>
       <style>{`@keyframes pop{from{opacity:0;transform:translateY(12px) scale(.97)}}@keyframes bob{0%,60%,100%{opacity:.35;transform:translateY(0)}30%{opacity:1;transform:translateY(-4px)}}`}</style>
+    </>
+  );
+}
+
+/* ===== floating context chat ("ניהול") ===== */
+function ChatFab({ chat, open, setOpen, tab, names }: { chat: ChatApi; open: boolean; setOpen: (v: boolean) => void; tab: string; names: string[] }) {
+  const ctx = tab === "people" ? "המשתתפים" : tab === "insights" ? "התובנות" : "הלוח";
+  if (!open) return <button onClick={() => setOpen(true)} style={{ position: "fixed", bottom: 24, insetInlineStart: 24, height: 54, padding: "0 22px", borderRadius: 999, border: "none", background: `linear-gradient(135deg,${C.grape},${C.coral})`, color: "#fff", fontSize: 15, fontWeight: 800, cursor: "pointer", boxShadow: `0 14px 34px -10px ${C.grape}`, display: "flex", alignItems: "center", gap: 9, fontFamily: "inherit", zIndex: 40 }}>💬 שאלו על {ctx}</button>;
+  return (
+    <div style={{ position: "fixed", bottom: 24, insetInlineStart: 24, width: 380, maxWidth: "calc(100vw - 40px)", height: 520, maxHeight: "78vh", background: C.panel, borderRadius: 22, boxShadow: "0 30px 70px -20px rgba(40,30,90,.4)", display: "flex", flexDirection: "column", overflow: "hidden", zIndex: 40, animation: "pop .25s both" }}>
+      <div style={{ padding: "14px 16px", background: `linear-gradient(135deg,${C.grape},${C.coral})`, color: "#fff", display: "flex", alignItems: "center", gap: 9 }}>
+        <div style={{ fontWeight: 800, fontSize: 14.5 }}>🟣 שאלו על {ctx}</div>
+        <div style={{ fontSize: 11, opacity: .85 }}>{names.join(" · ")}</div>
+        <button onClick={() => setOpen(false)} aria-label="סגירה" style={{ marginInlineStart: "auto", background: "rgba(255,255,255,.2)", border: "none", color: "#fff", width: 28, height: 28, borderRadius: 8, cursor: "pointer", fontSize: 15 }}>✕</button>
+      </div>
+      <ChatCore chat={chat} ctx={ctx} />
     </div>
   );
 }

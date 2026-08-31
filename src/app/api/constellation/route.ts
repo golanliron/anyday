@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { mondayQuery, requireMonday } from "@/lib/monday-server";
+import { requireMonday } from "@/lib/monday-server";
+import { fetchBoards, parseBoardIds, coverage, type FetchedBoard } from "@/lib/board-fetch";
 import * as BI from "@/lib/board-intelligence";
 
 /**
@@ -11,24 +12,18 @@ import * as BI from "@/lib/board-intelligence";
 export async function GET() {
   const guard = await requireMonday();
   if (!guard.ok) return NextResponse.json({ error: guard.error }, { status: guard.status });
-  const ids = (await cookies()).get("anyday_selected_boards")?.value?.split(",").filter(Boolean) || [];
+  const ids = parseBoardIds((await cookies()).get("anyday_selected_boards")?.value);
   if (!ids.length) return NextResponse.json({ error: "בחרו בורד" }, { status: 400 });
 
   try {
-    const data = await mondayQuery(
-      `query { boards(ids:[${ids.join(",")}]) {
-         id name columns { id title type }
-         items_page(limit:400) { items { id name updated_at column_values { id text column { title type } } } }
-       } }`,
-      guard.token
-    );
+    const fetched = await fetchBoards(ids, guard.token);
 
-    const boardsOut = (data?.boards || []).map((rb: RawBoard) => {
-      const cols: Col[] = rb.columns || [];
+    const boardsOut = fetched.map((rb: FetchedBoard) => {
+      const cols = rb.columns;
       // cluster column: prefer a dropdown/status that has several distinct values (e.g. תוכנית)
       const statusCols = cols.filter((c) => ["status", "color", "dropdown"].includes(c.type));
-      const items = rb.items_page?.items || [];
-      const valuesFor = (col: Col | undefined) => col ? items.map((it) => it.column_values?.find((cv) => cv.id === col.id)?.text || "").filter(Boolean) : [];
+      const items = rb.items;
+      const valuesFor = (col: Col | undefined) => col ? items.map((it) => it.values.find((cv) => cv.colId === col.id)?.text || "").filter(Boolean) : [];
       // Pick the BEST cluster column: one that splits items into BALANCED groups,
       // not dominated by a single value or mostly empty. Score by a "balance"
       // metric = distinct buckets (2-8 ideal) with good fill and no >70% giant.
@@ -47,15 +42,15 @@ export async function GET() {
       if (!clusterCol) clusterCol = statusCols[0];
       const statusCol = statusCols.find((c) => c.id !== clusterCol?.id) || clusterCol;
 
-      const term = BI.terminology({ id: rb.id, name: rb.name, columns: cols, items: [] });
+      const term = BI.terminology(rb);
       const dots = items.map((it) => {
-        const get = (col?: Col) => col ? (it.column_values?.find((cv) => cv.id === col.id)?.text || "") : "";
-        const fields = (it.column_values || []).map((cv) => ({ title: cv.column?.title || "", text: cv.text || "" })).filter((f) => f.title && f.text);
+        const get = (col?: Col) => col ? (it.values.find((cv) => cv.colId === col.id)?.text || "") : "";
+        const fields = it.values.map((cv) => ({ title: cv.title, text: cv.text })).filter((f) => f.title && f.text);
         return {
           id: it.id, name: it.name,
           cluster: get(clusterCol) || "אחר",
           status: get(statusCol),
-          updatedAt: it.updated_at || "",
+          updatedAt: it.updatedAt,
           fields,
         };
       });
@@ -71,12 +66,10 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json({ boards: boardsOut });
+    return NextResponse.json({ boards: boardsOut, coverage: coverage(fetched) });
   } catch (e: unknown) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "שגיאה" }, { status: 502 });
   }
 }
 
 interface Col { id: string; title: string; type: string; }
-interface RawItem { id: string; name: string; updated_at?: string; column_values?: { id: string; text: string; column?: { title: string; type: string } }[]; }
-interface RawBoard { id: string; name: string; columns?: Col[]; items_page?: { items: RawItem[] }; }

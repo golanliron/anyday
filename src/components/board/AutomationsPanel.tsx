@@ -871,7 +871,7 @@ export function AutomationsPanel({ board, items, apiToken, boardId, pc = "#D4FF2
                   flex: 1, padding: "6px 10px", borderRadius: 8, border: "none",
                   background: pc, cursor: "pointer", color: "var(--color-bg)", fontSize: 11, fontWeight: 700,
                 }}>הפעל עכשיו</button>
-                <button onClick={() => toggleAutoRun(auto.id)} title={auto.autoRun ? "כבה הפעלה אוטומטית" : "הפעל אוטומטית בכניסה"} style={{
+                <button onClick={() => toggleAutoRun(auto.id)} title={auto.autoRun ? "כבה הפעלה אוטומטית" : "הפעל אוטומטית בכניסה"} aria-label={auto.autoRun ? `כבה הפעלה אוטומטית של "${auto.name}"` : `הפעל אוטומטית בכניסה את "${auto.name}"`} aria-pressed={auto.autoRun} style={{
                   width: 30, height: 30, borderRadius: 8, border: `1px solid ${auto.autoRun ? "rgba(0,184,148,0.3)" : hexToRgba(pc, 0.15)}`,
                   background: auto.autoRun ? "rgba(0,184,148,0.1)" : "var(--color-surf)",
                   cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
@@ -880,7 +880,9 @@ export function AutomationsPanel({ board, items, apiToken, boardId, pc = "#D4FF2
                     <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
                   </svg>
                 </button>
-                <button onClick={() => deleteSaved(auto.id)} style={{
+                {/* כפתור-אייקון בלי טקסט = בלי שם לקורא-מסך; מחיקה היא הפעולה
+                    האחרונה שמותר לה להיות אילמת. */}
+                <button onClick={() => deleteSaved(auto.id)} title="מחיקת האוטומציה" aria-label={`מחק את האוטומציה "${auto.name}"`} style={{
                   width: 30, height: 30, borderRadius: 8, border: "1px solid rgba(225,112,85,0.15)",
                   background: "rgba(225,112,85,0.04)", cursor: "pointer",
                   display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,

@@ -1,12 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireMonday } from "@/lib/monday-server";
+import { rateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
+
+const MAX_FILE_BYTES = 5 * 1024 * 1024;
 
 export async function POST(req: NextRequest) {
+  // הנתיב משרת רק את הבונה החכם, שממילא יושב מאחורי חיבור Monday — אותו שער.
+  // בלעדיו זה היה נתיב ציבורי שקורא כל קובץ שמעלים אליו לתוך הזיכרון.
+  const guard = await requireMonday();
+  if (!guard.ok) return NextResponse.json({ error: guard.error }, { status: guard.status });
+
+  const rl = rateLimit("parse-file", guard.orgId, 10, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json({ error: RATE_LIMIT_MESSAGE }, { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } });
+  }
+
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
 
     if (!file) {
       return NextResponse.json({ error: "לא הועלה קובץ" }, { status: 400 });
+    }
+    if (file.size > MAX_FILE_BYTES) {
+      return NextResponse.json({ error: "הקובץ גדול מדי (עד 5MB)" }, { status: 413 });
     }
 
     const name = file.name.toLowerCase();

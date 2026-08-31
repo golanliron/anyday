@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { mondayQuery, requireMonday } from "@/lib/monday-server";
+import { fetchBoards, parseBoardIds, coverage, type FetchedBoard } from "@/lib/board-fetch";
 import * as BI from "@/lib/board-intelligence";
+import {
+  writePayload, looksLikeWrite, resolveName, valueCandidates, matchLabel,
+  labelsHtml, escapeHtml, labelsByColumn, STATUS_COLUMNS_QUERY,
+} from "@/lib/chat-intent";
+import { rateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
 
 /**
  * The AnyDay chat brain. Reads the user's SELECTED Monday boards live and
@@ -15,14 +21,22 @@ export async function POST(req: NextRequest) {
   const guard = await requireMonday();
   if (!guard.ok) return NextResponse.json({ error: guard.error }, { status: guard.status });
 
+  const rl = rateLimit("ask", guard.orgId, 30, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json({ error: RATE_LIMIT_MESSAGE }, { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } });
+  }
+
   const { question } = await req.json().catch(() => ({ question: "" }));
   if (!question || typeof question !== "string") {
     return NextResponse.json({ error: "חסרה שאלה" }, { status: 400 });
   }
+  if (question.length > 2000) {
+    return NextResponse.json({ error: "השאלה ארוכה מדי (עד 2000 תווים)" }, { status: 413 });
+  }
 
   // Which boards to read (selected, else the busiest few).
-  const selected = (await cookies()).get("anyday_selected_boards")?.value?.split(",").filter(Boolean);
-  let boardIds = selected || [];
+  const selected = parseBoardIds((await cookies()).get("anyday_selected_boards")?.value);
+  let boardIds = selected;
   try {
     if (!boardIds.length) {
       const list = await mondayQuery(`query { boards(limit:5, order_by:used_at, state:active){ id } }`, guard.token);
@@ -34,81 +48,144 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ answer: "עדיין לא בחרתם בורדים. חזרו למסך הבחירה כדי שאדע על מה להסתכל.", source: null });
   }
 
-  // Pull the selected boards with columns + items.
-  let boards: BoardFull[] = [];
+  // Pull the selected boards with columns + ALL of their items (paginated).
+  let boards: FetchedBoard[] = [];
   try {
-    const data = await mondayQuery(
-      `query { boards(ids:[${boardIds.join(",")}]) {
-         id name items_count
-         columns { id title type }
-         items_page(limit:200) { items { id name column_values { id text column { title type } } } }
-       } }`,
-      guard.token
-    );
-    boards = (data?.boards || []).map((b: RawBoard) => ({
-      id: b.id, name: b.name, itemsCount: b.items_count,
-      columns: b.columns || [],
-      items: (b.items_page?.items || []).map((it) => ({
-        id: it.id, name: it.name,
-        values: (it.column_values || []).map((cv) => ({ colId: cv.id, title: cv.column?.title || "", type: cv.column?.type || "", text: cv.text || "" })),
-      })),
-    }));
+    boards = await fetchBoards(boardIds, guard.token);
   } catch (e: unknown) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "שגיאה בקריאת הבורד" }, { status: 502 });
   }
 
-  const source = boards.map((b) => b.name).join(" · ");
-  const biBoards: BI.Board[] = boards.map((b) => ({ id: b.id, name: b.name, columns: b.columns, items: b.items }));
+  const cov = coverage(boards);
+  const source = boards.map((b) => b.name).join(" · ") + (cov.truncated ? ` · ${cov.note}` : "");
 
-  // ── WRITE-INTENT detection: "סמן/עדכן את <שם> כ/ל <סטטוס>" ──
-  const intent = detectUpdateIntent(question);
-  if (intent) {
-    // Find the person + status column so the client can show a "what changes" card.
-    for (const b of boards) {
-      const statusCol = b.columns.find((c) => ["status", "color"].includes(c.type));
-      if (!statusCol) continue;
-      const item = b.items.find((it) => it.name.includes(intent.name) || intent.name.includes(it.name));
-      if (!item) continue;
-      const current = item.values.find((v) => v.colId === statusCol.id)?.text || "—";
-      return NextResponse.json({
-        action: {
-          type: "update-status", personName: item.name, boardId: b.id, boardName: b.name,
-          itemId: item.id, columnId: statusCol.id, columnTitle: statusCol.title, from: current, to: intent.status,
-        },
-        answer: `רוצה לעדכן את <b>${item.name}</b>: ${statusCol.title} מ-"${current}" ל-"<b>${intent.status}</b>". מאשרת?`,
-        source,
-      });
-    }
-    return NextResponse.json({ answer: `לא מצאתי את "${intent.name}" בבורדים שבחרת (או שאין עמודת סטטוס). בדקי את השם.`, source });
+  // ── WRITE-INTENT detection: "סמן/עדכן את <שם> כ/ל<ערך>" ──
+  const payload = writePayload(question);
+  if (payload) {
+    const written = await respondToUpdate(payload, boards, guard.token, source);
+    if (written) return written;   // null = read it as a question after all
   }
 
   // ── Intent routing: build canvas widgets from the generic engine ──
-  const widgets = buildWidgets(question, biBoards);
+  const widgets = buildWidgets(question, boards);
 
   // Tier 2: if an AI key exists, let Claude phrase the answer with real data.
   const key = process.env.ANTHROPIC_API_KEY;
   if (key && key.trim().length > 10 && question !== "__overview__") {
     try {
       const aiAnswer = await askClaude(key, question, boards);
-      if (aiAnswer) return NextResponse.json({ answer: aiAnswer, source, ai: true, widgets });
+      if (aiAnswer) return NextResponse.json({ answer: aiAnswer, source, ai: true, widgets, coverage: cov });
     } catch { /* fall through */ }
   }
 
   // Tier 1: deterministic phrasing grounded in the real data.
   const det = analyze(question, boards, widgets);
-  return NextResponse.json({ answer: det.answer, source, ai: false, widgets });
+  return NextResponse.json({ answer: det.answer, source, ai: false, widgets, coverage: cov });
 }
 
-/** Detect a status-update request in Hebrew, e.g.:
- *  "סמן את דנה כבוגרת פעילה" / "עדכן את יוסי ל'סיים תוכנית'" / "תשנה את מיכל לבטיפול" */
-function detectUpdateIntent(q: string): { name: string; status: string } | null {
-  // patterns: (סמן|עדכן|תעדכן|שנה|תשנה) את <name> (כ|ל|לסטטוס) <status>
-  const m = q.match(/(?:סמן|סמני|עדכן|עדכני|תעדכן|שנה|תשנה|העבר|תעביר)\s+(?:את\s+)?(.+?)\s+(?:כ|ל|לסטטוס\s+|למצב\s+)['"]?(.+?)['"]?$/);
-  if (!m) return null;
-  const name = m[1].trim().replace(/^["']|["']$/g, "");
-  const status = m[2].trim().replace(/^["']|["']$/g, "");
-  if (!name || !status || name.length > 40) return null;
-  return { name, status };
+/**
+ * A board's status columns and the labels each one actually allows.
+ *
+ * DEBT (documented in anyday-ops/reports/T1.md): `board-fetch.ts` already reads
+ * this board's columns, but not their `settings_str`, and it is owned by
+ * another task right now — so the label list is read here with one small extra
+ * query. Worth folding into fetchBoards once that task lands.
+ */
+async function statusLabels(boardId: string, token: string): Promise<Record<string, string[]>> {
+  try {
+    const data = await mondayQuery(STATUS_COLUMNS_QUERY, token, { ids: [String(boardId)] });
+    return labelsByColumn(data);
+  } catch {
+    return {};   // labels unavailable → don't block the user, just skip validation
+  }
+}
+
+/**
+ * Turn "סמן את יוסי כהן כסיים" into a confirmable action card.
+ *
+ * Where the name ends is decided by the board's own item names (longest match
+ * wins), not by Hebrew grammar — so a name that starts with כ/ל no longer
+ * splits in the middle. Nothing is written here: an unknown value or an
+ * ambiguous name comes back as an answer that offers the real options.
+ * Returns null when the sentence should fall through to the normal Q&A path.
+ */
+async function respondToUpdate(
+  payload: string,
+  boards: FetchedBoard[],
+  token: string,
+  source: string,
+): Promise<NextResponse | null> {
+  const withStatus = boards.filter((b) => b.columns.some((c) => ["status", "color"].includes(c.type)));
+  const pool = withStatus.length ? withStatus : boards;
+  const found = resolveName(
+    payload,
+    pool.map((b) => ({ id: b.id, name: b.name, items: b.items.map((it) => ({ id: it.id, name: it.name })) })),
+  );
+
+  if (found.kind === "none") {
+    if (!looksLikeWrite(payload)) return null;
+    return NextResponse.json({
+      answer: `לא מצאתי "<b>${escapeHtml(payload)}</b>" בבורדים שבחרת, אז לא שיניתי כלום. כתבי את השם בדיוק כפי שהוא מופיע בבורד.`,
+      source,
+    });
+  }
+
+  if (found.kind === "many") {
+    const manyBoards = new Set(found.matches.map((m) => m.board.id)).size > 1;
+    const shown = found.matches.slice(0, 8)
+      .map((m) => `<b>${escapeHtml(m.item.name)}</b>${manyBoards ? ` (${escapeHtml(m.board.name)})` : ""}`)
+      .join(" · ");
+    const more = found.matches.length > 8 ? ` ועוד ${found.matches.length - 8}` : "";
+    return NextResponse.json({
+      answer: `ל"<b>${escapeHtml(found.matched)}</b>" יש יותר מהתאמה אחת: ${shown}${more}. לא שיניתי כלום — כתבי את השם המלא כדי שאדע במי מדובר.`,
+      source,
+    });
+  }
+
+  const { item, board } = found.matches[0];
+  const full = boards.find((b) => b.id === board.id);
+  const statusCol = full?.columns.find((c) => ["status", "color"].includes(c.type));
+  if (!full || !statusCol) {
+    return NextResponse.json({
+      answer: `מצאתי את <b>${escapeHtml(item.name)}</b>, אבל אין בבורד עמודת סטטוס לעדכן.`,
+      source,
+    });
+  }
+
+  const fullItem = full.items.find((it) => it.id === item.id);
+  const current = fullItem?.values.find((v) => v.colId === statusCol.id)?.text || "—";
+  const allowed = (await statusLabels(full.id, token))[statusCol.id] || [];
+  const options = allowed.length ? ` הערכים שקיימים בעמודה <b>${escapeHtml(statusCol.title)}</b>: ${labelsHtml(allowed)}.` : "";
+  const candidates = valueCandidates(found.rest);
+
+  if (!candidates.length) {
+    return NextResponse.json({
+      answer: `מצאתי את <b>${escapeHtml(item.name)}</b>, אבל לא כתוב לאיזה ערך לעדכן.${options}`,
+      source,
+    });
+  }
+
+  let value = candidates[0];
+  if (allowed.length) {
+    const hit = matchLabel(candidates, allowed);
+    if (!hit) {
+      const asked = candidates[candidates.length - 1];
+      return NextResponse.json({
+        answer: `"<b>${escapeHtml(asked)}</b>" לא קיים בעמודה <b>${escapeHtml(statusCol.title)}</b>, אז לא שיניתי כלום.${options}`,
+        source,
+      });
+    }
+    value = hit;   // write the board's own spelling, not the user's
+  }
+
+  return NextResponse.json({
+    action: {
+      type: "update-status", personName: item.name, boardId: full.id, boardName: full.name,
+      itemId: item.id, columnId: statusCol.id, columnTitle: statusCol.title, from: current, to: value,
+    },
+    answer: `רוצה לעדכן את <b>${escapeHtml(item.name)}</b>: ${escapeHtml(statusCol.title)} מ-"${escapeHtml(current)}" ל-"<b>${escapeHtml(value)}</b>". מאשרת?`,
+    source,
+  });
 }
 
 /** Route the user's question to the generic board-intelligence widget builders. */
@@ -132,16 +209,8 @@ function buildWidgets(q: string, boards: BI.Board[]): BI.Widget[] {
   return out.slice(0, 6);
 }
 
-// ── types ──
-interface RawBoard { id: string; name: string; items_count: number; columns?: Col[]; items_page?: { items: RawItem[] }; }
-interface RawItem { id: string; name: string; column_values?: { id: string; text: string; column?: { title: string; type: string } }[]; }
-interface Col { id: string; title: string; type: string; }
-interface ItemVal { colId: string; title: string; type: string; text: string; }
-interface Item { id: string; name: string; values: ItemVal[]; }
-interface BoardFull { id: string; name: string; itemsCount: number; columns: Col[]; items: Item[]; }
-
 // ── deterministic phrasing that references the widgets we built ──
-function analyze(q: string, boards: BoardFull[], widgets: BI.Widget[]): { answer: string; source: string } {
+function analyze(q: string, boards: FetchedBoard[], widgets: BI.Widget[]): { answer: string; source: string } {
   void q;
   const source = boards.map((b) => b.name).join(" · ");
   const total = boards.reduce((s, b) => s + b.items.length, 0);
@@ -149,15 +218,18 @@ function analyze(q: string, boards: BoardFull[], widgets: BI.Widget[]): { answer
   const bd = widgets.find((w) => w.kind === "breakdown");
   const parts: string[] = [];
   parts.push(`הסתכלתי על ${boards.length} בורד${boards.length > 1 ? "ים" : ""} (${source}) — ${total} פריטים בסך הכל.`);
-  if (bd) { const dd = bd.data as { rows: { label: string; n: number }[] }; const top = dd.rows[0]; if (top) parts.push(`הקבוצה הכי גדולה ב"${bd.title.replace('פילוח לפי ', '')}": <b>${top.label}</b> (${top.n}).`); }
+  if (bd) {
+    const dd = bd.data as { rows: { label: string; n: number }[] };
+    const top = dd.rows[0];
+    if (top) parts.push(`הקבוצה הכי גדולה ב"${bd.title.replace("פילוח לפי ", "")}": <b>${top.label}</b> (${top.n}).`);
+  }
   if (att) { const c = (att.data as { count: number }).count; parts.push(c ? `<b>${c}</b> פריטים נראים דורשים תשומת לב.` : "לא זיהיתי פריטים בסיכון."); }
   parts.push("בניתי לך תצוגות במשטח ← אפשר להמשיך לשאול.");
   return { answer: parts.join(" "), source };
 }
 
-// (legacy signature kept below is unused)
 // ── Claude (optional tier 2) ──
-async function askClaude(key: string, question: string, boards: BoardFull[]): Promise<string | null> {
+async function askClaude(key: string, question: string, boards: FetchedBoard[]): Promise<string | null> {
   // Compact the real board data into a context block (never fabricate).
   const ctx = boards.map((b) => {
     const cols = b.columns.map((c) => `${c.title}(${c.type})`).join(", ");
@@ -168,14 +240,14 @@ async function askClaude(key: string, question: string, boards: BoardFull[]): Pr
     return `## בורד: ${b.name} (${b.items.length} פריטים)\nעמודות: ${cols}\nדוגמת פריטים:\n${sample}`;
   }).join("\n\n");
 
-  const system = `אתה AnyDay — עוזר חכם לעמותות שמנתח נתוני Monday.com בעברית.
+  const system = `אתה AnyDay — עוזר חכם לארגונים שמנתח נתוני Monday.com בעברית.
 ענה קצר, מדויק, וחם. השתמש אך ורק בנתונים שקיבלת — לעולם אל תמציא מספרים או פרטים. אם המידע לא קיים בנתונים, אמור "אין לי את זה בבורדים שבחרתם". סיים תמיד עם ציון המקור (שם הבורד).`;
 
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
     body: JSON.stringify({
-      model: "claude-sonnet-4-5",
+      model: "claude-sonnet-5",
       max_tokens: 900,
       system,
       messages: [{ role: "user", content: `הנתונים מה-Monday שלי:\n\n${ctx}\n\n---\nשאלה: ${question}` }],

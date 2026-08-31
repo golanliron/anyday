@@ -27,10 +27,27 @@ class PanelErrorBoundary extends Component<{ children: ReactNode; onReset?: () =
   }
 }
 
+/**
+ * An action the AI proposed. It is NEVER executed on arrival: it rides on the
+ * assistant message that proposed it, is rendered as a human-readable preview,
+ * and reaches /api/monday only after the user clicks approve. `actionState`
+ * records what happened so a restored chat session shows history, not live
+ * buttons for something that already ran.
+ */
+interface PendingAction {
+  action: string;
+  conditionColumn?: string;
+  conditionValues?: string[];
+  actionConfig?: Record<string, unknown>;
+  description?: string;
+}
+
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  pendingAction?: PendingAction;
+  actionState?: "pending" | "approved" | "declined";
 }
 
 interface ChatSession {
@@ -519,28 +536,6 @@ export function BoardDashboard({
     return () => clearInterval(interval);
   }, [loading, mode]);
 
-  function buildBoardContext() {
-    const statusDist: Record<string, number> = {};
-    items.forEach((item) =>
-      item.column_values.forEach((cv) => {
-        if (cv.column.type === "color" && cv.text)
-          statusDist[cv.text] = (statusDist[cv.text] || 0) + 1;
-      })
-    );
-    const sampleItems = items.slice(0, 30).map(it => {
-      const vals = it.column_values.filter(cv => cv.text).map(cv => `${cv.column.title}:${cv.text}`).join(", ");
-      return `${it.name} (${vals})`;
-    }).join(" | ");
-
-    return {
-      boardName: board.name,
-      itemsCount: board.items_count,
-      columns: board.columns.map((c) => `${c.id}: ${c.title} [${c.type}]`).join(", "),
-      statusDistribution: Object.entries(statusDist).map(([k, v]) => `${k}:${v}`).join(", ") || "אין",
-      sampleItems,
-    };
-  }
-
   async function sendMessage(text?: string) {
     const msg = text || input.trim();
     if (!msg || loading) return;
@@ -552,77 +547,130 @@ export function BoardDashboard({
     setLoadingMsg("חושב...");
 
     try {
+      /* השרת קורא את הבורד בעצמו לפי המזהה — הדפדפן לא שולח "נתוני בורד". */
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: msg, boardContext: buildBoardContext() }),
+        body: JSON.stringify({ message: msg, boardId }),
       });
       const data = await res.json();
       const reply = data.error ? `שגיאה: ${data.error}` : data.reply;
-      setMessages(prev => [...prev, { role: "assistant", content: reply, timestamp: new Date() }]);
-
-      // If AI returned an action, execute it automatically
-      if (data.action) {
-        const act = data.action;
-
-        if (act.action === "create_board") {
-          // Board builder — different endpoint
-          setLoadingMsg("בונה בורד חדש...");
-          try {
-            const actionRes = await fetch("/api/monday", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                action: "create_board",
-                apiToken,
-                boardName: act.actionConfig?.boardName || "בורד חדש",
-                boardKind: act.actionConfig?.boardKind || "public",
-                columns: act.actionConfig?.columns || [],
-                groups: act.actionConfig?.groups || [],
-                items: act.actionConfig?.items || [],
-              }),
-            });
-            const actionResult = await actionRes.json();
-            const resultMsg = actionResult.success
-              ? `**הבורד נוצר בהצלחה!** 🎉\n\nID: ${actionResult.boardId}\n\n${actionResult.results?.map((r: string) => `- ${r}`).join("\n") || ""}`
-              : `שגיאה ביצירת הבורד: ${actionResult.error || "unknown"}`;
-            setMessages(prev => [...prev, { role: "assistant", content: resultMsg, timestamp: new Date() }]);
-          } catch {
-            setMessages(prev => [...prev, { role: "assistant", content: "שגיאה ביצירת הבורד", timestamp: new Date() }]);
-          }
-        } else {
-          // Standard automate action (change_status, move_to_group, notify, archive, send_email, create_item)
-          setLoadingMsg("מבצע פעולה על הבורד...");
-          try {
-            const actionRes = await fetch("/api/monday", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                action: "automate",
-                boardId,
-                apiToken,
-                conditionColumn: act.conditionColumn,
-                conditionValues: act.conditionValues,
-                actionType: act.action,
-                actionConfig: act.actionConfig || {},
-              }),
-            });
-            const actionResult = await actionRes.json();
-            const resultMsg = actionResult.executed > 0
-              ? `**בוצע בהצלחה!** ${actionResult.executed} מתוך ${actionResult.total} פריטים עודכנו.\n\n${actionResult.results?.map((r: string) => `- ${r}`).join("\n") || ""}`
-              : `לא נמצאו פריטים תואמים לביצוע.`;
-            setMessages(prev => [...prev, { role: "assistant", content: resultMsg, timestamp: new Date() }]);
-          } catch {
-            setMessages(prev => [...prev, { role: "assistant", content: "שגיאה בביצוע הפעולה על הבורד", timestamp: new Date() }]);
-          }
-        }
-      }
+      /* פעולה שה-AI הציע לא רצה מעצמה. היא נתלית על ההודעה, מוצגת כתצוגה
+         מקדימה, ורצה רק אחרי לחיצה על אישור — ראו runPendingAction. */
+      const pending: PendingAction | undefined =
+        !data.error && data.action ? (data.action as PendingAction) : undefined;
+      setMessages(prev => [...prev, {
+        role: "assistant", content: reply, timestamp: new Date(),
+        ...(pending ? { pendingAction: pending, actionState: "pending" as const } : {}),
+      }]);
     } catch {
       setMessages(prev => [...prev, { role: "assistant", content: "שגיאה בחיבור לשרת", timestamp: new Date() }]);
     } finally {
       setLoading(false);
       setLoadingMsg("");
     }
+  }
+
+  /* מה בדיוק יקרה אם תאושר הפעולה — בשפת הבורד, לא בשפת ה-API.
+     מזהי עמודות מתורגמים לכותרות כדי שהמשתמשת תאשר משהו שהיא מבינה. */
+  function describeAction(act: PendingAction): string {
+    const colTitle = (id?: string) =>
+      board.columns.find(c => c.id === id)?.title || id || "";
+    const cond = act.conditionColumn
+      ? `בפריטים שבהם "${colTitle(act.conditionColumn)}" = ${
+          act.conditionValues?.length ? act.conditionValues.map(v => `"${v}"`).join(" / ") : "כל ערך"
+        }`
+      : "";
+    const cfg = act.actionConfig || {};
+    switch (act.action) {
+      case "change_status":
+        return `שינוי "${colTitle(String(cfg.columnId || ""))}" ל-"${cfg.newValue}" ${cond}`;
+      case "move_to_group":
+        return `העברת פריטים לקבוצה אחרת ${cond}`;
+      case "archive":
+        return `העברה לארכיון ${cond}`;
+      case "notify":
+        return `שליחת התראה ב-Monday ${cond}`;
+      case "send_email":
+        return `שליחת התראת מייל ב-Monday ${cond}`;
+      case "create_item":
+        return `יצירת פריט חדש: "${cfg.itemName || ""}"`;
+      case "create_board":
+        return `יצירת בורד חדש: "${cfg.boardName || "בורד חדש"}"`;
+      default:
+        return act.description || act.action;
+    }
+  }
+
+  /**
+   * The user clicked approve. Only here — never on the AI's say-so — does the
+   * proposed action reach /api/monday. The message is marked first so a double
+   * click (or a restored session) cannot run the same action twice.
+   */
+  async function runPendingAction(index: number, act: PendingAction) {
+    if (loading) return;
+    setMessages(prev => prev.map((m, i) => (i === index ? { ...m, actionState: "approved" } : m)));
+    setLoading(true);
+
+    if (act.action === "create_board") {
+      setLoadingMsg("בונה בורד חדש...");
+      try {
+        const actionRes = await fetch("/api/monday", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "create_board",
+            boardName: act.actionConfig?.boardName || "בורד חדש",
+            boardKind: act.actionConfig?.boardKind || "public",
+            columns: act.actionConfig?.columns || [],
+            groups: act.actionConfig?.groups || [],
+            items: act.actionConfig?.items || [],
+          }),
+        });
+        const actionResult = await actionRes.json();
+        const resultMsg = actionResult.success
+          ? `**הבורד נוצר בהצלחה!** 🎉\n\nID: ${actionResult.boardId}\n\n${actionResult.results?.map((r: string) => `- ${r}`).join("\n") || ""}`
+          : `שגיאה ביצירת הבורד: ${actionResult.error || "unknown"}`;
+        setMessages(prev => [...prev, { role: "assistant", content: resultMsg, timestamp: new Date() }]);
+      } catch {
+        setMessages(prev => [...prev, { role: "assistant", content: "שגיאה ביצירת הבורד", timestamp: new Date() }]);
+      } finally {
+        setLoading(false);
+        setLoadingMsg("");
+      }
+      return;
+    }
+
+    // Standard automate action (change_status, move_to_group, notify, archive, send_email, create_item)
+    setLoadingMsg("מבצע פעולה על הבורד...");
+    try {
+      const actionRes = await fetch("/api/monday", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "automate",
+          boardId,
+          conditionColumn: act.conditionColumn,
+          conditionValues: act.conditionValues,
+          actionType: act.action,
+          actionConfig: act.actionConfig || {},
+        }),
+      });
+      const actionResult = await actionRes.json();
+      const resultMsg = actionResult.executed > 0
+        ? `**בוצע בהצלחה!** ${actionResult.executed} מתוך ${actionResult.total} פריטים עודכנו.\n\n${actionResult.results?.map((r: string) => `- ${r}`).join("\n") || ""}`
+        : `לא נמצאו פריטים תואמים לביצוע.`;
+      setMessages(prev => [...prev, { role: "assistant", content: resultMsg, timestamp: new Date() }]);
+    } catch {
+      setMessages(prev => [...prev, { role: "assistant", content: "שגיאה בביצוע הפעולה על הבורד", timestamp: new Date() }]);
+    } finally {
+      setLoading(false);
+      setLoadingMsg("");
+    }
+  }
+
+  function declinePendingAction(index: number) {
+    setMessages(prev => prev.map((m, i) => (i === index ? { ...m, actionState: "declined" } : m)));
   }
 
   const NAV_ITEMS: { modeId: "chat" | "dashboard" | "data" | "automations" | "impact"; panel: SidePanel; icon: React.ReactNode; label: string }[] = [
@@ -1050,6 +1098,48 @@ export function BoardDashboard({
                       border: msg.role === "assistant" ? `1px solid ${hexToRgba(pc, 0.1)}` : "none",
                     }}>
                       {msg.role === "assistant" ? <FormattedText text={msg.content} /> : msg.content}
+                      {msg.pendingAction && (
+                        <div style={{
+                          marginTop: 10, paddingTop: 10,
+                          borderTop: `1px solid ${hexToRgba(pc, 0.12)}`,
+                        }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+                            {describeAction(msg.pendingAction)}
+                          </div>
+                          {msg.actionState === "pending" ? (
+                            <div style={{ display: "flex", gap: 8 }}>
+                              <button
+                                onClick={() => runPendingAction(i, msg.pendingAction!)}
+                                disabled={loading}
+                                style={{
+                                  padding: "7px 16px", borderRadius: 10, border: "none",
+                                  background: `linear-gradient(135deg, ${pc}, ${ac})`,
+                                  color: "var(--color-bg)", fontSize: 13, fontWeight: 600,
+                                  cursor: loading ? "wait" : "pointer", fontFamily: "inherit",
+                                }}
+                              >
+                                אישור וביצוע
+                              </button>
+                              <button
+                                onClick={() => declinePendingAction(i)}
+                                disabled={loading}
+                                style={{
+                                  padding: "7px 16px", borderRadius: 10,
+                                  border: `1px solid ${hexToRgba(pc, 0.25)}`,
+                                  background: "transparent", color: "var(--color-text)",
+                                  fontSize: 13, cursor: "pointer", fontFamily: "inherit",
+                                }}
+                              >
+                                ביטול
+                              </button>
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: 12, opacity: 0.7 }}>
+                              {msg.actionState === "approved" ? "אושר ובוצע ✓" : "בוטל — לא בוצע"}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1463,7 +1553,7 @@ function DashboardPanel({ board, items, pc = "#FF2D87", ac = "var(--color-accent
 // AutomationsPanel is now imported from ./AutomationsPanel.tsx
 
 
-function ImpactPanel({ board, items, pc = "#FF2D87", ac = "var(--color-accent)" }: { board: MondayBoard; items: MondayItem[]; pc?: string; ac?: string }) {
+export function ImpactPanel({ board, items, pc = "#FF2D87", ac = "var(--color-accent)" }: { board: MondayBoard; items: MondayItem[]; pc?: string; ac?: string }) {
   const [exporting, setExporting] = useState(false);
   const [selectedCols, setSelectedCols] = useState<Set<string>>(new Set());
 
@@ -1715,59 +1805,88 @@ ${chartsHtml}
 // ReportPanel - One-click management reports
 // ═══════════════════════════════════════════════════════
 
-function ReportPanel({ board, items, pc = "#FF2D87", ac = "var(--color-accent)", orgName = "" }: {
-  board: MondayBoard; items: MondayItem[]; pc?: string; ac?: string; orgName?: string;
+/* `items` נשאר בטיפוס לתאימות עם הקוראים; הדוח עצמו כבר לא בונה הקשר בדפדפן —
+   השרת קורא את הבורד בעצמו לפי המזהה. */
+export function ReportPanel({ board, pc = "#FF2D87", ac = "var(--color-accent)", orgName = "" }: {
+  board: MondayBoard; items?: MondayItem[]; pc?: string; ac?: string; orgName?: string;
 }) {
   const [reportType, setReportType] = useState<string>("management");
   const [report, setReport] = useState<string>("");
   const [generating, setGenerating] = useState(false);
   const [generated, setGenerated] = useState(false);
-
-  function buildBoardContext() {
-    const statusDist: Record<string, number> = {};
-    items.forEach((item) =>
-      item.column_values.forEach((cv) => {
-        if (cv.column.type === "color" && cv.text)
-          statusDist[cv.text] = (statusDist[cv.text] || 0) + 1;
-      })
-    );
-    const sampleItems = items.slice(0, 30).map(it => {
-      const vals = it.column_values.filter(cv => cv.text).map(cv => `${cv.column.title}:${cv.text}`).join(", ");
-      return `${it.name} (${vals})`;
-    }).join(" | ");
-
-    return {
-      boardName: board.name,
-      itemsCount: board.items_count,
-      columns: board.columns.map((c) => `${c.id}: ${c.title} [${c.type}]`).join(", "),
-      statusDistribution: Object.entries(statusDist).map(([k, v]) => `${k}:${v}`).join(", ") || "אין",
-      sampleItems,
-    };
-  }
+  const [streamError, setStreamError] = useState<string>("");
 
   async function generateReport() {
     setGenerating(true);
     setReport("");
     setGenerated(false);
+    setStreamError("");
     try {
+      /* השרת קורא את הבורד בעצמו לפי המזהה — הדפדפן לא שולח "נתוני בורד". */
       const res = await fetch("/api/report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          boardContext: buildBoardContext(),
+          boardId: board.id,
           reportType,
           orgName,
         }),
       });
-      const data = await res.json();
-      if (data.error) {
-        setReport(`שגיאה: ${data.error}`);
-      } else {
-        setReport(data.report);
+
+      // שגיאה שקרתה לפני שההזרמה התחילה חוזרת כ-JSON רגיל.
+      if (!res.ok || !res.body) {
+        let msg = "שגיאה בחיבור לשרת";
+        try {
+          const data = await res.json();
+          if (data?.error) msg = data.error;
+        } catch { /* לא JSON — נשארים עם הודעת ברירת המחדל */ }
+        setStreamError(msg);
+        return;
+      }
+
+      // הזרם הוא NDJSON: שורה = אובייקט. אוספים לחוצץ, כי פיסה מהרשת
+      // יכולה להיחתך באמצע שורה.
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let text = "";
+      let finished = false;
+      let failure = "";
+
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (value) buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        let grew = false;
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          let ev: { type?: string; text?: string; error?: string };
+          try { ev = JSON.parse(line); } catch { continue; }
+          if (ev.type === "delta" && ev.text) {
+            text += ev.text;
+            grew = true;
+          } else if (ev.type === "error") {
+            failure = ev.error || "שגיאה";
+          } else if (ev.type === "done") {
+            finished = true;
+          }
+        }
+        // ציור אחד לכל פיסה שהגיעה מהרשת, לא אחד לכל מילה.
+        if (grew) setReport(text);
+        if (done) break;
+      }
+
+      if (failure) {
+        setStreamError(failure);
+      } else if (finished) {
         setGenerated(true);
+      } else {
+        // הזרם נגמר בלי סימן סיום — מה שהתקבל חלקי, ואסור להציג אותו כשלם.
+        setStreamError("החיבור נקטע לפני שהדוח הסתיים");
       }
     } catch {
-      setReport("שגיאה בחיבור לשרת");
+      setStreamError("שגיאה בחיבור לשרת");
     } finally {
       setGenerating(false);
     }
@@ -1876,7 +1995,7 @@ function ReportPanel({ board, items, pc = "#FF2D87", ac = "var(--color-accent)",
       {/* Report type selector */}
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 18 }}>
         {reportTypes.map(rt => (
-          <button key={rt.id} onClick={() => { setReportType(rt.id); setGenerated(false); setReport(""); }} style={{
+          <button key={rt.id} onClick={() => { setReportType(rt.id); setGenerated(false); setReport(""); setStreamError(""); }} style={{
             padding: "12px 14px", borderRadius: 12, cursor: "pointer",
             border: `1.5px solid ${reportType === rt.id ? pc : hexToRgba(pc, 0.1)}`,
             background: reportType === rt.id ? hexToRgba(pc, 0.08) : "var(--color-surf)",
@@ -1910,7 +2029,7 @@ function ReportPanel({ board, items, pc = "#FF2D87", ac = "var(--color-accent)",
         {generating ? (
           <>
             <Spinner size={14} color="var(--color-text)" />
-            מייצר דוח...
+            {report ? "כותב את הדוח..." : "מכין את הדוח..."}
           </>
         ) : (
           <>
@@ -1921,6 +2040,36 @@ function ReportPanel({ board, items, pc = "#FF2D87", ac = "var(--color-accent)",
           </>
         )}
       </button>
+
+      {/* משפט המתנה — עד שהתו הראשון מגיע, המסך לא נראה תקוע */}
+      {generating && !report && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8, marginBottom: 12,
+          padding: "10px 12px", borderRadius: 10,
+          background: hexToRgba(pc, 0.05), border: `1px solid ${hexToRgba(pc, 0.1)}`,
+          fontSize: 12, color: ac, lineHeight: 1.5,
+        }}>
+          <Spinner size={12} color={pc} />
+          <span>מכינים את הדוח — זה לוקח כדקה. הטקסט יתחיל להופיע כאן תוך כמה שניות.</span>
+        </div>
+      )}
+
+      {/* הדוח נקטע — אסור שייראה שלם */}
+      {streamError && (
+        <div style={{
+          marginBottom: 12, padding: "10px 12px", borderRadius: 10,
+          background: "rgba(220,38,38,0.06)", border: "1px solid rgba(220,38,38,0.25)",
+          fontSize: 12, color: "#DC2626", lineHeight: 1.6,
+        }}>
+          <div style={{ fontWeight: 700, marginBottom: 2 }}>הדוח לא הושלם</div>
+          <div>{streamError}</div>
+          {report && (
+            <div style={{ marginTop: 4 }}>
+              מה שמופיע למטה הוא חלק מהדוח בלבד — אל תשלחו אותו כמו שהוא. אפשר לנסות שוב.
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Report preview */}
       {report && (
@@ -1979,7 +2128,7 @@ interface Alert {
   items: string[];
 }
 
-function AlertsPanel({ board, items, pc = "#FF2D87", ac = "var(--color-accent)", onAskAI }: {
+export function AlertsPanel({ board, items, pc = "#FF2D87", ac = "var(--color-accent)", onAskAI }: {
   board: MondayBoard; items: MondayItem[]; pc?: string; ac?: string; onAskAI?: (question: string) => void;
 }) {
   // Analyze board for alerts
@@ -2087,6 +2236,34 @@ function AlertsPanel({ board, items, pc = "#FF2D87", ac = "var(--color-accent)",
     warning: { bg: "#FFF8E1", border: "#FFE8A0", icon: "#F39C12", text: "#D68910" },
     info: { bg: "#E8F4FD", border: "#B0D9F1", icon: "#0984E3", text: "#2471A3" },
   };
+
+  /* בורד בלי פריטים עובר את כל הבדיקות באפס מאמץ — כל בדיקה נכונה באופן ריק —
+     וקיבל עד עכשיו "במצב מעולה! 100". ציון על כלום הוא לא ציון; ביום הראשון של
+     בורד חדש זה בדיוק המסך שמלמד את המשתמשת אם אפשר לבטוח במספרים כאן. */
+  if (items.length === 0) {
+    return (
+      <div>
+        <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--color-text)", marginBottom: 4 }}>
+          התראות
+        </h3>
+        <p style={{ fontSize: 12, color: ac, marginBottom: 18, lineHeight: 1.5 }}>
+          סריקה אוטומטית: צווארי בקבוק, עמודות ריקות, כפילויות.
+        </p>
+        <div style={{
+          textAlign: "center", padding: "28px 20px",
+          background: hexToRgba(pc, 0.03), borderRadius: 14,
+          border: `1px dashed ${hexToRgba(pc, 0.2)}`,
+        }}>
+          <div style={{ fontSize: 32, marginBottom: 8 }} aria-hidden>🌱</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)" }}>הבורד עדיין ריק</div>
+          <div style={{ fontSize: 12, color: ac, marginTop: 6, lineHeight: 1.7 }}>
+            אין עדיין מה לסרוק — ציון וההתראות יופיעו ברגע שייכנסו פריטים.
+            בינתיים אפשר להוסיף פריטים בלשונית העריכה או לייבא מקובץ.
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>

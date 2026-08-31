@@ -12,6 +12,7 @@
 
 import type { MondayBoard, MondayItem } from "@/types";
 import type { HealthCheckResult, HealthFinding, FindingSeverity } from "@/types/health";
+import { parseBoardDate } from "./board-intelligence";
 
 // ============================================================
 // Check #1: Empty board
@@ -197,7 +198,7 @@ function checkOverdueItems(board: MondayBoard, items: MondayItem[]): HealthFindi
   if (dateColumns.length === 0) return [];
 
   const doneKeywords = ["הושלם", "done", "סיום", "בוצע", "completed", "גמור"];
-  const now = new Date();
+  const now = Date.now();
 
   const overdue = items.filter(item => {
     const isDone = item.column_values.some(cv =>
@@ -208,8 +209,12 @@ function checkOverdueItems(board: MondayBoard, items: MondayItem[]): HealthFindi
     return dateColumns.some(dc => {
       const val = item.column_values.find(cv => cv.id === dc.id);
       if (!val || !val.text) return false;
-      const date = new Date(val.text);
-      return !isNaN(date.getTime()) && date < now;
+      /* parseBoardDate ולא new Date(): תאריך כתוב יום-קודם ("25.1.2026") הוא
+         Invalid Date ב-JS, ולכן פריט באיחור עם תאריך כזה פשוט נעלם מהבדיקה —
+         בדיוק הפריט שהבדיקה קיימת בשבילו. board-intelligence כבר יודע לקרוא
+         את כל מה שמונדיי מחזיר; זה אותו קורא, לא שני. */
+      const p = parseBoardDate(val.text);
+      return p !== null && p.at < now;
     });
   });
 

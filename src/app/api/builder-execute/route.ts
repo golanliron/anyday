@@ -24,10 +24,6 @@ const COLUMN_TYPE_MAP: Record<string, string> = {
   location: "location",
 };
 
-function esc(s: string): string {
-  return s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-}
-
 interface BoardResult {
   boardName: string;
   boardId: string | null;
@@ -45,10 +41,15 @@ async function buildBoard(board: BuilderBoard, apiToken: string): Promise<BoardR
   };
 
   // 1. Create the board
+  // Every client-supplied value travels as a GraphQL variable (RULES §3) —
+  // this file used to hand-escape strings into the query text, and the escape
+  // was broken (see the columns step below), so a name with a quote could
+  // rewrite the mutation running under the org's write-capable token.
   try {
     const data = await mondayQuery(
-      `mutation { create_board(board_name:"${esc(board.boardName)}", board_kind:public) { id } }`,
-      apiToken
+      `mutation ($boardName: String!) { create_board(board_name: $boardName, board_kind: public) { id } }`,
+      apiToken,
+      { boardName: board.boardName }
     );
     result.boardId = data.create_board?.id;
   } catch (err) {
@@ -65,25 +66,36 @@ async function buildBoard(board: BuilderBoard, apiToken: string): Promise<BoardR
   for (const col of board.columns) {
     const mondayType = COLUMN_TYPE_MAP[col.type] || "text";
     try {
-      // Build defaults for status/dropdown columns
-      let defaultsClause = "";
+      // Build defaults for status/dropdown columns. Monday's JSON scalar takes
+      // the JSON *encoded as a string* — exactly what the old code built by
+      // hand with `.replace(/"/g,'\\"')`, an escape that was demonstrably
+      // broken (it ignored backslashes, so a label ending in \ produced an
+      // unparsable document). As a variable, no escaping exists to get wrong.
+      let defaults: string | undefined;
       if (col.type === "status" && col.statusLabels && col.statusLabels.length > 0) {
         const labels: Record<number, string> = {};
         col.statusLabels.forEach((label, i) => {
           labels[i] = label;
         });
-        const labelsJson = JSON.stringify({ labels }).replace(/"/g, '\\"');
-        defaultsClause = `, defaults:"${labelsJson}"`;
+        defaults = JSON.stringify({ labels });
       }
       if (col.type === "dropdown" && col.dropdownOptions && col.dropdownOptions.length > 0) {
-        const settings = { labels: col.dropdownOptions.map((opt, i) => ({ id: i, name: opt })) };
-        const settingsJson = JSON.stringify(settings).replace(/"/g, '\\"');
-        defaultsClause = `, defaults:"${settingsJson}"`;
+        defaults = JSON.stringify({ labels: col.dropdownOptions.map((opt, i) => ({ id: i, name: opt })) });
       }
 
+      /* The optional defaults are switched on/off by a FIXED fragment; the
+         value itself still travels as a variable (the create_item pattern). */
+      const defaultsDecl = defaults ? ", $defaults: JSON!" : "";
+      const defaultsClause = defaults ? ", defaults: $defaults" : "";
       await mondayQuery(
-        `mutation { create_column(board_id:${result.boardId}, title:"${esc(col.title)}", column_type:${mondayType}${defaultsClause}) { id } }`,
-        apiToken
+        `mutation ($boardId: ID!, $title: String!, $columnType: ColumnType!${defaultsDecl}) { create_column(board_id: $boardId, title: $title, column_type: $columnType${defaultsClause}) { id } }`,
+        apiToken,
+        {
+          boardId: result.boardId,
+          title: col.title,
+          columnType: mondayType,
+          ...(defaults ? { defaults } : {}),
+        }
       );
       result.columns.push(col.title);
     } catch (err) {
@@ -95,8 +107,9 @@ async function buildBoard(board: BuilderBoard, apiToken: string): Promise<BoardR
   for (const group of board.groups) {
     try {
       await mondayQuery(
-        `mutation { create_group(board_id:${result.boardId}, group_name:"${esc(group.title)}") { id } }`,
-        apiToken
+        `mutation ($boardId: ID!, $groupName: String!) { create_group(board_id: $boardId, group_name: $groupName) { id } }`,
+        apiToken,
+        { boardId: result.boardId, groupName: group.title }
       );
       result.groups.push(group.title);
     } catch (err) {

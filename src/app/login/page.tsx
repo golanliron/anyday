@@ -6,7 +6,7 @@ import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase-browser
 
 function LoginContent() {
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/workspace";
+  const callbackUrl = searchParams.get("callbackUrl") || "/app";
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);

@@ -12,14 +12,18 @@ export interface OrgContext {
   mondayAccountName: string | null;
 }
 
-function slugify(base: string): string {
-  const clean = base
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 24);
-  // suffix keeps slugs unique without needing Math.random (unavailable here)
-  return `${clean || "org"}-${Date.now().toString(36)}`;
+/**
+ * The org slug is derived from the user id and nothing else, so it is the SAME
+ * on every concurrent first request. That is what makes the bootstrap below
+ * safe: two parallel requests produce the same slug, the unique index on
+ * organizations.slug lets only one row exist, and the loser simply reads it.
+ *
+ * A time-based slug used to be generated here, which made every racing request
+ * unique — and produced two orgs for one user, 121ms apart, on the very first
+ * real login.
+ */
+function orgSlugFor(userId: string): string {
+  return `org-${userId}`;
 }
 
 /**
@@ -75,21 +79,35 @@ export async function getOrgContext(): Promise<OrgContext | null> {
     "הארגון שלי";
   const orgName = `${baseName} — AnyDay`;
 
-  const { data: org, error: orgErr } = await service
+  const slug = orgSlugFor(user.id);
+
+  // Insert only if this user has no org yet. If a parallel request beat us to
+  // it, the unique index on slug swallows this write instead of creating a
+  // second org — the whole point of the deterministic slug above.
+  const { error: orgErr } = await service
     .from("organizations")
-    .insert({ name: orgName, slug: slugify(baseName), plan: "trial" })
-    .select("id, name")
-    .single();
-  if (orgErr || !org) {
-    console.error("Org bootstrap failed:", orgErr?.message);
+    .upsert({ name: orgName, slug, plan: "trial" }, { onConflict: "slug", ignoreDuplicates: true });
+  if (orgErr) {
+    console.error("Org bootstrap failed:", orgErr.message);
     return null;
   }
 
-  const { error: memErr } = await service.from("org_users").insert({
-    org_id: org.id,
-    user_id: user.id,
-    role: "admin",
-  });
+  // Read back whichever row exists now — ours, or the one the race winner made.
+  const { data: org, error: readErr } = await service
+    .from("organizations")
+    .select("id, name")
+    .eq("slug", slug)
+    .single();
+  if (readErr || !org) {
+    console.error("Org bootstrap read-back failed:", readErr?.message);
+    return null;
+  }
+
+  // Same reasoning: unique(org_id, user_id) makes the second write a no-op.
+  const { error: memErr } = await service.from("org_users").upsert(
+    { org_id: org.id, user_id: user.id, role: "admin" },
+    { onConflict: "org_id,user_id", ignoreDuplicates: true }
+  );
   if (memErr) {
     console.error("Membership bootstrap failed:", memErr.message);
     return null;
@@ -127,4 +145,157 @@ export async function getMondayToken(orgId: string): Promise<string | null> {
     console.error("Monday token decrypt failed:", e instanceof Error ? e.message : e);
     return null;
   }
+}
+
+/* ------------------------------------------------------------------ digest */
+
+/** One organization a scheduled run should email, with everything it needs. */
+export interface DigestTarget {
+  orgId: string;
+  orgName: string;
+  /** Already decrypted. Never leaves the server. */
+  token: string;
+  boardIds: string[];
+  recipients: string[];
+}
+
+/**
+ * Mirror the dashboard's board choice onto the org row.
+ *
+ * The browser keeps its own httpOnly cookie and that stays the source of truth
+ * for the screen. This copy exists for the one caller that has no browser: a
+ * scheduled run. Failure is deliberately non-fatal — a person picking boards
+ * must not see an error because a background feature could not be recorded.
+ */
+export async function saveDigestBoards(orgId: string, boardIds: string[]): Promise<void> {
+  const service = createServiceClient();
+  if (!service) return;
+  const { error } = await service
+    .from("organizations")
+    .update({ digest_board_ids: boardIds })
+    .eq("id", orgId);
+  if (error) console.warn("Could not mirror board selection for the digest:", error.message);
+}
+
+/** Record the outcome of a scheduled send, so a silent stop is still visible. */
+export async function recordDigestRun(orgId: string, error: string | null): Promise<void> {
+  const service = createServiceClient();
+  if (!service) return;
+  await service
+    .from("organizations")
+    .update(
+      error
+        ? { digest_last_error: error.slice(0, 500) }
+        : { digest_last_sent_at: new Date().toISOString(), digest_last_error: null }
+    )
+    .eq("id", orgId);
+}
+
+/**
+ * Every organization a scheduled digest should run for.
+ *
+ * This is the piece that made cron possible. `getOrgContext()` resolves an org
+ * from a browser session; a cron call has none, so it needs to go the other way
+ * — from the database outward. The service client is correct here precisely
+ * because there is no user to act as: the caller was already authorised by
+ * DIGEST_SECRET, and no org id is ever taken from client input.
+ *
+ * An org is included only when ALL of these hold:
+ *   - it opted in         (digest_enabled)
+ *   - Monday is connected (a token we can actually decrypt)
+ *   - boards were chosen  (nothing to report on otherwise)
+ *   - somebody receives it
+ *   - it was not already sent within the guard window (see below)
+ *
+ * Anything that fails a check is skipped with a reason, never guessed at.
+ */
+
+/**
+ * The idempotency guard: an org successfully mailed less than this long ago is
+ * skipped. `digest_last_sent_at` was being WRITTEN on every success and read
+ * by nothing — so a cron retry (Vercel re-fires on timeouts), a manual run on
+ * top of the schedule, or a double-configured schedule mailed everyone twice.
+ * 20 hours: short enough that tomorrow's deliberate manual run still goes out,
+ * long enough that no same-day duplicate can. This is read-then-send, not a
+ * transaction — two runs in the SAME SECOND could still race; the guard is
+ * aimed at retries and double schedules, which arrive minutes apart.
+ */
+const RESEND_GUARD_MS = 20 * 60 * 60 * 1000;
+export async function getDigestTargets(): Promise<{ targets: DigestTarget[]; skipped: { org: string; why: string }[] }> {
+  const targets: DigestTarget[] = [];
+  const skipped: { org: string; why: string }[] = [];
+
+  const service = createServiceClient();
+  if (!service) return { targets, skipped };
+
+  const { data: orgs, error } = await service
+    .from("organizations")
+    .select("id, name, monday_token_encrypted, digest_enabled, digest_board_ids, digest_recipients, digest_last_sent_at")
+    .eq("digest_enabled", true);
+
+  if (error) {
+    console.error("Reading digest targets failed:", error.message);
+    return { targets, skipped };
+  }
+
+  for (const org of orgs ?? []) {
+    const name = (org.name as string) ?? org.id;
+
+    const lastSent = org.digest_last_sent_at ? Date.parse(org.digest_last_sent_at as string) : NaN;
+    if (!Number.isNaN(lastSent) && Date.now() - lastSent < RESEND_GUARD_MS) {
+      skipped.push({
+        org: name,
+        why: `נשלח כבר ב-${new Date(lastSent).toISOString()} — מדלגים כדי לא לשלוח פעמיים`,
+      });
+      continue;
+    }
+
+    if (!org.monday_token_encrypted) {
+      skipped.push({ org: name, why: "מונדיי לא מחובר" });
+      continue;
+    }
+
+    let token: string;
+    try {
+      token = decrypt(org.monday_token_encrypted as string);
+    } catch {
+      // A key rotation makes every stored token unreadable. Say so plainly
+      // instead of letting the run look merely empty.
+      skipped.push({ org: name, why: "הטוקן לא ניתן לפענוח — ייתכן ש-ENCRYPTION_KEY הוחלף" });
+      continue;
+    }
+
+    const boardIds = ((org.digest_board_ids as string[]) ?? []).filter((id) => /^\d+$/.test(id));
+    if (!boardIds.length) {
+      skipped.push({ org: name, why: "לא נבחרו בורדים" });
+      continue;
+    }
+
+    let recipients = ((org.digest_recipients as string[]) ?? []).filter(Boolean);
+    if (!recipients.length) recipients = await memberEmails(service, org.id as string);
+    if (!recipients.length) {
+      skipped.push({ org: name, why: "אין נמען" });
+      continue;
+    }
+
+    targets.push({ orgId: org.id as string, orgName: name, token, boardIds, recipients });
+  }
+
+  return { targets, skipped };
+}
+
+/** The login emails of an org's members — the fallback when none were set. */
+async function memberEmails(
+  service: ReturnType<typeof createServiceClient>,
+  orgId: string
+): Promise<string[]> {
+  if (!service) return [];
+  const { data: members } = await service.from("org_users").select("user_id").eq("org_id", orgId);
+  const out: string[] = [];
+  for (const m of members ?? []) {
+    const { data } = await service.auth.admin.getUserById(m.user_id as string);
+    const email = data?.user?.email;
+    if (email) out.push(email);
+  }
+  return out;
 }

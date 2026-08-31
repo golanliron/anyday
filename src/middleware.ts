@@ -1,7 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-const PROTECTED = ["/workspace", "/builder"];
+// Screens that read/write a real Monday account. When Supabase auth is
+// configured these require a logged-in user; with no auth configured the
+// early return above lets a local dev run through untouched.
+const PROTECTED = ["/workspace", "/builder", "/app"];
 
 export async function middleware(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
