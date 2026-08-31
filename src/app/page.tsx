@@ -288,33 +288,33 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ─── PRICING ─── */}
+      {/* ─── PRICING — Early Access ───
+          ארבע המדרגות הקודמות לא נאכפו בשום מקום בקוד (MAX=2 סתר גם "בורד
+          אחד" וגם "ללא הגבלה"), ויחידת התמחור עצמה — ארגון? משתמש? בורד? —
+          עוד לא הוכרעה. מחירון שפורסם היה מבטיח משהו שהמוצר מפר ונועל החלטה
+          שטרם התקבלה. מדרגה אחת כנה במקומו, עד שיש למי ולמה לתמחר. */}
       <section id="pricing" className="pricing">
         <div className="pricing__header" data-reveal>
           <span className="tag">מחירים</span>
-          <h2 className="big-title">בחרו את הגודל שלכם.</h2>
+          <h2 className="big-title">פיילוט ראשון. בואו לבנות אותו איתנו.</h2>
         </div>
 
-        <div className="plans">
-          {[
-            { name: "סטארטר", price: "250", items: ["לוח חי","בורד אחד","100 פעולות בחודש","בניית בורדים בעברית"], cta: "להתחיל בחינם →", badge: "לנסות" },
-            { name: "צוות", price: "450", items: ["דוחות PDF להנהלה","התראות חכמות","500 פעולות בחודש"], cta: "להתחיל →" },
-            { name: "ארגון", price: "750", items: ["אוטומציות מלאות","לוח חי לכל הבורדים","2,000 פעולות בחודש","בורדים ללא הגבלה"], cta: "להתחיל →", pop: true },
-            { name: "רשת / קבוצה", price: "1,200", items: ["מספר ארגונים","SSO + API","תמיכה ייעודית","SLA מותאם"], cta: "בואו נדבר →" },
-          ].map((p, i) => (
-            <div key={i} className={`plan ${p.pop ? "plan--pop" : ""}`} data-reveal>
-              {(p.pop || p.badge) && <div className="plan__badge">{p.pop ? "פופולרי" : p.badge}</div>}
-              <h3 className="plan__name">{p.name}</h3>
-              <div className="plan__price">
-                <span className="plan__amount">{p.price}</span>
-                <span className="plan__period">₪/חו׳</span>
-              </div>
-              <ul className="plan__list">
-                {p.items.map((item, j) => <li key={j}>{item}</li>)}
-              </ul>
-              <button onClick={scrollToDemo} className={`btn ${p.pop ? "btn--lime" : "btn--outline btn--outline-dark"}`}>{p.cta}</button>
+        <div className="plans" style={{ gridTemplateColumns: "minmax(0, 440px)", justifyContent: "center" }}>
+          <div className="plan plan--pop" data-reveal>
+            <div className="plan__badge">Early Access</div>
+            <h3 className="plan__name">מצטרפים מוקדם</h3>
+            <div className="plan__price">
+              <span className="plan__amount">0</span>
+              <span className="plan__period">₪ בתקופת הפיילוט</span>
             </div>
-          ))}
+            <ul className="plan__list">
+              <li>כל היכולות: לוח חי, דוחות, אוטומציות, דיגסט</li>
+              <li>ליווי צמוד בהקמה — אפס הגדרות באמת</li>
+              <li>מתמחרים יחד, כשנדע מה שווה לכם</li>
+              <li>מחיר מייסדים למצטרפים בתקופה הזו</li>
+            </ul>
+            <button onClick={scrollToDemo} className="btn btn--lime">להצטרף לפיילוט →</button>
+          </div>
         </div>
       </section>
 
@@ -325,7 +325,10 @@ export default function Home() {
             /* "שרתים בישראל" הוסר: הפריסה היא fra1 — פרנקפורט (ראו vercel.json),
                ול-Vercel אין אזור בישראל כלל, כך שהטענה אינה "טרם הוגדרה" אלא
                בלתי ניתנת למימוש. הוחלף במה שנכון ובר-בדיקה. */
-            "הצפנה AES-256","שרתים באיחוד האירופי","לא מאמנים על הנתונים שלכם","מחיקה מלאה בלחיצה",
+            /* "מחיקה מלאה בלחיצה" הוחלף: disconnect מוחק את הטוקן והחיבור —
+               לא את הארגון וההגדרות. מבטיחים את מה שהכפתור באמת עושה; מחיקת
+               כל נתוני הארגון היא פיצ'ר נפרד כשיהיה — לא סיסמה לפני כן. */
+            "הצפנה AES-256","שרתים באיחוד האירופי","לא מאמנים על הנתונים שלכם","ניתוק Monday בלחיצה — הטוקן נמחק מיד",
           ].map((label,i) => (
             <div key={i} className="trust__item">
               <span className="trust__check">✓</span><span>{label}</span>
@@ -347,7 +350,7 @@ export default function Home() {
             { q: "אין לנו Monday — רק גיליון. זה עדיין רלוונטי?", a: "כן. מדביקים קישור לגיליון Google (או גוררים קובץ CSV) ומקבלים דשבורד באותו רגע — בלי חשבון. גיליון מקושר אפשר למשוך מחדש בכל רגע, כך שהתמונה נשארת עדכנית. מה שעדיין דורש Monday: דיגסט שבועי במייל, ואוטומציות שכותבות חזרה ללוח." },
             { q: "אנחנו כבר עובדים עם Monday שנים. מה זה מוסיף?", a: "בדיוק בשביל זה. ה-Monday שלכם כבר מכיל את הכל — AnyDay רק הופכת אותו לקריא: תמונת מצב במקום טבלאות, תובנות שעולות לבד, ופעולות שאפשר לעשות מכאן והן מתעדכנות חזרה בבורד." },
             { q: "אפשר להקים בורד חדש מתוך AnyDay?", a: "כן. תארו במילים מה צריך — AnyDay מקימה בורד עם עמודות, קבוצות ואוטומציות, בלי לצאת מהמסך. זו נוחות בתוך המוצר, לא פרויקט הטמעה שאנחנו עושים בשבילכם." },
-            { q: "ואם לא מתאים?", a: "7 ימי ניסיון חינם. ביטול בלחיצה אחת. בלי חוזה, בלי שיחת שימור, בלי התחייבות." },
+            { q: "ואם לא מתאים?", a: "בתקופת הפיילוט מצטרפים בחינם, אז אין מה להפסיד. לא מתאים? מנתקים את Monday בלחיצה — בלי חוזה, בלי שיחת שימור, בלי התחייבות." },
             { q: "הנתונים שלנו בטוחים?", a: "הצפנה מלאה, ואיננו מאמנים מודלים על הנתונים שלכם. שאילתות הדשבורד רצות בזמן אמת מול Monday ואינן נשמרות. מה שכן נשמר אצלנו: הגדרות הארגון, וכל בורד שבניתם דרך הבונה — עד שתמחקו אותו." },
           ].map((faq, i) => (
             <div key={i} className={`faq ${openFaq === i ? "faq--open" : ""}`} data-reveal
