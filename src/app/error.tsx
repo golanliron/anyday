@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 /**
  * שגיאה לא-צפויה בכל מקום באפליקציה. בלי הקובץ הזה Next מציג את המסך
  * הגנרי שלו — אנגלית, LTR, בלי דרך חזרה — למשתמשת שכל המוצר מדבר אליה
@@ -26,12 +28,12 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
           >
             לנסות שוב
           </button>
-          <a
+          <Link
             href="/"
             style={{ display: "inline-block", borderRadius: 13, padding: "12px 26px", fontSize: 14.5, fontWeight: 700, color: "#1B1830", border: "1px solid #E6E4F0", textDecoration: "none", fontFamily: "inherit" }}
           >
             לעמוד הבית
-          </a>
+          </Link>
         </div>
         {error?.digest && (
           <p style={{ fontSize: 11, color: "#A9A7BE", marginTop: 18, fontVariantNumeric: "tabular-nums" }}>
