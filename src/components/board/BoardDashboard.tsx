@@ -2237,6 +2237,34 @@ export function AlertsPanel({ board, items, pc = "#FF2D87", ac = "var(--color-ac
     info: { bg: "#E8F4FD", border: "#B0D9F1", icon: "#0984E3", text: "#2471A3" },
   };
 
+  /* בורד בלי פריטים עובר את כל הבדיקות באפס מאמץ — כל בדיקה נכונה באופן ריק —
+     וקיבל עד עכשיו "במצב מעולה! 100". ציון על כלום הוא לא ציון; ביום הראשון של
+     בורד חדש זה בדיוק המסך שמלמד את המשתמשת אם אפשר לבטוח במספרים כאן. */
+  if (items.length === 0) {
+    return (
+      <div>
+        <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--color-text)", marginBottom: 4 }}>
+          התראות
+        </h3>
+        <p style={{ fontSize: 12, color: ac, marginBottom: 18, lineHeight: 1.5 }}>
+          סריקה אוטומטית: צווארי בקבוק, עמודות ריקות, כפילויות.
+        </p>
+        <div style={{
+          textAlign: "center", padding: "28px 20px",
+          background: hexToRgba(pc, 0.03), borderRadius: 14,
+          border: `1px dashed ${hexToRgba(pc, 0.2)}`,
+        }}>
+          <div style={{ fontSize: 32, marginBottom: 8 }} aria-hidden>🌱</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)" }}>הבורד עדיין ריק</div>
+          <div style={{ fontSize: 12, color: ac, marginTop: 6, lineHeight: 1.7 }}>
+            אין עדיין מה לסרוק — ציון וההתראות יופיעו ברגע שייכנסו פריטים.
+            בינתיים אפשר להוסיף פריטים בלשונית העריכה או לייבא מקובץ.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--color-text)", marginBottom: 4 }}>
