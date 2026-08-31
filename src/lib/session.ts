@@ -205,9 +205,22 @@ export async function recordDigestRun(orgId: string, error: string | null): Prom
  *   - Monday is connected (a token we can actually decrypt)
  *   - boards were chosen  (nothing to report on otherwise)
  *   - somebody receives it
+ *   - it was not already sent within the guard window (see below)
  *
  * Anything that fails a check is skipped with a reason, never guessed at.
  */
+
+/**
+ * The idempotency guard: an org successfully mailed less than this long ago is
+ * skipped. `digest_last_sent_at` was being WRITTEN on every success and read
+ * by nothing — so a cron retry (Vercel re-fires on timeouts), a manual run on
+ * top of the schedule, or a double-configured schedule mailed everyone twice.
+ * 20 hours: short enough that tomorrow's deliberate manual run still goes out,
+ * long enough that no same-day duplicate can. This is read-then-send, not a
+ * transaction — two runs in the SAME SECOND could still race; the guard is
+ * aimed at retries and double schedules, which arrive minutes apart.
+ */
+const RESEND_GUARD_MS = 20 * 60 * 60 * 1000;
 export async function getDigestTargets(): Promise<{ targets: DigestTarget[]; skipped: { org: string; why: string }[] }> {
   const targets: DigestTarget[] = [];
   const skipped: { org: string; why: string }[] = [];
@@ -217,7 +230,7 @@ export async function getDigestTargets(): Promise<{ targets: DigestTarget[]; ski
 
   const { data: orgs, error } = await service
     .from("organizations")
-    .select("id, name, monday_token_encrypted, digest_enabled, digest_board_ids, digest_recipients")
+    .select("id, name, monday_token_encrypted, digest_enabled, digest_board_ids, digest_recipients, digest_last_sent_at")
     .eq("digest_enabled", true);
 
   if (error) {
@@ -227,6 +240,15 @@ export async function getDigestTargets(): Promise<{ targets: DigestTarget[]; ski
 
   for (const org of orgs ?? []) {
     const name = (org.name as string) ?? org.id;
+
+    const lastSent = org.digest_last_sent_at ? Date.parse(org.digest_last_sent_at as string) : NaN;
+    if (!Number.isNaN(lastSent) && Date.now() - lastSent < RESEND_GUARD_MS) {
+      skipped.push({
+        org: name,
+        why: `נשלח כבר ב-${new Date(lastSent).toISOString()} — מדלגים כדי לא לשלוח פעמיים`,
+      });
+      continue;
+    }
 
     if (!org.monday_token_encrypted) {
       skipped.push({ org: name, why: "מונדיי לא מחובר" });
