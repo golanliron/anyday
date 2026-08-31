@@ -45,6 +45,7 @@ create index if not exists idx_organizations_digest_due
   on public.organizations (digest_enabled)
   where digest_enabled and monday_token_encrypted is not null;
 
--- No new RLS policy is needed: these columns sit on `organizations`, which is
--- already covered by "org_members_all". Members read and write their own row;
--- the cron path uses the service key and never trusts client input for org id.
+-- CORRECTED IN v5: the claim that stood here — "no new RLS policy is needed,
+-- org_members_all covers it" — was wrong in the way that matters: it let a
+-- `viewer` write these very columns. v5 splits the policy (members read,
+-- admins update). Run supabase-schema-v5.sql after this file.

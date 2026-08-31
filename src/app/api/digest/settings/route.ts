@@ -68,6 +68,12 @@ export async function POST(req: NextRequest) {
   const ctx = await getOrgContext();
   if (!ctx) return NextResponse.json({ error: "יש להתחבר כדי להמשיך" }, { status: 401 });
 
+  // הסכמה לקבל מייל בשם הארגון היא החלטת אדמין — לא של viewer. הקיר האמיתי
+  // הוא ה-RLS (supabase-schema-v5.sql: עדכון organizations = אדמין בלבד);
+  // הבדיקה כאן קיימת כדי שהסירוב יהיה 403 ברור ולא עדכון-שקט-שנכשל.
+  if (ctx.role !== "admin")
+    return NextResponse.json({ error: "רק אדמין יכול לשנות את הגדרות הדיגסט" }, { status: 403 });
+
   const body = (await req.json().catch(() => ({}))) as {
     enabled?: unknown;
     recipients?: unknown;
