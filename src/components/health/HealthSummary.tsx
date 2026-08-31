@@ -4,6 +4,8 @@ interface HealthSummaryProps {
   result: HealthCheckResult;
   boardNames: string[];
   totalBoardsInAccount: number;
+  /** "מבוסס על X מתוך Y רשומות" — מגיע רק כשהקריאה נקטעה בתקרה. */
+  coverageNote?: string;
 }
 
 function scoreColor(score: number) {
@@ -35,7 +37,7 @@ function summaryText(score: number, summary: HealthCheckResult["summary"]): stri
   return "נמצאו בעיות משמעותיות שדורשות טיפול דחוף. התחילו מהממצאים הקריטיים.";
 }
 
-export function HealthSummary({ result, boardNames, totalBoardsInAccount }: HealthSummaryProps) {
+export function HealthSummary({ result, boardNames, totalBoardsInAccount, coverageNote }: HealthSummaryProps) {
   return (
     <div className="fade-up" style={{
       background: "var(--color-surf)",
@@ -115,6 +117,11 @@ export function HealthSummary({ result, boardNames, totalBoardsInAccount }: Heal
           {totalBoardsInAccount > result.boardsScanned && (
             <span style={{ fontSize: 12 }}>
               {" "}(מתוך {totalBoardsInAccount} בורדים בחשבון)
+            </span>
+          )}
+          {coverageNote && (
+            <span style={{ fontSize: 12 }}>
+              {" "}· {coverageNote}
             </span>
           )}
         </div>

@@ -12,6 +12,8 @@ import { getMondayStatus, disconnectMonday } from "@/lib/api-client";
 interface ScanResponse extends HealthCheckResult {
   boardNames: string[];
   totalBoardsInAccount: number;
+  /** כמה מהנתונים באמת נקראו — מוצג כשקריאה נקטעה בתקרה, כדי שמדגם לא יוצג כסריקה. */
+  coverage?: { loaded: number; total: number; truncated: boolean; note: string };
 }
 
 // Severity config
@@ -385,6 +387,7 @@ export default function HealthCheckPage() {
               result={result}
               boardNames={result.boardNames}
               totalBoardsInAccount={result.totalBoardsInAccount}
+              coverageNote={result.coverage?.truncated ? result.coverage.note : undefined}
             />
 
             {/* Action plan */}
