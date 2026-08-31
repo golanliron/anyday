@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { mondayQuery, requireMonday } from "@/lib/monday-server";
+import { parseBoardDate } from "@/lib/board-intelligence";
 
 /**
  * Full record management that writes to the REAL Monday board.
@@ -148,7 +149,14 @@ function formatValue(type: string, value: string): string {
     case "status":
     case "color": return JSON.stringify({ label: value });
     case "dropdown": return JSON.stringify({ labels: [value] });
-    case "date": return JSON.stringify({ date: value });
+    case "date": {
+      /* Monday מקבל רק YYYY-MM-DD. משתמשת שמקלידה "25.1.2026" קיבלה עד עכשיו
+         שגיאה עמומה ממונדיי (או שקט). parseBoardDate מנרמל כל צורה שהמוצר
+         כבר יודע לקרוא; מה שלא-תאריך עובר כמו שהוא, כדי שמונדיי יסרב בקול
+         במקום שאנחנו נבלע את הערך בשקט. */
+      const p = parseBoardDate(value);
+      return JSON.stringify({ date: p ? p.iso : value });
+    }
     case "numbers": return JSON.stringify(value);
     case "checkbox": return JSON.stringify({ checked: value ? "true" : "false" });
     case "email": return JSON.stringify({ email: value, text: value });
