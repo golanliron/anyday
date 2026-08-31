@@ -42,6 +42,24 @@ const TONE_STYLE: Record<Tone, { fg: string; bg: string }> = {
 };
 const toneStyle = (t?: string) => TONE_STYLE[t as Tone] || TONE_STYLE.neutral;
 
+/**
+ * The ONE breakpoint of /app: below 900px the two-column shell folds to one.
+ * Everything in this page is styled inline, so a media query cannot reach it —
+ * this hook is the media query. Initial value false (SSR has no window);
+ * hydration corrects it on the first paint of a phone.
+ */
+function useIsNarrow(): boolean {
+  const [narrow, setNarrow] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 900px)");
+    const apply = () => setNarrow(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+  return narrow;
+}
+
 /* The eight tab names are locked by Meytal (28.8.2026) — see the approved
    mockup in anyday-ops. Do not reword them. "AnyDay" is the product name on the
    roof only; the chat tab is called צ׳אט־פקודות. */
@@ -121,6 +139,8 @@ function AppShell() {
      "תובנות" can hand it a question — the same move /workspace made when an
      alert asked the AI what to do. */
   const fabChat = useChat();
+  /* מעל early-returns של השער — hook לא נקרא בתנאי לעולם. */
+  const narrow = useIsNarrow();
 
   useEffect(() => {
     fetch("/api/boards", { cache: "no-store" })
@@ -196,7 +216,10 @@ function AppShell() {
     <ModeShell mode={mode} onModeChange={goMode} tabs={TABS[mode]} tab={tab} onTabChange={setTab} aside={<ShellAside onDisconnected={handleDisconnected} />}>
       {mode === "manage" ? (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 250px", maxWidth: 1260, margin: "0 auto", gap: 18, padding: "20px 20px 90px" }}>
+          {/* מסך צר = טור אחד, והסרגל הופך לכפתור מעל התוכן (B-6): הדיגסט
+              נפתח בטלפון, וזה המסך שהוא מוביל אליו. */}
+          <div style={{ display: "grid", gridTemplateColumns: narrow ? "1fr" : "1fr 250px", maxWidth: 1260, margin: "0 auto", gap: 18, padding: narrow ? "14px 14px 90px" : "20px 20px 90px" }}>
+            {narrow && <BoardRail boards={boards} active={active} setActive={setActiveBoards} collapsible />}
             <main style={{ minWidth: 0 }}>
               {tab === "dash" && <Dashboard key={active.join()} names={activeNames} empty={activeAllEmpty} />}
               {tab === "people" && <People />}
@@ -211,7 +234,7 @@ function AppShell() {
                 </>
               )}
             </main>
-            <BoardRail boards={boards} active={active} setActive={setActiveBoards} />
+            {!narrow && <BoardRail boards={boards} active={active} setActive={setActiveBoards} />}
           </div>
           <ChatFab chat={fabChat} open={chatOpen} setOpen={setChatOpen} tab={tab} names={activeNames} />
         </>
@@ -302,17 +325,49 @@ function useSyncTime() {
 }
 
 /* ===== board rail (right) ===== */
-function BoardRail({ boards, active, setActive }: { boards: BoardOpt[]; active: string[]; setActive: (ids: string[]) => void }) {
+function BoardRail({ boards, active, setActive, collapsible }: { boards: BoardOpt[]; active: string[]; setActive: (ids: string[]) => void; collapsible?: boolean }) {
   const [q, setQ] = useState("");
   const shown = boards.filter((b) => b.name.includes(q));
   function toggle(id: string) {
     const next = active.includes(id) ? active.filter((x) => x !== id) : active.length < 2 ? [...active, id] : [active[1], id];
     setActive(next);
   }
+
+  /* במסך צר הסרגל לא יכול לשבת בצד — הוא היה דוחס את התוכן לפס. הוא הופך
+     ל-<details>: שורת כפתור שמראה מה נבחר, ונפתחת רק כשרוצים להחליף. */
+  if (collapsible) {
+    const activeNames = boards.filter((b) => active.includes(b.id)).map((b) => b.name);
+    return (
+      <details style={{ background: C.panel, border: `1px solid #ECEBF5`, borderRadius: 16 }}>
+        <summary style={{ listStyle: "none", cursor: "pointer", padding: "12px 14px", display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 700 }}>
+          <span aria-hidden style={{ fontSize: 11, color: C.muted }}>▾</span>
+          בורדים על הלוח
+          <span style={{ fontWeight: 500, color: C.muted, fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {activeNames.length ? `· ${activeNames.join(" + ")}` : "· לא נבחרו"}
+          </span>
+        </summary>
+        <div style={{ padding: "0 14px 14px" }}>
+          <RailBody q={q} setQ={setQ} shown={shown} active={active} toggle={toggle} />
+        </div>
+      </details>
+    );
+  }
+
   return (
     <aside style={{ position: "sticky", top: 78, alignSelf: "start", background: C.panel, border: `1px solid #ECEBF5`, borderRadius: 20, padding: 14, maxHeight: "calc(100vh - 100px)", overflowY: "auto" }}>
       <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".05em", color: C.muted, marginBottom: 4 }}>בורדים על הלוח</div>
       <div style={{ fontSize: 11, color: "#A9A7BE", marginBottom: 10 }}>סמנו עד 2 · הלוח מתעדכן מיד</div>
+      <RailBody q={q} setQ={setQ} shown={shown} active={active} toggle={toggle} />
+    </aside>
+  );
+}
+
+/** תוכן הסרגל — משותף לגרסת הצד ולגרסת הכפתור, כדי שלא יהיו שתי אמיתות. */
+function RailBody({ q, setQ, shown, active, toggle }: {
+  q: string; setQ: (v: string) => void; shown: BoardOpt[]; active: string[]; toggle: (id: string) => void;
+}) {
+  return (
+    <>
       <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="חיפוש..." style={{ width: "100%", padding: "8px 11px", borderRadius: 10, border: "1px solid #E6E4F0", fontSize: 12.5, outline: "none", fontFamily: "inherit", marginBottom: 10 }} />
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {shown.slice(0, 40).map((b, i) => {
@@ -326,7 +381,7 @@ function BoardRail({ boards, active, setActive }: { boards: BoardOpt[]; active: 
           );
         })}
       </div>
-    </aside>
+    </>
   );
 }
 

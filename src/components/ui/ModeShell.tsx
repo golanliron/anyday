@@ -46,7 +46,9 @@ export function ModeShell({
   return (
     <div dir="rtl" style={{ minHeight: "100vh", background: "#F4F3FB", fontFamily: "Rubik, Assistant, Heebo, system-ui, sans-serif", color: "#1B1830" }}>
       {/* ── top bar: brand + mode switch ── */}
-      <header style={{ height: 58, background: "#FFFFFF", borderBottom: `1px solid ${LINE}`, display: "flex", alignItems: "center", gap: 16, padding: "0 22px", position: "sticky", top: 0, zIndex: 20 }}>
+      {/* overflowX: הכותרת לא רשאית לעולם לגרור גלילה אופקית של העמוד כולו —
+          במסך צר היא נגללת בתוך עצמה, כמו שורת הלשוניות שמתחתיה. */}
+      <header style={{ height: 58, background: "#FFFFFF", borderBottom: `1px solid ${LINE}`, display: "flex", alignItems: "center", gap: 16, padding: "0 22px", position: "sticky", top: 0, zIndex: 20, overflowX: "auto" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
           <div style={{ width: 32, height: 32, borderRadius: 10, background: `linear-gradient(135deg,${MODE_COLOR.manage},${MODE_COLOR.act})`, color: "#fff", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 16 }}>A</div>
           <div style={{ fontWeight: 800, fontSize: 18 }}>Any<span style={{ color: accent }}>Day</span></div>
